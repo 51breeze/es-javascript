@@ -1,37 +1,33 @@
-const Grammar = require("../../core/Grammar");
-const Constant = require("../../core/Constant");
-const Utils = require("../../core/Utils");
+const Constant = require("./Constant");
+const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
 const classMap=new Map();
 const namespaceMap=new Map();
 class Syntax extends events.EventEmitter {
 
-    constructor(stack, parent=null){
+    constructor(stack){
+        super();
         this.stack = stack;
+        this.parentStack = stack.parentStack;
         this.scope = stack.scope;
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
-        this.module = stack.module;
-        this.parent = parent;
-        this.children = [];
-        if( parent ){
-            parent.children.push( this );
-        }
+        this.module = stack.module; 
     }
 
     isRuntime( name ){
         switch( name.toLowerCase() ){
             case "client" :
-                return true;
+                return this.platform === "client";
             case  "server" :
-                return false; 
+                return this.platform === "server";
         }
         return false;
     }
 
     isSyntax( name ){
-        return name.toLowerCase() === "javascript";
+        return name.toLowerCase() === this.name;
     }
 
     checkRefsName(name){
@@ -84,11 +80,11 @@ class Syntax extends events.EventEmitter {
     }
 
     getOptions(){
-        return this.compilation.compiler.options;
+        return this.compiler.options;
     }
     
     getConfig( name ){
-        const config = this.compilation.compiler.options.configuration[ this.syntaxName ] || {};
+        const config = this.compiler.options.configuration[ this.name ] || {};
         if( name ){
             if( name.lastIndexOf(".") > 0 ){
                 const keys = name.split('.');
@@ -150,7 +146,7 @@ class Syntax extends events.EventEmitter {
             stack=stack.parentStack;
         }
         return !!(stack && stack.isSwitchCase);
-     }
+    }
 
     getIndent(num=null){
         let level = num === null ? this.scope.level : num;
@@ -226,15 +222,14 @@ class Syntax extends events.EventEmitter {
     }
     createDependencies(module, refs){
         const config = this.getConfig();
-        const polyfill = Syntax.target.modules.Polyfill;
         module.addDepend( module.compilation.getModuleById("System") );
         module.dependencies.forEach( depModule=>{
-            const isRequire = !depModule.isDeclaratorModule && depModule.used && Utils.isLocalModule(depModule) && !Utils.checkDepend(module, depModule);
-            const isPolyfill = depModule.isDeclaratorModule && polyfill.modules.has(depModule.id);
+            const isRequire = !depModule.isDeclaratorModule && depModule.used && this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",module, depModule);
+            const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
             if( isRequire || isPolyfill){
                 const name = module.getReferenceNameByModule( depModule );
                 if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
-                    const polyfillModule = isPolyfill && polyfill.modules.get(depModule.id);
+                    const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
                     if( !polyfillModule || !polyfillModule.isSystem ){
                         refs.push(`var ${name} = System.getClass(${this.getIdByModule(depModule)});`);
                     }
@@ -302,9 +297,12 @@ class Syntax extends events.EventEmitter {
         return inherit[0] || null;
     }
 
+    emiter(){}
+
     error(code,...args){
         this.stack.error(code,...args);
     }
+
     warn(code,...args){
         this.stack.warn(code,...args);
     }

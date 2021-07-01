@@ -1,28 +1,36 @@
 const fs = require("fs");
 const path = require("path");
-const modules = {};
-const stack = path.join(__dirname,"stack");
-const files = fs.readdirSync( stack );
-const excludes=["index","polyfills"];
-files.forEach( (filename)=>{
-    const info = path.parse( filename );
-    if( !excludes.includes(info.name) ){
-       modules[ info.name ] = require(  path.join(stack,filename) );
-    }
-});
-
-module.exports = {
+const Builder = require("./core/Builder");
+const modules = new Map();
+const loadLibs=()=>{
+    const dirname = path.join(__dirname,"lib");
+    fs.readdirSync( dirname ).forEach( (filename)=>{
+        const info = path.parse( filename );
+        modules.set(info.name, require( path.join(dirname,filename) ) );
+    });
+}
+const Syntax = require("./core/Syntax");
+const plugin = {
     name:'javascript',
-    create(name,stack){
-        const Syntax = modules[name];
+    platform:'client',
+    builder(stack,name){
+        const Syntax = modules.get(name);
         if( Syntax ){
-            return new Syntax(stack);
+            return (new Syntax(stack)).emiter(this);
         }
         return null;
     },
-    start( make, done ){
-        make((programStack)=>{
-
-        });
+    start(program, done){
+        if( modules.size === 0 ){
+            loadLibs();
+        }
+        const builder = new Builder(program);
+        builder.start(done);
     }
+};
+
+for(var name in plugin){
+    Object.defineProperty(Syntax.prototype, name, {value:plugin[name],enumerable:false,configurable:false} )
 }
+
+module.exports = plugin;
