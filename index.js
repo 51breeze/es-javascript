@@ -20,11 +20,11 @@ const plugin = {
         }
         return null;
     },
-    start(program, done){
+    start(compilation, done){
         if( modules.size === 0 ){
             loadLibs();
         }
-        const builder = new Builder(program);
+        const builder = new Builder( compilation.stack );
         builder.start(done);
     }
 };

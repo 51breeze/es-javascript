@@ -4,6 +4,8 @@ const PATH = require("path");
 const events = require('events');
 const classMap=new Map();
 const namespaceMap=new Map();
+const usedModules = new Set();
+const dependModules = new Map();
 class Syntax extends events.EventEmitter {
 
     constructor(stack){
@@ -14,6 +16,18 @@ class Syntax extends events.EventEmitter {
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
         this.module = stack.module; 
+    }
+
+    used(module){
+        usedModules.add(module);
+    }
+
+    isUsed(module){
+        return module.used || usedModules.has(module);
+    }
+
+    getUsedModules(){
+        return usedModules;
     }
 
     isRuntime( name ){
@@ -220,15 +234,40 @@ class Syntax extends events.EventEmitter {
         }
         return namespaceMap.get(namespace);
     }
+
+    addDepend( depModule ){
+        const module = this.module;
+        if( !depModule.isModule || depModule === module )return;
+        if( !dependModules.has( module ) ){
+            dependModules.set(module,new Set());
+        }
+        const target = dependModules.get(module);
+        this.used(depModule);
+        target.add(depModule);
+    }
+    getDependencies( module ){
+        return dependModules.get(module) || [];
+    }
+
+    isDependModule(depModule){
+        const isRequire = !depModule.isDeclaratorModule && 
+                            this.isUsed(depModule) &&
+                            this.compiler.callUtils("isLocalModule", depModule) && 
+                            !this.compiler.callUtils("checkDepend",module, depModule);         
+        const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
+        if( isRequire || isPolyfill){
+            return true;
+        }
+        return false;
+    }
+
     createDependencies(module, refs){
         const config = this.getConfig();
-        module.addDepend( module.compilation.getModuleById("System") );
-        module.dependencies.forEach( depModule=>{
-            const isRequire = !depModule.isDeclaratorModule && depModule.used && this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",module, depModule);
-            const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
-            if( isRequire || isPolyfill){
+        this.getDependencies(module).forEach( depModule=>{
+            if( this.isDependModule(depModule) ){
                 const name = module.getReferenceNameByModule( depModule );
                 if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+                    const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
                     const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
                     if( !polyfillModule || !polyfillModule.isSystem ){
                         refs.push(`var ${name} = System.getClass(${this.getIdByModule(depModule)});`);
@@ -289,11 +328,20 @@ class Syntax extends events.EventEmitter {
     }
 
     getImps(module){
-        return module.implements.filter( module=>!module.isDeclaratorModule && module.isInterface );
+        return module.implements.filter( module=>{
+            const result = !module.isDeclaratorModule && module.isInterface;
+            if( result ){
+                this.addDepend( module )
+                return true;
+            }
+        });
     }
 
     getInherit(module){
         const inherit = module.extends.filter( module=>module.isClass );
+        if( inherit[0] ){
+            this.addDepend( inherit[0] );
+        }
         return inherit[0] || null;
     }
 
