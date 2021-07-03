@@ -365,7 +365,7 @@ class Syntax extends events.EventEmitter {
         return inherit[0] || null;
     }
 
-    emiter(){}
+    emitter(){}
 
     error(code,...args){
         this.stack.error(code,...args);

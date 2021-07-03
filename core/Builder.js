@@ -30,7 +30,7 @@ class Builder extends Syntax{
                     const file = getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
                     filesystem.mkdirpSync( path.dirname(file) );
-                    filesystem.writeFileSync(file, stack.emiter( syntax ) );
+                    filesystem.writeFileSync(file, this.make(stack) );
                     if( config.output.mode === Constant.BUILD_OUTPUT_EVERY_FILE ){
                         this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
                     }
