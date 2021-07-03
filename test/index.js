@@ -12,7 +12,7 @@ describe('compile file', function() {
             const errors = compilation.compiler.errors;
             expect('Expected 0 errors').toContain( errors.length );
             if( errors.length===0 ){
-                compilation.build(['javascript']);
+                creator.build( compilation );
             }else{
                 errors.forEach((error)=>{
                     fail( error.toString() );

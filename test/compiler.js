@@ -1,14 +1,15 @@
-const Compiler = require("../lib/core/Compiler");
-const Diagnostic = require("../lib/core/Diagnostic");
-const Compilation = require("../lib/core/Compilation");
+const Compiler = require("easescript/lib/core/Compiler");
+const Diagnostic = require("easescript/lib/core/Diagnostic");
+const Compilation = require("easescript/lib/core/Compilation");
 const path =require("path");
-
+const plugin = require("../index");
 class Creator {
 
     constructor(options){
         const compiler = new Compiler(Object.assign({
             debug:true,
             diagnose:true,
+            autoLoadDescribeFile:true,
             output:path.join(__dirname,"./build"),
             workspace:path.join(__dirname,"./src"),
             parser:{
@@ -16,9 +17,6 @@ class Creator {
             }
         },options || {}));
         compiler.initialize();
-        compiler.loadTypes([
-            path.join(__dirname,"index.d.es")
-        ]);
         this._compiler = compiler;
     }
 
@@ -57,13 +55,12 @@ class Creator {
         return this.factor(file);
     }
 
-    build(stack){
-        const syntax = compiler.getGrammar("javascript");
-        return stack.emiter( syntax );
+    expression( stack ){
+        return plugin.make( stack );
     }
 
-    getPlugin(){
-        require("../index.js")
+    build( compilation ){
+        return plugin.start( compilation, ()=>{});
     }
 }
 
