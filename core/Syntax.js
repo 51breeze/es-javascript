@@ -6,6 +6,8 @@ const classMap=new Map();
 const namespaceMap=new Map();
 const usedModules = new Set();
 const dependModules = new Map();
+const createdStackData = new Map();
+
 class Syntax extends events.EventEmitter {
 
     constructor(stack){
@@ -16,6 +18,14 @@ class Syntax extends events.EventEmitter {
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
         this.module = stack.module; 
+    }
+
+    createDataByStack(stack){
+        let data = createdStackData.get(stack);
+        if( !data ){
+            createdStackData.set(stack,data = {});
+        }
+        return data;
     }
 
     used(module){
@@ -48,21 +58,31 @@ class Syntax extends events.EventEmitter {
         if( this.scope.isDefine(name) ){
             const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration);
             var classScope = this.scope.getScopeByType("class");
-            var value = topStack.generatorVarName(name);
+            var value = this.generatorVarName(topStack,name);
             classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
             return value;
         }
         return name;
     }
 
+    generatorVarName(stack,name,flag=false){
+        const dataset = this.createDataByStack(stack);
+        if( dataset.hasOwnProperty(name) ){
+            return dataset[name];
+        }
+        const value = stack.scope.generateVarName( name , flag);
+        return dataset[name] = value;
+    }
+
     generatorRefName(target, name, key, callback){
-        if( target.hasOwnProperty(key) ){
-            return target[key];
+        const dataset = this.createDataByStack(stack);
+        if( dataset.hasOwnProperty(key) ){
+            return dataset[key];
         }
         const block = target.getParentStack( stack=>!!stack.isBlockStatement );
-        const refName =  target.generatorVarName(name);
+        const refName =  this.generatorVarName(target,name);
         block.dispatcher("insert",this.semicolon(`var ${refName} = ${callback()}`));
-        return target[key] = refName;
+        return dataset[key] = refName;
     }
 
     getOutputAbsolutePath(module){

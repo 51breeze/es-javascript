@@ -16,7 +16,12 @@ const plugin = {
     builder(stack,name){
         const Syntax = modules.get(name);
         if( Syntax ){
-            return (new Syntax(stack)).emiter(this);
+            try{
+                return (new Syntax(stack)).emiter(this);
+            }catch(e){
+                console.log( stack.node )
+                console.log( e )
+            }
         }
         return null;
     },
