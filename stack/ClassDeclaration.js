@@ -25,7 +25,7 @@ class ClassDeclaration extends Syntax{
     }
 
     buildExternal(){
-        const stack = this.parentStack.parentStack;
+        const stack = this.parentStack.parentStack || this.parentStack;
         if( stack && stack.externals.length > 0 ){
             const externals = stack.externals.map( item=>this.make(item) ).filter(item=>!!item);
             if( externals.length > 0 ){
