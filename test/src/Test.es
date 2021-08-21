@@ -136,7 +136,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         })
 
         it(`once.two.three should is this or object `, ()=>{
-            var bsp = ()=>{
+            var bsp = (flag)=>{
                 return this;
             };
             var obj = {};
@@ -408,6 +408,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
             done:false
         };
         return d;
+    }
+
+    public rewind(){
+        this.currentIndex = 0;
     }
 
     public restFun(...types:[int,...string]){

@@ -189,7 +189,7 @@ var System=(function(){
 	},set:function name(val){
 		this[_private]._name=val;
 	}};
-	members.avg={m:3,d:3,value:function avg(){
+	members.avg={m:3,d:3,value:function avg(a,b){
 	
 	}};
 	members.address={m:1,d:3,value:function address(){
@@ -533,7 +533,7 @@ var System=(function(){
 			expect(bsp()).toBe(_this);
 		});
 		it("once.two.three should is this or object ",function(){
-			var bsp = function(){
+			var bsp = function(flag){
 				return _this;
 			};
 			var obj = {};
@@ -743,6 +743,9 @@ var System=(function(){
 		}
 		const d = {value:this[_private].currentIndex++,done:false};
 		return d;
+	}};
+	members.rewind={m:3,d:3,value:function rewind(){
+		this[_private].currentIndex=0;
 	}};
 	members.restFun={m:3,d:3,value:function restFun(){
 		var types = Array.prototype.slice.call(arguments,0);

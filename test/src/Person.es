@@ -52,7 +52,7 @@ public class Person<T> extends Object implements TestInterface
         this._name = val;
     }
 
-    avg<T extends string,B>():void{
+    avg<T extends string,B>(a?,b?):void{
 
     }
 
