@@ -70,19 +70,19 @@ class Builder extends Syntax{
                     }
                 }
             }  
-            const evary=(module)=>{
+            const every=(module)=>{
                 if( cached.has(module) )return;
                 cached.add( module );
                 if( isNeedBuild(module) && this.isUsed(module) ){
                     this.getDependencies(module).forEach( depModule=>{
-                        evary(depModule);
+                        every(depModule);
                     });
                     push( module );
                 }
             }
 
             push(System);
-            compilation.modules.forEach( module =>evary(module) );
+            compilation.modules.forEach( module =>every(module) );
 
             if(config.strict){
                 beforeContent.push(`"use strict";`)
