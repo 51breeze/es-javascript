@@ -109,6 +109,15 @@ class Builder extends Syntax{
     }
 
     emitFile(file, content){
+        if( content=== null )return;
+        var dir = file;
+        const paths = [];
+        while( dir && !fs.existsSync( dir = path.dirname(dir) ) ){
+            paths.push( dir );
+        }
+        while( paths.length > 0 ){
+            fs.mkdirSync( paths.pop() );
+        }
         fs.writeFileSync(file, content);
     }
 }
