@@ -6,8 +6,6 @@ const Polyfill = require("./Polyfill");
 class Builder extends Syntax{
 
     start( done ){
-
-        const syntax = this;
         const compilation = this.compilation;
         const compiler    = this.compiler;
         const buildModules = new Set();
