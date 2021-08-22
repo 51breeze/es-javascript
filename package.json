@@ -27,7 +27,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "easescript": "0.0.34",
+    "easescript": "^0.x.x",
     "jasmine": "^3.7.0"
   }
 }
