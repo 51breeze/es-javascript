@@ -427,6 +427,13 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         return ii.bb;
     }
 
+    loadData(){
+        //@Provider(/service/api/name,get)
+
+        //@Post('/service/api/name')
+
+    }
+
     get iuuu(){
         var ii:any = this.name;
         if( 6 ){
