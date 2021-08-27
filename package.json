@@ -4,6 +4,7 @@
   "description": "test",
   "main": "index.js",
   "scripts": {
+    "es": "es -V",
     "dev-test": "jasmine ./test/index.js",
     "dev-run": "jasmine ./test/build/main.js",
     "dev-test-run": "npm run dev-test & npm run dev-run"
@@ -27,7 +28,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "easescript": "0.0.36",
+    "easescript": "0.0.37",
     "jasmine": "^3.9.0"
   }
 }
