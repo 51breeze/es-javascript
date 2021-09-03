@@ -15,21 +15,27 @@ class AnnotationExpression extends Syntax{
                 }
                 const moduleClass = getItem( indexMap[0] );
                 const action = getItem( indexMap[1] );
-                const method = getItem( indexMap[2] ) || 'Get';
+                const method = getItem( indexMap[2] ) || {value:'Get'};
                 const providerModule = this.stack.getModuleById(moduleClass.value , true);
                 if( !providerModule ){
                     this.error(`Class '${moduleClass.value}' is not exists.`);
                 }
-                const member = providerModule.getMember(action);
+                const member = providerModule.getMember(action.value);
                 if( !member || (member.modifier && member.modifier.value() !=="public") ){
-                    this.error(`Method '${moduleClass.value}::${action}' is not exists.`);
+                    this.error(`Method '${moduleClass.value}::${action.value}' is not exists.`);
                 }
-                const annotation = member.annotations.find( item=>method == item.name );
+                const annotation = member.annotations.find( item=>method.value.toLowerCase() == item.name.toLowerCase() );
                 if( !annotation ){
-                    this.error(`Router '${method}' method is not exists. in ${moduleClass.value}::${action}`);
+                    this.error(`Router '${method.value}' method is not exists. in ${moduleClass.value}::${action.value}`);
                 }
                 this.compilation.setPolicy(2, providerModule);
-                return annotation.value;
+                const params = annotation.getArguments();
+                const value = params[0] ? params[0].value : action.value;
+                if( value.charCodeAt(0)===47 ){
+                    return `'${value}'`;
+                }
+                return `'/${providerModule.id.toLowerCase()}/${value}'`;
+
             default :
                 this.error( `The '${name}' annotations is not supported.` );
         }
