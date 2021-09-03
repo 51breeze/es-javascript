@@ -17,6 +17,9 @@ class Builder extends Syntax{
            return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
         }
         const isNeedBuild=(module)=>{
+            if( compilation.isPolicy(2,module) ){
+                return false;
+            }
             const isDeclaratorModule = module.isDeclaratorModule;
             const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
             return !isDeclaratorModule || isPolyfill;

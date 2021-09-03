@@ -63,6 +63,11 @@ class Syntax extends events.EventEmitter {
         return name.toLowerCase() === this.name;
     }
 
+    isEnv( name ){
+        const options = this.getOptions();
+        return name === options.env;
+    }
+
     checkRefsName(name){
         if( this.scope.isDefine(name) ){
             const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration);
@@ -123,7 +128,7 @@ class Syntax extends events.EventEmitter {
     }
 
     getOptions(){
-        return this.compiler.options;
+        return this.compiler.options || {};
     }
     
     getConfig( name ){
@@ -279,6 +284,9 @@ class Syntax extends events.EventEmitter {
     }
 
     isDependModule(depModule){
+        if( this.compilation.isPolicy(2,depModule) ){
+            return false;
+        }
         const isRequire = !depModule.isDeclaratorModule && 
                             this.isUsed(depModule) &&
                             this.compiler.callUtils("isLocalModule", depModule) && 
