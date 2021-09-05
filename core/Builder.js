@@ -9,6 +9,7 @@ class Builder extends Syntax{
         const compilation = this.compilation;
         const compiler    = this.compiler;
         const buildModules = new Set();
+        const buildedCompilations = new Set();
         const beforeContent = [];
         const filesystem  = compiler.getOutputFileSystem( this.name );
         const options     = this.getOptions();
@@ -16,29 +17,27 @@ class Builder extends Syntax{
         const getModuleFile = (module)=>{
            return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
         }
-        const isNeedBuild=(module)=>{
-            if( compilation.isPolicy(2,module) ){
-                return false;
-            }
-            const isDeclaratorModule = module.isDeclaratorModule;
-            const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
-            return !isDeclaratorModule || isPolyfill;
-        }
+        
         const builder = ( module )=>{
-            if( !buildModules.has(module) ){
+            if( !buildModules.has(module) && this.isNeedBuild(module) ){
                 buildModules.add(module);
-                if( isNeedBuild(module) ){
+                if( !module.compilation.completed(this.name) ){
                     const file = getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
-                    filesystem.mkdirpSync( path.dirname(file) );
-                    filesystem.writeFileSync(file, this.make(stack) );
+                    if(stack){
+                        filesystem.mkdirpSync( path.dirname(file) );
+                        filesystem.writeFileSync(file, this.make(stack) );
+                    }else{
+                        done( new Error(`Not found stack by '${module.getName()}'`) );
+                    }
                     if( config.output.mode === Constant.BUILD_OUTPUT_EVERY_FILE ){
                         this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                    }
+                    } 
+                    buildedCompilations.add( module.compilation );
                 }
             }
         };
-
+        compilation.completed(this.name,false);
         if( config.build === Constant.BUILD_ALL_FILE ){
             const builderAll=(module)=>{
                 if( !buildModules.has(module) ){
@@ -56,7 +55,6 @@ class Builder extends Syntax{
         }
 
         if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
-
             const System = compilation.getModuleById("System");
             const outputPath= path.resolve(options.output, config.output.name);
             const contents=[];
@@ -74,7 +72,7 @@ class Builder extends Syntax{
             const every=(module)=>{
                 if( cached.has(module) )return;
                 cached.add( module );
-                if( isNeedBuild(module) && this.isUsed(module) ){
+                if( this.isNeedBuild(module) && this.isUsed(module) ){
                     this.getDependencies(module).forEach( depModule=>{
                         every(depModule);
                     });
@@ -91,8 +89,40 @@ class Builder extends Syntax{
             
             this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
         }
-
+        compilation.completed(this.name,true);
         done();
+    }
+
+    build(done){
+        const compilation = this.compilation;
+        compilation.completed(this.name,false);
+        try{
+            compilation.modules.forEach( module =>{
+                if( this.isNeedBuild(module) ){
+                    const stack = compilation.getStackByModule(module);
+                    if( stack ){
+                        const file = this.getOutputAbsolutePath(module);
+                        this.emitFile(file, this.make(stack) );
+                    }else{
+                        done( new Error(`Not found stack by '${module.getName()}'`) );
+                    }
+                }
+            });
+        }catch(e){
+            done(e);
+        }
+        compilation.completed(this.name,true);
+        done();
+    }
+
+    isNeedBuild(module){
+        if(!module)return false;
+        if( module.compilation.isPolicy(2,module) ){
+            return false;
+        }
+        const isDeclaratorModule = module.isDeclaratorModule;
+        const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
+        return !isDeclaratorModule || isPolyfill;
     }
 
     bootstrap(mainId, modules){

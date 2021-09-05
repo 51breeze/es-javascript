@@ -32,7 +32,7 @@ const plugin = {
         if( stackModule ){
             return (new stackModule(stack)).emitter();
         }
-        throw new Error(`Stack '${stackModule.toString()}' is not found.`);
+        throw new Error(`Stack '${stack.toString()}' is not found.`);
     }
 };
 
