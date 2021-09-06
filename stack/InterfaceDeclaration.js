@@ -24,7 +24,7 @@ class InterfaceDeclaration extends Syntax{
         const parts = refs.concat(construct);
         parts.push(`System.setClass(${this.getIdByModule(module)},${module.id},${this.getDescription(description)});`);
 
-        if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+        if( config.pack ){
             return `/*interface ${module.getName()}*/\r\n(function(System){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(System));`;
         }else{
             if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){

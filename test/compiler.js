@@ -3,6 +3,7 @@ const Diagnostic = require("easescript/lib/core/Diagnostic");
 const Compilation = require("easescript/lib/core/Compilation");
 const path =require("path");
 const plugin = require("../index");
+plugin.config({pack:true});
 class Creator {
 
     constructor(options){

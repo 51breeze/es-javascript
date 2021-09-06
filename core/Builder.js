@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const Syntax = require("./Syntax");
-const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 class Builder extends Syntax{
 
@@ -14,56 +13,48 @@ class Builder extends Syntax{
         const filesystem  = compiler.getOutputFileSystem( this.name );
         const options     = this.getOptions();
         const config      = this.getConfig();
-        const getModuleFile = (module)=>{
-           return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
-        }
-        
         const builder = ( module )=>{
             if( !buildModules.has(module) && this.isNeedBuild(module) ){
                 buildModules.add(module);
                 if( !module.compilation.completed(this.name) ){
-                    const file = getModuleFile(module);
+                    const file = this.getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
                     if(stack){
                         filesystem.mkdirpSync( path.dirname(file) );
                         filesystem.writeFileSync(file, this.make(stack) );
+                        if( config.emitFile ){
+                            this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
+                        } 
                     }else{
                         done( new Error(`Not found stack by '${module.getName()}'`) );
                     }
-                    if( config.output.mode === Constant.BUILD_OUTPUT_EVERY_FILE ){
-                        this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                    } 
                     buildedCompilations.add( module.compilation );
                 }
             }
         };
-        compilation.completed(this.name,false);
-        if( config.build === Constant.BUILD_ALL_FILE ){
-            const builderAll=(module)=>{
-                if( !buildModules.has(module) ){
-                    builder(module);
-                    this.getDependencies(module).forEach( depModule=>{
-                        builderAll(depModule);
-                    });
-                }
-            }
-            compilation.modules.forEach( module =>builderAll(module) )
-        }else if(config.build === Constant.BUILD_ORIGIN_FILE){
-            compilation.modules.forEach( module =>{
+
+        const builderAll=(module)=>{
+            if( !buildModules.has(module) ){
                 builder(module);
-            });
+                this.getDependencies(module).forEach( depModule=>{
+                    builderAll(depModule);
+                });
+            }
         }
 
-        if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+        compilation.completed(this.name,false);
+        compilation.modules.forEach( module =>builderAll(module) )
+
+        if( config.pack ){
             const System = compilation.getModuleById("System");
-            const outputPath= path.resolve(options.output, config.output.name);
+            const outputPath= path.resolve(config.output || options.output, config.name);
             const contents=[];
             const added = new Set();
             const cached = new Set();
             const push = (module)=>{
                 if( !added.has(module) ){
                     added.add( module );
-                    const value = filesystem.readFileSync( getModuleFile(module) );
+                    const value = filesystem.readFileSync( this.getModuleFile(module) );
                     if( value ){
                         contents.push( value );
                     }
@@ -89,20 +80,32 @@ class Builder extends Syntax{
             
             this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
         }
+
+        buildedCompilations.forEach(compilation=>{
+            compilation.completed(this.name,true);
+        });
         compilation.completed(this.name,true);
+
         done();
     }
 
     build(done){
         const compilation = this.compilation;
+        const compiler    = this.compiler;
         compilation.completed(this.name,false);
         try{
             compilation.modules.forEach( module =>{
                 if( this.isNeedBuild(module) ){
                     const stack = compilation.getStackByModule(module);
                     if( stack ){
-                        const file = this.getOutputAbsolutePath(module);
-                        this.emitFile(file, this.make(stack) );
+                        const filesystem  = compiler.getOutputFileSystem( this.name );
+                        const file = this.getModuleFile(module);
+                        filesystem.mkdirpSync( path.dirname(file) );
+                        filesystem.writeFileSync(file, this.make(stack) );
+                        const config = this.getConfig();
+                        if( config.emitFile ){
+                            this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
+                        } 
                     }else{
                         done( new Error(`Not found stack by '${module.getName()}'`) );
                     }
@@ -128,7 +131,6 @@ class Builder extends Syntax{
     bootstrap(mainId, modules){
         const bootstrap = fs.readFileSync( path.join(__dirname,"../bootstrap.js") ).toString();
         return bootstrap.replace(/\[CODE\[([A-Z|_]+?)\]\]/g,function(a,name){
-                 console.log( name )
                 switch(name){
                     case "MAIN_IDENTIFIER" :
                         return mainId;

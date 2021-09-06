@@ -16,11 +16,11 @@ const defaultConfig ={
     "useDefineProperty":false,
     "module":Constant.BUILD_REFS_MODULE_ES6,
     "build":Constant.BUILD_ALL_FILE,
-    "output":{
-        "mode":Constant.BUILD_OUTPUT_MERGE_FILE,
-        "suffix":'.js',
-        "name":'main.js',
-    },
+    "emitFile":false,
+    "suffix":'.js',
+    "name":'main.js',
+    "pack":false,
+    "importPath":Constant.BUILD_IMPORT_PATH_RELATIVE,
     "strict":true, 
 }
 
@@ -46,16 +46,27 @@ for(var name in plugin){
 }
 
 plugin.config=function config(options){
-    Syntax.prototype.configuration = Object.assign({}, defaultConfig, Syntax.prototype.configuration||{},  options||{});
+    if(options){
+        Syntax.prototype.configuration = Object.assign({}, defaultConfig, Syntax.prototype.configuration||{},  options||{});
+    }
 }
 
 plugin.start=function start(compilation, done, options){
-    this.config(options);
+    if(options)this.config(options);
     if( modules.size === 0 ){
         loadStack();
     }
     const builder = new Builder( compilation.stack );
     builder.start(done);
+}
+
+plugin.build=function build(compilation, done, options){
+    if(options)this.config(options);
+    if( modules.size === 0 ){
+        loadStack();
+    }
+    const builder = new Builder( compilation.stack );
+    builder.build(done);
 }
 
 module.exports = plugin;

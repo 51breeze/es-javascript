@@ -52,7 +52,7 @@ class EnumDeclaration extends Syntax{
         const parts = refs.concat(construct,content);
         parts.push(`System.setClass(${this.getIdByModule(module)},${module.id},${this.getDescription(description)});`);
 
-        if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+        if( config.pack ){
             return `/*enum ${module.getName()}*/\r\n(function(System){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(System));`;
         }else{
             if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){

@@ -102,18 +102,18 @@ class Syntax extends events.EventEmitter {
     getOutputAbsolutePath(module){
         const options = this.getOptions();
         const config = this.getConfig();
-        const suffix = config.output.suffix||".js";
+        const suffix = config.suffix||".js";
+        const workspace = config.workspace || this.compiler.workspace;
+        const output = config.output || options.output;
         if( module.isDeclaratorModule ){
-            const polyfill = Syntax.target.modules.Polyfill;
-            const isPolyfill = polyfill.modules.has( module.id );
-            const polyfillModule = isPolyfill ? polyfill.modules.get( module.id ) : null;
+            const polyfillModule = Polyfill.modules.get( module.id );
             const filename = module.id+suffix;
             if( polyfillModule ){
-                return PATH.join(options.output,polyfillModule.namespace,filename).replace(/\\/g,'/');
+                return PATH.join(output,polyfillModule.namespace.replace(/\./g,'/'),filename).replace(/\\/g,'/');
             }
-            return PATH.join(options.output,module.getName("/")+suffix).replace(/\\/g,'/');
+            return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
         }
-        const filepath = PATH.resolve(options.output, PATH.relative( this.compiler.workspace, module.file ) );
+        const filepath = PATH.resolve(output, PATH.relative( workspace, module.file ) );
         const info = PATH.parse(filepath);
         if( info.ext !== suffix ){
            return PATH.join(info.dir,info.name+suffix).replace(/\\/g,'/');
@@ -298,22 +298,26 @@ class Syntax extends events.EventEmitter {
         return false;
     }
 
+    getModuleFile(module){
+        return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
+    }
+
     createDependencies(module, refs){
         const config = this.getConfig();
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = module.getReferenceNameByModule( depModule );
-                if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+                if( config.pack ){
                     const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
                     const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
                     if( !polyfillModule || !polyfillModule.isSystem ){
                         refs.push(`var ${name} = System.getClass(${this.getIdByModule(depModule)});`);
                     }
-                }else if( config.output.mode === Constant.BUILD_OUTPUT_EVERY_FILE ){
-                    refs.push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
-                }else if( config.output.mode === Constant.BUILD_OUTPUT_MEMORY_FILE ){
-                    const file = depModule.compilation.modules.size > 1 ? `${depModule.file}?id=${depModule.id}` : depModule.file;
+                }else if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
+                    const file = this.getModuleFile(depModule);
                     refs.push( this.createImport(name, file.replace(/\\/g,'/') ) );
+                }else{
+                    refs.push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }
         });

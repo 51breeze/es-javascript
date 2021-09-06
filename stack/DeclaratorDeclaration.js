@@ -19,7 +19,7 @@ class DeclaratorDeclaration extends Syntax{
             content.unshift( refs.join("\r\n") );
         }
         const comment = `/*declare ${module.getName()}*/\r\n`;
-        if( config.output.mode === Constant.BUILD_OUTPUT_MERGE_FILE ){
+        if( config.pack ){
             if( polyfillModule && polyfillModule.isSystem){
                 content.push(`return ${polyfillModule.export};`);
                 return `${comment}var ${module.id}=(function(){\r\n\t${content.join("\r\n").replace(/\r?\n/g,'\r\n\t')}\r\n}());`
