@@ -8,15 +8,14 @@ class Builder extends Syntax{
         const compilation = this.compilation;
         const compiler    = this.compiler;
         const buildModules = new Set();
-        const buildedCompilations = new Set();
         const beforeContent = [];
         const filesystem  = compiler.getOutputFileSystem( this.name );
         const options     = this.getOptions();
         const config      = this.getConfig();
         const builder = ( module )=>{
-            if( !buildModules.has(module) && this.isNeedBuild(module) ){
+            if( !buildModules.has(module) ){
                 buildModules.add(module);
-                if( !module.compilation.completed(this.name) ){
+                if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
                     const file = this.getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
                     if(stack){
@@ -28,7 +27,6 @@ class Builder extends Syntax{
                     }else{
                         done( new Error(`Not found stack by '${module.getName()}'`) );
                     }
-                    buildedCompilations.add( module.compilation );
                 }
             }
         };
@@ -81,8 +79,8 @@ class Builder extends Syntax{
             this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
         }
 
-        buildedCompilations.forEach(compilation=>{
-            compilation.completed(this.name,true);
+        buildModules.forEach(module=>{
+            module.compilation.completed(this.name,true);
         });
         compilation.completed(this.name,true);
 

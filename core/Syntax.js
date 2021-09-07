@@ -4,8 +4,6 @@ const PATH = require("path");
 const events = require('events');
 const classMap=new Map();
 const namespaceMap=new Map();
-const usedModules = new Set();
-const dependModules = new Map();
 const createdStackData = new Map();
 
 class Syntax extends events.EventEmitter {
@@ -28,13 +26,9 @@ class Syntax extends events.EventEmitter {
         return data;
     }
 
-    used(module){
-        usedModules.add(module);
-    }
-
     isUsed(module){
         if( !module )return false;
-        return module.used || usedModules.has(module) || (module.compilation && module.compilation.isMain);
+        return module.used || (module.compilation && module.compilation.isMain);
     }
 
     getModuleById( id, flag=false ){
@@ -43,10 +37,6 @@ class Syntax extends events.EventEmitter {
 
     getGlobalModuleById( id ){
         return this.compilation.getGlobalTypeById(id);
-    }
-
-    getUsedModules(){
-        return usedModules;
     }
 
     isRuntime( name ){
@@ -272,15 +262,11 @@ class Syntax extends events.EventEmitter {
     addDepend( depModule ){
         const module = this.module;
         if( !depModule.isModule || depModule === module )return;
-        if( !dependModules.has( module ) ){
-            dependModules.set(module,new Set());
-        }
-        const target = dependModules.get(module);
-        this.used(depModule);
-        target.add(depModule);
+        this.compilation.addDependency(depModule,module);
     }
+
     getDependencies( module ){
-        return dependModules.get(module) || [];
+        return this.compilation.getDependencies(module) || [];
     }
 
     isDependModule(depModule){
