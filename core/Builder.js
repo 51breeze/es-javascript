@@ -5,16 +5,15 @@ const Polyfill = require("./Polyfill");
 class Builder extends Syntax{
 
     start( done ){
-        const compilation = this.compilation;
-        const compiler    = this.compiler;
-        const buildModules = new Set();
-        const beforeContent = [];
-        const filesystem  = compiler.getOutputFileSystem( this.name );
-        const options     = this.getOptions();
-        const config      = this.getConfig();
-        const builder = ( module )=>{
-            if( !buildModules.has(module) ){
-                buildModules.add(module);
+        try{
+            const compilation = this.compilation;
+            const compiler    = this.compiler;
+            const buildModules = new Set();
+            const beforeContent = [];
+            const filesystem  = compiler.getOutputFileSystem( this.name );
+            const options     = this.getOptions();
+            const config      = this.getConfig();
+            const builder = ( module )=>{
                 if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
                     const file = this.getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
@@ -25,66 +24,69 @@ class Builder extends Syntax{
                             this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
                         } 
                     }else{
-                        done( new Error(`Not found stack by '${module.getName()}'`) );
+                        throw new Error(`Not found stack by '${module.getName()}'`);
                     }
                 }
-            }
-        };
+            };
 
-        const builderAll=(module)=>{
-            if( !buildModules.has(module) ){
-                builder(module);
-                this.getDependencies(module).forEach( depModule=>{
-                    builderAll(depModule);
-                });
-            }
-        }
-
-        compilation.completed(this.name,false);
-        compilation.modules.forEach( module =>builderAll(module) )
-
-        if( config.pack ){
-            const System = compilation.getModuleById("System");
-            const outputPath= path.resolve(config.output || options.output, config.name);
-            const contents=[];
-            const added = new Set();
-            const cached = new Set();
-            const push = (module)=>{
-                if( !added.has(module) ){
-                    added.add( module );
-                    const value = filesystem.readFileSync( this.getModuleFile(module) );
-                    if( value ){
-                        contents.push( value );
-                    }
-                }
-            }  
-            const every=(module)=>{
-                if( cached.has(module) )return;
-                cached.add( module );
-                if( this.isNeedBuild(module) && this.isUsed(module) ){
+            const builderAll=(module)=>{
+                if( !buildModules.has(module) ){
+                    buildModules.add(module);
+                    builder(module);
                     this.getDependencies(module).forEach( depModule=>{
-                        every(depModule);
+                        builderAll(depModule);
                     });
-                    push( module );
                 }
             }
 
-            push(System);
-            compilation.modules.forEach( module =>every(module) );
+            compilation.completed(this.name,false);
+            compilation.modules.forEach( module =>builderAll(module) )
 
-            if(config.strict){
-                beforeContent.push(`"use strict";`)
+            if( options.pack ){
+                const System = compilation.getModuleById("System");
+                const outputPath= path.resolve(config.output || options.output, config.name);
+                const contents=[];
+                const added = new Set();
+                const cached = new Set();
+                const push = (module)=>{
+                    if( !added.has(module) ){
+                        added.add( module );
+                        const value = filesystem.readFileSync( this.getModuleFile(module) );
+                        if( value ){
+                            contents.push( value );
+                        }
+                    }
+                }
+
+                const every=(module)=>{
+                    if( cached.has(module) )return;
+                    cached.add( module );
+                    if( this.isNeedBuild(module) && this.isUsed(module) ){
+                        this.getDependencies(module).forEach( depModule=>{
+                            every(depModule);
+                        });
+                        push( module );
+                    }
+                }
+
+                push(System);
+                compilation.modules.forEach( module =>every(module) );
+
+                if(config.strict){
+                    beforeContent.push(`"use strict";`)
+                }
+                
+                this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
             }
-            
-            this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
+
+            buildModules.forEach(module=>{
+                module.compilation.completed(this.name,true);
+            });
+            compilation.completed(this.name,true);
+            done();
+        }catch(e){
+            done(e);
         }
-
-        buildModules.forEach(module=>{
-            module.compilation.completed(this.name,true);
-        });
-        compilation.completed(this.name,true);
-
-        done();
     }
 
     build(done){
@@ -105,15 +107,15 @@ class Builder extends Syntax{
                             this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
                         } 
                     }else{
-                        done( new Error(`Not found stack by '${module.getName()}'`) );
+                        throw new Error(`Not found stack by '${module.getName()}'`);
                     }
                 }
             });
+            compilation.completed(this.name,true);
+            done();
         }catch(e){
             done(e);
         }
-        compilation.completed(this.name,true);
-        done();
     }
 
     isNeedBuild(module){
