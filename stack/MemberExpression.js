@@ -20,7 +20,7 @@ class MemberExpression extends Syntax{
       //    }
       // }
 
-      if( description.isModule && this.compiler.callUtils("isTypeModule",description) ){
+      if( description && description.isModule && this.compiler.callUtils("isTypeModule",description) ){
          this.addDepend( description );
       }else if( this.compiler.callUtils("isTypeModule",this.stack.object.description()) ){
          this.addDepend( this.stack.object.description() );

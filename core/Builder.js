@@ -71,14 +71,12 @@ class Builder extends Syntax{
 
                 push(System);
                 compilation.modules.forEach( module =>every(module) );
-
                 if(config.strict){
                     beforeContent.push(`"use strict";`)
                 }
                 
                 this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
             }
-
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
             });
