@@ -128,7 +128,7 @@ EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
         var index = 0;
         while(index < len){
             var item = events[ index++ ];
-            var thisArg = index.reference || this;
+            var thisArg = item.reference || this;
             item.callback.call(thisArg , event);
             if( event.immediatePropagationStopped===true )
                return false;

@@ -37,6 +37,7 @@ const plugin = {
 };
 
 const Syntax = require("./core/Syntax");
+Syntax.prototype.configuration = defaultConfig;
 for(var name in plugin){
     Object.defineProperty(Syntax.prototype, name, {
         value:plugin[name],
@@ -49,6 +50,7 @@ plugin.config=function config(options){
     if(options){
         Syntax.prototype.configuration = Object.assign({}, defaultConfig, Syntax.prototype.configuration||{},  options||{});
     }
+    return Syntax.prototype.configuration;
 }
 
 plugin.start=function start(compilation, done, options){
