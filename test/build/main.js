@@ -26,37 +26,7 @@ var System=(function(){
 	    Object.defineProperty(classObject.prototype,"constructor",{value:classObject});
 	    __modules__[id] = classObject;
 	}
-	System.isClass=function(classObject){
-	    if( !classObject || !classObject.constructor)return false;
-	    var desc = classObject[ System.__KEY__ ];
-	    return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
-	}
-	System.isInterface=function(classObject){
-	    var desc = classObject && classObject[ System.__KEY__ ];
-	    return desc && desc.id === 2;
-	}
-	System.isEnum=function(classObject){
-	    var desc = classObject && classObject[ System.__KEY__ ];
-	    return desc && desc.id === 3;
-	}
-	System.isFunction=function(target){
-	   return target && target.constructor === Function;
-	}
-	System.toArray=function toArray(object){
-	    if( Array.isArray(object) ){
-	        return object;
-	    }
-	    var arr = [];
-	    for(var key in object){
-	        if( Object.prototype.hasOwnProperty.call(object,key) ){
-	            arr.push(object[key]);
-	        } 
-	    }
-	    return arr;
-	}
-	System.isArray=function isArray(object){
-	    return Array.isArray(object); 
-	}
+	
 	System.getIterator=function getIterator(object){
 	    if( !object )return null;
 	    if( object[Symbol.iterator] ){
@@ -77,29 +47,6 @@ var System=(function(){
 	            }
 	        };
 	    })(object);
-	}
-	System.is=function is(left,right){
-	    if(!left || !right || typeof left !== "object")return false;
-	    var rId = right[System.__KEY__] ? right[System.__KEY__].id : null;
-	    var description =  left.constructor ? left.constructor[System.__KEY__] : null;
-	    if( rId === 0 && description && description.id === 1 ){
-	        return (function check(description,id){
-	            if( !description )return false;
-	            var imps = description.imps;
-	            var inherit = description.inherit;
-	            if( inherit === right )return true;
-	            if( imps ){
-	                for(var i=0;i<imps.length;i++){
-	                    if( imps[i] === right || check( imps[i][System.__KEY__], 0 ) )return true;
-	                }
-	            }
-	            if( inherit && inherit[ System.__KEY__ ].id === id){
-	                return check( inherit[System.__KEY__], 0);
-	            }
-	            return false;
-	        })(description,1);
-	    }
-	    return left instanceof right;
 	}
 	
 	System.awaiter = function (thisArg, _arguments, P, generator) {
@@ -138,6 +85,80 @@ var System=(function(){
 	        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
 	        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
 	    }
+	}
+	
+	
+	System.className=function className(classObject){
+	    var desc = classObject[ System.__KEY__ ];
+	    if(desc && desc.id === 1){
+	        if( desc.ns ){
+	            return desc.ns+'.'+desc.name;
+	        }else{
+	            return desc.name;
+	        }
+	    }
+	    return null;
+	}
+	
+	System.is=function is(left,right){
+	    if(!left || !right || typeof left !== "object")return false;
+	    var rId = right[System.__KEY__] ? right[System.__KEY__].id : null;
+	    var description =  left.constructor ? left.constructor[System.__KEY__] : null;
+	    if( rId === 0 && description && description.id === 1 ){
+	        return (function check(description,id){
+	            if( !description )return false;
+	            var imps = description.imps;
+	            var inherit = description.inherit;
+	            if( inherit === right )return true;
+	            if( imps ){
+	                for(var i=0;i<imps.length;i++){
+	                    if( imps[i] === right || check( imps[i][System.__KEY__], 0 ) )return true;
+	                }
+	            }
+	            if( inherit && inherit[ System.__KEY__ ].id === id){
+	                return check( inherit[System.__KEY__], 0);
+	            }
+	            return false;
+	        })(description,1);
+	    }
+	    return left instanceof right;
+	}
+	
+	System.isClass=function isClass(classObject){
+	    if( !classObject || !classObject.constructor)return false;
+	    var desc = classObject[ System.__KEY__ ];
+	    return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
+	}
+	
+	System.isInterface=function isInterface(classObject){
+	    var desc = classObject && classObject[ System.__KEY__ ];
+	    return desc && desc.id === 2;
+	}
+	
+	System.isEnum=function isEnum(classObject){
+	    var desc = classObject && classObject[ System.__KEY__ ];
+	    return desc && desc.id === 3;
+	}
+	
+	System.isFunction=function isFunction(target){
+	   return target && target.constructor === Function;
+	}
+	
+	System.isArray=function isArray(object){
+	    return Array.isArray(object); 
+	}
+	
+	System.toArray=function toArray(object){
+	    if( Array.isArray(object) ){
+	        return object;
+	    }
+	    var arr = [];
+	    for(var key in object){
+	        if( Object.prototype.hasOwnProperty.call(object,key) ){
+	            arr.push(object[key]);
+	        } 
+	    }
+	    return arr;
 	}
 	return System;
 }());
@@ -493,6 +514,9 @@ var System=(function(){
 		});
 		it("'this.age' should is true",function(){
 			expect(_this[_private].age).toBe(40);
+		});
+		it("'System.className' should is true",function(){
+			expect('Test').toBe(System.className(Test));
 		});
 		it("'this instanceof Person' should is true",function(){
 			expect(_this instanceof Person).toBeTrue();

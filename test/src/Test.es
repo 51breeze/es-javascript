@@ -86,6 +86,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
             expect(this.age).toBe( 40 );
         })
 
+         it(`'System.className' should is true`, ()=>{
+            expect('Test').toBe( System.className(Test) );
+        })
+
         it(`'this instanceof Person' should is true`, ()=>{
             expect(this instanceof Person).toBeTrue();
         })
