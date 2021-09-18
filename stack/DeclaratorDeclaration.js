@@ -18,22 +18,19 @@ class DeclaratorDeclaration extends Syntax{
         if( refs.length > 0 ){
             content.unshift( refs.join("\r\n") );
         }
-        const comment = `/*declare ${module.getName()}*/\r\n`;
-        if( config.pack ){
-            if( polyfillModule && polyfillModule.isSystem){
-                content.push(`return ${polyfillModule.export};`);
-                return `${comment}var ${module.id}=(function(){\r\n\t${content.join("\r\n").replace(/\r?\n/g,'\r\n\t')}\r\n}());`
-            }
-            content.push(`System.setClass(${this.getIdByModule(module)},${polyfillModule.export});`);
-            return `${comment}(function(System){\r\n\t${content.join("\r\n").replace(/\r?\n/g,'\r\n\t')}\r\n}(System));`;
+        const description = [
+            `id:${Constant.DECLARE_CLASS}`,
+            `ns:'${polyfillModule.namespace}'`,
+            `global:true`,
+            `name:'${module.id}'`,
+        ];
+        content.push(this.emitClassFactorSetHander(module, description, polyfillModule.export));
+        if( !config.pack &&config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+            content.push(`export default ${polyfillModule.export};`)
         }else{
-            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-                content.push(`export default ${polyfillModule.export};`)
-            }else{
-                content.push(`module.exports=${polyfillModule.export};`)
-            }
-            return `${comment}${content.join("\r\n")}`;
+            content.push(`module.exports=${polyfillModule.export};`)
         }
+        return content.join("\r\n");
     }
 }
 

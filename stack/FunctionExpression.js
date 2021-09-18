@@ -46,6 +46,7 @@ class FunctionExpression extends Syntax{
         const startIndent = this.stack.parentStack.isBlockStatement ? endIndent : '';
 
         if( this.stack.async ){
+            this.addDepend( this.getGlobalModuleById('System') );
             const name = key ? ` ${key}` : '';
             const returnItem = this.scope.returnItems.length < 1 ? this.semicolon(`${this.getIndent(3)}return [2]`) : '';
             const hand = this.generatorVarName(this.stack,"_a",true);

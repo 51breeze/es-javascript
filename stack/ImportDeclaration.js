@@ -8,7 +8,7 @@ class ImportDeclaration extends Syntax{
       if( config.pure ){
          return this.semicolon(`var ${name} = ${classModule.getName()}`);
       }else{
-         return this.semicolon(`var ${name} = System.getClass(${id})`);
+         return this.semicolon(`var ${name} = ClassFactor.get(${id})`);
       }
    }
 }

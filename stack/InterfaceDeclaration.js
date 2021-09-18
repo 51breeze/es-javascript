@@ -8,8 +8,8 @@ class InterfaceDeclaration extends Syntax{
         const refs = [];
         const description = [
             `id:${Constant.DECLARE_INTERFACE}`,
-            `ns:"${module.namespace.toString()}"`,
-            `name:"${module.id}"`
+            `ns:'${module.namespace.toString()}'`,
+            `name:'${module.id}'`
         ];
         if( imps.length > 0 ){
             description.push(`imps:[${imps.map( item=>item.id ).join(",")}]`);
@@ -22,18 +22,15 @@ class InterfaceDeclaration extends Syntax{
 
         const config  = this.getConfig();
         const parts = refs.concat(construct);
-        parts.push(`System.setClass(${this.getIdByModule(module)},${module.id},${this.getDescription(description)});`);
+        parts.push(this.emitClassFactorSetHander(module, description));
 
-        if( config.pack ){
-            return `/*interface ${module.getName()}*/\r\n(function(System){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(System));`;
+        if( !config.pack && config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+            parts.push(`export default ${this.module.id};`)
         }else{
-            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-                parts.push(`export default ${this.module.id};`)
-            }else{
-                parts.push(`module.exports=${this.module.id};`)
-            }
-            return parts.join("\r\n");
+            parts.push(`module.exports=${this.module.id};`)
         }
+        return parts.join("\r\n");
+        
     }
 }
 

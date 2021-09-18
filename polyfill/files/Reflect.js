@@ -1,4 +1,5 @@
 var _Reflect = (function(_Reflect){
+    var __KEY__ = ClassFactor.__KEY__;
     var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
         if( !System.isFunction( theClass ) ){
             throw new TypeError('is not class or function');
@@ -47,7 +48,7 @@ var _Reflect = (function(_Reflect){
 
     function inContext(context,objClass){
         if( !System.isClass(objClass) )return;
-        var inherit = context[ System.__KEY__ ].inherit;
+        var inherit = context[ __KEY__ ].inherit;
         if( inherit === objClass ){
             return true;
         }
@@ -62,7 +63,7 @@ var _Reflect = (function(_Reflect){
         if( !System.isClass(objClass) ){
             return null;
         }
-        while( objClass && (description = objClass[ System.__KEY__ ]) ){
+        while( objClass && (description = objClass[ __KEY__ ]) ){
             var dataset = isstatic ? description.methods : description.members;
             if( dataset.hasOwnProperty( name ) ){
                 const desc = dataset[name];
@@ -191,7 +192,7 @@ var _Reflect = (function(_Reflect){
             if( System.isClass(target) ){
                 target[propertyKey] = value;
             }else if( System.isClass(target.constructor) ){
-                var p = target.constructor[System.__KEY__]._private;
+                var p = target.constructor[__KEY__]._private;
                 target[p][propertyKey] = value;
             }else {
                 throw new ReferenceError(`target.${propertyKey} non object.`); 

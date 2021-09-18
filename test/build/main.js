@@ -1,32 +1,274 @@
 "use strict";
+/*ClassFactor*/
+var ClassFactor=(function(){
+	var __MODULES__=[];
+	var __KEY__=Symbol("ClassFactor");
+	var ClassFactor={
+	    __KEY__:__KEY__,
+	    __MODULES__:__MODULES__,
+	    get:function(id){
+	        return __MODULES__[id];
+	    },
+	    set:function(id,classObject,description){
+	        if( description ){
+	            if( description.inherit ){
+	                Object.defineProperty(classObject,"prototype",{value:Object.create(description.inherit.prototype)});
+	            }
+	            if( description.methods ){
+	                Object.defineProperties(classObject,description.methods);
+	            }
+	            if( description.members ){
+	                Object.defineProperties(classObject.prototype,description.members);
+	            }
+	            Object.defineProperty(classObject,__KEY__,{value:description});
+	            Object.defineProperty(classObject,"name",{value:description.name});
+	        }
+	        Object.defineProperty(classObject.prototype,"constructor",{value:classObject});
+	        __MODULES__[id] = classObject;
+	    }
+	};
+	return ClassFactor;
+}());
+/*interface com.TestInterface*/
+(function(ClassFactor){
+	function TestInterface(){}
+	ClassFactor.set(2,TestInterface,{
+		id:2,
+		ns:"com",
+		name:"TestInterface"
+	});
+}(ClassFactor));
+/*class Person*/
+(function(ClassFactor){
+	var TestInterface = ClassFactor.get(2);
+	var _private=Symbol("private");
+	function Person(name){
+		Object.defineProperty(this,_private,{value:{"_name":'',"_type":null}});
+		Object.call(this);
+		this[_private]._name=name;
+	}
+	var members = {};
+	members.addressName={m:3,d:1,writable:true,enumerable:true,value:"the Person properyt \"addressName\""};
+	members._name={m:1,d:1,writable:true,value:''};
+	members._type={m:1,d:1,writable:true,value:null};
+	members.target={m:3,d:4,enumerable:true,get:function target(){
+		return this;
+	}};
+	members.setType={m:3,d:3,value:function setType(a){
+		this[_private]._type=a;
+		return a;
+	}};
+	members.method={m:3,d:3,value:function method(name,age){
+		var str = ["a","1"];
+		var b = ["",["1",1]];
+		var cc = [1];
+		var x = [1,1,'2222',{}];
+		b.push('1');
+		b.push(['1',1]);
+		var c = -1968;
+		var bs = 22.366;
+		var bss = 22.366;
+		var bssd = -22.366;
+		Person.prototype.address.call(this.target);
+		return "sssss";
+	}};
+	members.name={m:3,d:4,enumerable:true,get:function name(){
+		return this[_private]._name;
+	},set:function name(val){
+		this[_private]._name=val;
+	}};
+	members.avg={m:3,d:3,value:function avg(a,b){
+	
+	}};
+	members.address={m:1,d:3,value:function address(){
+	
+	}};
+	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
+	
+	}};
+	ClassFactor.set(0,Person,{
+		id:1,
+		ns:"",
+		name:"Person",
+		private:_private,
+		imps:[TestInterface],
+		inherit:Object,
+		members:members
+	});
+}(ClassFactor));
+/*enum Types*/
+(function(ClassFactor){
+	function Types(){}
+	const methods = {};
+	methods.ADDRESS={m:3,d:6,value:0};
+	methods[0]={m:3,d:5,value:"ADDRESS"};
+	methods.NAME={m:3,d:6,value:1};
+	methods[1]={m:3,d:5,value:"NAME"};
+	ClassFactor.set(1,Types,{
+		id:3,
+		ns:"",
+		name:"Types",
+		inherit:Object,
+		methods:methods
+	});
+}(ClassFactor));
+/*declare EventDispatcher*/
+(function(ClassFactor){
+	var System = ClassFactor.get(3);
+	/*
+	 * EaseScript
+	 * Copyright © 2017 EaseScript All rights reserved.
+	 * Released under the MIT license
+	 * https://github.com/51breeze/EaseScript
+	 * @author Jun Ye <664371281@qq.com>
+	 * @require System,Object,Event,Internal,Symbol
+	 */
+	var privateKey = Symbol('EventDispatcher');
+	function EventDispatcher( target ){
+	    if( !(this instanceof EventDispatcher) ){
+	        return target && target instanceof EventDispatcher ? target : new EventDispatcher( target );
+	    }
+	    this[privateKey]={};
+	    if( target ){
+	        if( target instanceof EventDispatcher){
+	            this[privateKey] = target;
+	        }else if(typeof target ==="object"){
+	            this[privateKey] = target[privateKey] || (target[privateKey]={});
+	        }
+	    }
+	}
+	
+	EventDispatcher.prototype=Object.create(Object.prototype,{
+	    "constructor":{value:EventDispatcher}
+	});
+	
+	
+	/**
+	 * 判断是否有指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.hasEventListener=function hasEventListener( type , listener ){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.hasEventListener(type, listener);
+	    }
+	    if( Object.prototype.hasOwnProperty.call(target,type) ){
+	        var events = target[type];
+	        var length = events.length;
+	        if( typeof listener !== "function" ){
+	            return length > 0;
+	        }
+	        while (length > 0){
+	            --length;
+	            if ( events[length].callback === listener ){
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
+	};
+	
+	/**
+	 * 添加侦听器
+	 * @param type
+	 * @param listener
+	 * @param priority
+	 * @returns {EventDispatcher}
+	 */
+	EventDispatcher.prototype.addEventListener=function addEventListener(type,callback,useCapture,priority,reference){
+	    if( typeof type !== 'string' )throw new TypeError('Invalid event type');
+	    if( typeof callback !== 'function' )throw new TypeError('Invalid callback function');
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        target.addEventListener(type,callback,useCapture,priority,reference||this);
+	        return this;
+	    }
+	
+	    var events = target[type] || (target[type]=[]);
+	    events.push({
+	        'callback':callback,
+	        'useCapture':useCapture,
+	        'priority':priority,
+	        'reference':reference
+	    });
+	
+	    if( events.length > 1 )events.sort(function(a,b){
+	        return a.priority=== b.priority ? 0 : (a.priority < b.priority ? 1 : -1);
+	    });
+	    return true;
+	};
+	
+	/**
+	 * 移除指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.removeEventListener=function removeEventListener(type,listener){
+	    var target =  this[privateKey];
+	    if(target instanceof EventDispatcher ){
+	        return target.removeEventListener(type,listener);
+	    }
+	    var events = target[type] || [];
+	    var len = events.length >> 0;
+	    if( !listener ){
+	        events.splice(0, len);
+	        return true;
+	    }
+	    while(len>0 && events[--len] ){
+	        var item = events[--len];
+	        if( listener ){
+	            if( item.callback === listener ){
+	                events.splice(len, 1);
+	            }
+	        }
+	    }
+	    return len != events.length;
+	};
+	
+	/**
+	 * 调度指定事件
+	 * @param event
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.dispatchEvent(event);
+	    }
+	    event.target = event.currentTarget = this;
+	    var events = target[ event.type ];
+	    var len = events.length >> 0;
+	    if( len > 0 ){
+	        var index = 0;
+	        while(index < len){
+	            var item = events[ index++ ];
+	            var thisArg = item.reference || this;
+	            item.callback.call(thisArg , event);
+	            if( event.immediatePropagationStopped===true )
+	               return false;
+	        }
+	        return !event.immediatePropagationStopped;
+	    }
+	    return false;
+	};
+	ClassFactor.set(6,EventDispatcher,{
+		id:1,
+		ns:"core",
+		global:true,
+		name:"EventDispatcher"
+	});
+}(ClassFactor));
 /*declare System*/
-var System=(function(){
+(function(ClassFactor){
+	var EventDispatcher = ClassFactor.get(6);
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
 	};
-	var __modules__=[];
-	System.__KEY__=Symbol("__KEY__");
-	System.getClass=function(id){
-	    return __modules__[id];
-	}
-	System.setClass=function(id,classObject,description){
-	    if( description ){
-	        if( description.inherit ){
-	            Object.defineProperty(classObject,"prototype",{value:Object.create(description.inherit.prototype)});
-	        }
-	        if( description.methods ){
-	            Object.defineProperties(classObject,description.methods);
-	        }
-	        if( description.members ){
-	            Object.defineProperties(classObject.prototype,description.members);
-	        }
-	        Object.defineProperty(classObject,System.__KEY__,{value:description});
-	        Object.defineProperty(classObject,"name",{value:description.name});
-	    }
-	    Object.defineProperty(classObject.prototype,"constructor",{value:classObject});
-	    __modules__[id] = classObject;
-	}
 	
+	var __KEY__ = ClassFactor.__KEY__;
 	System.getIterator=function getIterator(object){
 	    if( !object )return null;
 	    if( object[Symbol.iterator] ){
@@ -89,7 +331,7 @@ var System=(function(){
 	
 	
 	System.className=function className(classObject){
-	    var desc = classObject[ System.__KEY__ ];
+	    var desc = classObject[ __KEY__ ];
 	    if(desc && desc.id === 1){
 	        if( desc.ns ){
 	            return desc.ns+'.'+desc.name;
@@ -102,8 +344,8 @@ var System=(function(){
 	
 	System.is=function is(left,right){
 	    if(!left || !right || typeof left !== "object")return false;
-	    var rId = right[System.__KEY__] ? right[System.__KEY__].id : null;
-	    var description =  left.constructor ? left.constructor[System.__KEY__] : null;
+	    var rId = right[__KEY__] ? right[__KEY__].id : null;
+	    var description =  left.constructor ? left.constructor[__KEY__] : null;
 	    if( rId === 0 && description && description.id === 1 ){
 	        return (function check(description,id){
 	            if( !description )return false;
@@ -112,11 +354,11 @@ var System=(function(){
 	            if( inherit === right )return true;
 	            if( imps ){
 	                for(var i=0;i<imps.length;i++){
-	                    if( imps[i] === right || check( imps[i][System.__KEY__], 0 ) )return true;
+	                    if( imps[i] === right || check( imps[i][__KEY__], 0 ) )return true;
 	                }
 	            }
-	            if( inherit && inherit[ System.__KEY__ ].id === id){
-	                return check( inherit[System.__KEY__], 0);
+	            if( inherit && inherit[ __KEY__ ].id === id){
+	                return check( inherit[__KEY__], 0);
 	            }
 	            return false;
 	        })(description,1);
@@ -126,17 +368,17 @@ var System=(function(){
 	
 	System.isClass=function isClass(classObject){
 	    if( !classObject || !classObject.constructor)return false;
-	    var desc = classObject[ System.__KEY__ ];
+	    var desc = classObject[ __KEY__ ];
 	    return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
 	}
 	
 	System.isInterface=function isInterface(classObject){
-	    var desc = classObject && classObject[ System.__KEY__ ];
+	    var desc = classObject && classObject[ __KEY__ ];
 	    return desc && desc.id === 2;
 	}
 	
 	System.isEnum=function isEnum(classObject){
-	    var desc = classObject && classObject[ System.__KEY__ ];
+	    var desc = classObject && classObject[ __KEY__ ];
 	    return desc && desc.id === 3;
 	}
 	
@@ -160,94 +402,26 @@ var System=(function(){
 	    }
 	    return arr;
 	}
-	return System;
-}());
-/*interface com.TestInterface*/
-(function(System){
-	function TestInterface(){}
-	System.setClass(2,TestInterface,{
-		id:2,
-		ns:"com",
-		name:"TestInterface"
-	});
-}(System));
-/*class Person*/
-(function(System){
-	var TestInterface = System.getClass(2);
-	var _private=Symbol("private");
-	function Person(name){
-		Object.defineProperty(this,_private,{value:{"_name":'',"_type":null}});
-		Object.call(this);
-		this[_private]._name=name;
+	
+	var __EventDispatcher = null;
+	System.getEventDispatcher=function getEventDispatcher(){
+	    if( __EventDispatcher === null ){
+	        __EventDispatcher = new EventDispatcher(window);
+	    }
+	    return __EventDispatcher;
 	}
-	var members = {};
-	members.addressName={m:3,d:1,writable:true,enumerable:true,value:"the Person properyt \"addressName\""};
-	members._name={m:1,d:1,writable:true,value:''};
-	members._type={m:1,d:1,writable:true,value:null};
-	members.target={m:3,d:4,enumerable:true,get:function target(){
-		return this;
-	}};
-	members.setType={m:3,d:3,value:function setType(a){
-		this[_private]._type=a;
-		return a;
-	}};
-	members.method={m:3,d:3,value:function method(name,age){
-		var str = ["a","1"];
-		var b = ["",["1",1]];
-		var cc = [1];
-		var x = [1,1,'2222',{}];
-		b.push('1');
-		b.push(['1',1]);
-		var c = -1968;
-		var bs = 22.366;
-		var bss = 22.366;
-		var bssd = -22.366;
-		Person.prototype.address.call(this.target);
-		return "sssss";
-	}};
-	members.name={m:3,d:4,enumerable:true,get:function name(){
-		return this[_private]._name;
-	},set:function name(val){
-		this[_private]._name=val;
-	}};
-	members.avg={m:3,d:3,value:function avg(a,b){
-	
-	}};
-	members.address={m:1,d:3,value:function address(){
-	
-	}};
-	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
-	
-	}};
-	System.setClass(0,Person,{
+	ClassFactor.set(3,System,{
 		id:1,
-		ns:"",
-		name:"Person",
-		private:_private,
-		imps:[TestInterface],
-		inherit:Object,
-		members:members
+		ns:"core",
+		global:true,
+		name:"System"
 	});
-}(System));
-/*enum Types*/
-(function(System){
-	function Types(){}
-	const methods = {};
-	methods.ADDRESS={m:3,d:6,value:0};
-	methods[0]={m:3,d:5,value:"ADDRESS"};
-	methods.NAME={m:3,d:6,value:1};
-	methods[1]={m:3,d:5,value:"NAME"};
-	System.setClass(1,Types,{
-		id:3,
-		ns:"",
-		name:"Types",
-		inherit:Object,
-		methods:methods
-	});
-}(System));
+}(ClassFactor));
 /*declare Reflect*/
-(function(System){
+(function(ClassFactor){
+	var System = ClassFactor.get(3);
 	var _Reflect = (function(_Reflect){
+	    var __KEY__ = ClassFactor.__KEY__;
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
 	        if( !System.isFunction( theClass ) ){
 	            throw new TypeError('is not class or function');
@@ -296,7 +470,7 @@ var System=(function(){
 	
 	    function inContext(context,objClass){
 	        if( !System.isClass(objClass) )return;
-	        var inherit = context[ System.__KEY__ ].inherit;
+	        var inherit = context[ __KEY__ ].inherit;
 	        if( inherit === objClass ){
 	            return true;
 	        }
@@ -311,7 +485,7 @@ var System=(function(){
 	        if( !System.isClass(objClass) ){
 	            return null;
 	        }
-	        while( objClass && (description = objClass[ System.__KEY__ ]) ){
+	        while( objClass && (description = objClass[ __KEY__ ]) ){
 	            var dataset = isstatic ? description.methods : description.members;
 	            if( dataset.hasOwnProperty( name ) ){
 	                const desc = dataset[name];
@@ -440,7 +614,7 @@ var System=(function(){
 	            if( System.isClass(target) ){
 	                target[propertyKey] = value;
 	            }else if( System.isClass(target.constructor) ){
-	                var p = target.constructor[System.__KEY__]._private;
+	                var p = target.constructor[__KEY__]._private;
 	                target[p][propertyKey] = value;
 	            }else {
 	                throw new ReferenceError(`target.${propertyKey} non object.`); 
@@ -466,14 +640,20 @@ var System=(function(){
 	    return Reflect;
 	
 	}(Reflect));
-	System.setClass(3,_Reflect);
-}(System));
+	ClassFactor.set(4,_Reflect,{
+		id:1,
+		ns:"core",
+		global:true,
+		name:"Reflect"
+	});
+}(ClassFactor));
 /*class Test*/
-(function(System){
-	var Person = System.getClass(0);
-	var Types = System.getClass(1);
-	var TestInterface = System.getClass(2);
-	var Reflect = System.getClass(3);
+(function(ClassFactor){
+	var Person = ClassFactor.get(0);
+	var Types = ClassFactor.get(1);
+	var TestInterface = ClassFactor.get(2);
+	var System = ClassFactor.get(3);
+	var Reflect = ClassFactor.get(4);
 	var _private=Symbol("private");
 	function Test(name,age){
 		Object.defineProperty(this,_private,{value:{"bbss":'bbss',"age":40,"len":5,"currentIndex":0}});
@@ -905,9 +1085,9 @@ var System=(function(){
 		return [str,cc,x,b];
 	}};
 	members.name={m:3,d:4,enumerable:true,get:function name(){
-		return Person[System.__KEY__].members.name.get.call(this);
+		return Person[ClassFactor.__KEY__].members.name.get.call(this);
 	},set:function name(value){
-		Person[System.__KEY__].members.name.set.call(this,value);
+		Person[ClassFactor.__KEY__].members.name.set.call(this,value);
 	}};
 	members.avg={m:3,d:3,value:function avg(yy,bbc){
 		var ii = function(){
@@ -943,7 +1123,7 @@ var System=(function(){
 		return dd;
 	}};
 	members[Symbol.iterator]={value:function(){return this;}}
-	System.setClass(4,Test,{
+	ClassFactor.set(5,Test,{
 		id:1,
 		ns:"",
 		name:"Test",
@@ -952,10 +1132,10 @@ var System=(function(){
 		methods:methods,
 		members:members
 	});
-}(System));
+}(ClassFactor));
 /*externals code*/;
 (function(){
-	var Test = System.getClass(4);
+	var Test = ClassFactor.get(5);
 	const test = new Test('Test');
 	test.start();
 }());

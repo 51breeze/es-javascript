@@ -69,6 +69,39 @@ class Syntax extends events.EventEmitter {
         return name;
     }
 
+    getClassFactorKey(){
+        const config = this.getConfig();
+        if( config.pack ){
+            const refs = this.checkRefsName('module');
+            return `${refs}.key;`
+        }
+        const refs = this.checkRefsName(this.getClassFactorName());
+        return `${refs}.__KEY__`;
+    }
+
+    getClassFactorName(){
+        return `ClassFactor`;
+    }
+
+    emitClassFactorSetHander(module, description, name){
+        const config = this.getConfig();
+        if( config.pack ){
+            const refs = this.checkRefsName('module');
+            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`
+        }
+        const refs = this.checkRefsName(this.getClassFactorName());
+        return `${refs}.set(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`
+    }
+
+    emitClassFactorGetHander(module, name){
+        const config = this.getConfig();
+        if( config.pack ){
+            return `var ${name || module.id} = require(${this.getIdByModule(module)});`
+        }
+        const refs = this.checkRefsName(this.getClassFactorName());
+        return `var ${name || module.id} = ${refs}.get(${this.getIdByModule(module)});`
+    }
+
     generatorVarName(stack,name,flag=false){
         const dataset = this.createDataByStack(stack);
         if( dataset.hasOwnProperty(name) ){
@@ -102,6 +135,9 @@ class Syntax extends events.EventEmitter {
                 return PATH.join(output,polyfillModule.namespace.replace(/\./g,'/'),filename).replace(/\\/g,'/');
             }
             return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
+        }else if( !module.isModule && module.isCore && module.export ){
+            const filename = module.export+suffix;
+            return PATH.join(output,polyfillModule.namespace.replace(/\./g,'/'),filename).replace(/\\/g,'/');
         }
         const filepath = PATH.resolve(output, PATH.relative( workspace, module.file ) );
         const info = PATH.parse(filepath);
@@ -285,19 +321,27 @@ class Syntax extends events.EventEmitter {
     }
 
     getModuleFile(module){
+        if( !module.isModule && module.isCore && module.export ){
+            return `${this.compilation.file}?id=ClassFactor&core=true`
+        }
         return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
     }
 
     createDependencies(module, refs){
         const config = this.getConfig();
+        if( !config.pack ){
+            refs.push( this.createImport('ClassFactor', this.getModuleFile( Polyfill.modules.get('ClassFactor') ).replace(/\\/g,'/') ) );
+        }
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = module.getReferenceNameByModule( depModule );
                 if( config.pack ){
                     const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
                     const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
-                    if( !polyfillModule || !polyfillModule.isSystem ){
-                        refs.push(`var ${name} = System.getClass(${this.getIdByModule(depModule)});`);
+                    if( polyfillModule ){
+                        refs.push( this.emitClassFactorGetHander(depModule) );
+                    }else{
+                        refs.push( this.emitClassFactorGetHander(depModule, name) );
                     }
                 }else if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
                     const file = this.getModuleFile(depModule);
@@ -307,6 +351,24 @@ class Syntax extends events.EventEmitter {
                 }
             }
         });
+    }
+
+    loadCore(){
+        const config = this.getConfig();
+        const polyfillModule = Polyfill.modules.get('ClassFactor');
+        const content = [polyfillModule.content];
+        const comment = `/*ClassFactor*/\r\n`;
+        if( config.pack ){
+            content.push(`return ${polyfillModule.export};`);
+            return `${comment}var ClassFactor=(function(){\r\n\t${content.join("\r\n").replace(/\r?\n/g,'\r\n\t')}\r\n}());`
+        }else{
+            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+                content.push(`export default ${polyfillModule.export};`)
+            }else{
+                content.push(`module.exports=${polyfillModule.export};`)
+            }
+            return `${comment}${content.join("\r\n")}`;
+        }
     }
 
     createImport(name,refs){

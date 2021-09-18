@@ -40,41 +40,35 @@ class Builder extends Syntax{
             }
 
             compilation.completed(this.name,false);
-            compilation.modules.forEach( module =>builderAll(module) )
-
-            if( options.pack ){
-                const System = compilation.getModuleById("System");
+            compilation.modules.forEach( module =>builderAll(module) );
+            this.createCore();
+            if( config.pack ){
                 const outputPath= path.resolve(config.output || options.output, config.name);
-                const contents=[];
+                const modules = new Map();
                 const added = new Set();
-                const cached = new Set();
                 const push = (module)=>{
-                    if( !added.has(module) ){
-                        added.add( module );
-                        const value = filesystem.readFileSync( this.getModuleFile(module) );
-                        if( value ){
-                            contents.push( value );
-                        }
+                    const value = filesystem.readFileSync( this.getModuleFile(module) );
+                    if( value ){
+                        const comment = `/*class  ${module.getName()}*/\r\n`; 
+                        modules.set(this.getIdByModule(module), `${comment}function(module,export,require){\r\n${value.replace(/\r\n/g,'\r\n\t')}\r\n}`);
                     }
                 }
-
                 const every=(module)=>{
-                    if( cached.has(module) )return;
-                    cached.add( module );
+                    if( !added.has(module) )return;
+                    added.add( module );
                     if( this.isNeedBuild(module) && this.isUsed(module) ){
+                        push( module );
                         this.getDependencies(module).forEach( depModule=>{
                             every(depModule);
                         });
-                        push( module );
                     }
                 }
-
-                push(System);
                 compilation.modules.forEach( module =>every(module) );
                 if(config.strict){
                     beforeContent.push(`"use strict";`)
                 }
-                
+
+                const contents= this.bootstrap(this.getIdByModule( compilation.modules.values()[1]), '{'+Array.from(modules.values()).join(',')+'}');
                 this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
             }
             buildModules.forEach(module=>{
@@ -92,6 +86,7 @@ class Builder extends Syntax{
         const compiler    = this.compiler;
         compilation.completed(this.name,false);
         try{
+            this.createCore();
             compilation.modules.forEach( module =>{
                 if( this.isNeedBuild(module) ){
                     const stack = compilation.getStackByModule(module);
@@ -116,6 +111,20 @@ class Builder extends Syntax{
         }
     }
 
+    createCore(){
+        const filesystem  = this.compiler.getOutputFileSystem( this.name );
+        const coreModule = Polyfill.modules.get('ClassFactor');
+        const coreFile = this.getModuleFile( coreModule );
+        const config = this.getConfig();
+        if( !filesystem.existsSync( coreFile ) ){
+            filesystem.mkdirpSync( path.dirname(coreFile) );
+            filesystem.writeFileSync(coreFile, this.loadCore() );
+            if( config.emitFile ){
+                this.emitFile( this.getOutputAbsolutePath( coreModule ), filesystem.readFileSync(file) );
+            }
+        }
+    }
+
     isNeedBuild(module){
         if(!module)return false;
         if( module.compilation.isPolicy(2,module) ){
@@ -135,7 +144,7 @@ class Builder extends Syntax{
                     case "MODULES":
                         return modules;
                 }
-                return '';
+                return 'null';
         });
     }
 

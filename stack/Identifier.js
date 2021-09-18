@@ -5,7 +5,7 @@ class Identifier extends Syntax{
           const module = this.module;
           if( module && this.compiler.callUtils("isClassType", desc) ){
                if( this.compiler.callUtils("checkDepend", desc) ){
-                  return `${this.checkRefsName("System")}.getClass(${this.getIdByModule(desc)})`;
+                  return this.emitClassFactorGetHander(desc);
                }else{
                   return module.getReferenceNameByModule( desc );
                }

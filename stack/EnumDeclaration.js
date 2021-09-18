@@ -44,16 +44,16 @@ class EnumDeclaration extends Syntax{
             content.push( memberContent.join("\r\n") );
         }
         
-        this.addDepend( this.compilation.getModuleById("System") );
         this.createDependencies(module,refs);
 
         const construct = `function ${module.id}(){}`;
         const config  = this.getConfig();
         const parts = refs.concat(construct,content);
-        parts.push(`System.setClass(${this.getIdByModule(module)},${module.id},${this.getDescription(description)});`);
+        parts.push(this.emitClassFactorSetHander(module, description));
 
         if( config.pack ){
-            return `/*enum ${module.getName()}*/\r\n(function(System){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(System));`;
+            const factor = this.getClassFactorName();
+            return `/*enum ${module.getName()}*/\r\n(function(${factor}){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(${factor}));`;
         }else{
             if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
                 parts.push(`export default ${this.module.id};`)

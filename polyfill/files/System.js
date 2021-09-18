@@ -1,29 +1,8 @@
 function System(){
     throw new SyntaxError('System is not constructor.');
 };
-var __modules__=[];
-System.__KEY__=Symbol("__KEY__");
-System.getClass=function(id){
-    return __modules__[id];
-}
-System.setClass=function(id,classObject,description){
-    if( description ){
-        if( description.inherit ){
-            Object.defineProperty(classObject,"prototype",{value:Object.create(description.inherit.prototype)});
-        }
-        if( description.methods ){
-            Object.defineProperties(classObject,description.methods);
-        }
-        if( description.members ){
-            Object.defineProperties(classObject.prototype,description.members);
-        }
-        Object.defineProperty(classObject,System.__KEY__,{value:description});
-        Object.defineProperty(classObject,"name",{value:description.name});
-    }
-    Object.defineProperty(classObject.prototype,"constructor",{value:classObject});
-    __modules__[id] = classObject;
-}
 
+var __KEY__ = ClassFactor.__KEY__;
 System.getIterator=function getIterator(object){
     if( !object )return null;
     if( object[Symbol.iterator] ){
@@ -86,7 +65,7 @@ System.generator = function (thisArg, body) {
 
 
 System.className=function className(classObject){
-    var desc = classObject[ System.__KEY__ ];
+    var desc = classObject[ __KEY__ ];
     if(desc && desc.id === 1){
         if( desc.ns ){
             return desc.ns+'.'+desc.name;
@@ -99,8 +78,8 @@ System.className=function className(classObject){
 
 System.is=function is(left,right){
     if(!left || !right || typeof left !== "object")return false;
-    var rId = right[System.__KEY__] ? right[System.__KEY__].id : null;
-    var description =  left.constructor ? left.constructor[System.__KEY__] : null;
+    var rId = right[__KEY__] ? right[__KEY__].id : null;
+    var description =  left.constructor ? left.constructor[__KEY__] : null;
     if( rId === 0 && description && description.id === 1 ){
         return (function check(description,id){
             if( !description )return false;
@@ -109,11 +88,11 @@ System.is=function is(left,right){
             if( inherit === right )return true;
             if( imps ){
                 for(var i=0;i<imps.length;i++){
-                    if( imps[i] === right || check( imps[i][System.__KEY__], 0 ) )return true;
+                    if( imps[i] === right || check( imps[i][__KEY__], 0 ) )return true;
                 }
             }
-            if( inherit && inherit[ System.__KEY__ ].id === id){
-                return check( inherit[System.__KEY__], 0);
+            if( inherit && inherit[ __KEY__ ].id === id){
+                return check( inherit[__KEY__], 0);
             }
             return false;
         })(description,1);
@@ -123,17 +102,17 @@ System.is=function is(left,right){
 
 System.isClass=function isClass(classObject){
     if( !classObject || !classObject.constructor)return false;
-    var desc = classObject[ System.__KEY__ ];
+    var desc = classObject[ __KEY__ ];
     return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
 }
 
 System.isInterface=function isInterface(classObject){
-    var desc = classObject && classObject[ System.__KEY__ ];
+    var desc = classObject && classObject[ __KEY__ ];
     return desc && desc.id === 2;
 }
 
 System.isEnum=function isEnum(classObject){
-    var desc = classObject && classObject[ System.__KEY__ ];
+    var desc = classObject && classObject[ __KEY__ ];
     return desc && desc.id === 3;
 }
 
@@ -156,4 +135,12 @@ System.toArray=function toArray(object){
         } 
     }
     return arr;
+}
+
+var __EventDispatcher = null;
+System.getEventDispatcher=function getEventDispatcher(){
+    if( __EventDispatcher === null ){
+        __EventDispatcher = new EventDispatcher(window);
+    }
+    return __EventDispatcher;
 }

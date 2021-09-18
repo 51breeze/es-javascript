@@ -11,7 +11,8 @@ class BinaryExpression extends Syntax{
                     if( this.compiler.callUtils("isGloableModule", type) ){
                          return `${left} instanceof ${right}`;
                     }
-                    return `System.is(${left},${right})`;
+                    this.addDepend( this.getGlobalModuleById('System') );
+                    return `${this.checkRefsName('System')}.is(${left},${right})`;
                }
           }
           return `${left} ${operator} ${right}`;

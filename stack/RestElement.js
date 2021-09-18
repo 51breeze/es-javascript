@@ -14,12 +14,12 @@ class RestElement extends Syntax{
         if( this.stack.parentStack.isObjectPattern ){
            const target = this.stack.parentStack.parentStack.init;
            const properties = this.stack.parentStack.properties.filter( item=>item !== this.stack ).map( item=>item.value() );
-           this.addDepend( this.stack.getModuleById("System") );
+           this.addDepend( this.getGlobalModuleById("System") );
            const obj = target.isIdentifier ? this.make(target) : this.make(this.getSpreadRefName(target, ()=>target) );
            if( properties.length > 0 ){
-                return `${name}=System.toArray(${obj},["${properties.join('","')}"])`;
+                return `${name}=${this.checkRefsName('System')}.toArray(${obj},["${properties.join('","')}"])`;
            }else{
-                return `${name}=System.toArray(${obj})`;
+                return `${name}=${this.checkRefsName('System')}.toArray(${obj})`;
            }
         }else if( this.stack.parentStack.isArrayPattern ){
             const index = this.stack.parentStack.elements.indexOf( this.stack );

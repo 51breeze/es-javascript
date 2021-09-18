@@ -10,7 +10,6 @@ class Creator {
         const compiler = new Compiler(Object.assign({
             debug:true,
             diagnose:true,
-            pack:true,
             autoLoadDescribeFile:true,
             output:path.join(__dirname,"./build"),
             workspace:path.join(__dirname,"./src"),
@@ -62,7 +61,13 @@ class Creator {
     }
 
     build( compilation ){
-        return plugin.start( compilation, ()=>{});
+        return plugin.start( compilation, (e)=>{
+               if( e ){
+                   console.log(e);
+               }else{
+                   console.log("build done!!")
+               }
+        });
     }
 }
 

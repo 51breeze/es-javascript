@@ -8,7 +8,8 @@ class ForOfStatement extends Syntax{
         const indent = this.getIndent();
         const refs = this.generatorVarName(this.stack,"_i");
         const vRefs = this.generatorVarName(this.stack,"_v");
-        const condition = `${left},${vRefs},${refs}=System.getIterator(${right}); ${refs} && (${vRefs}=${refs}.next()) && !${vRefs}.done;`;
+        this.addDepend( this.getGlobalModuleById('System') );
+        const condition = `${left},${vRefs},${refs}=${this.checkRefsName('System')}.getIterator(${right}); ${refs} && (${vRefs}=${refs}.next()) && !${vRefs}.done;`;
         if( !this.stack.body ){
             return this.semicolon(`${indent}for(${condition})`);
         }

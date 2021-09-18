@@ -57,16 +57,16 @@ class MemberExpression extends Syntax{
       
       if( this.compiler.callUtils("isClassType", description) ){
          if( this.compiler.callUtils("checkDepend", module,description) ){
-            return `${this.checkRefsName("System")}.getClass(${this.getIdByModule(description)})`;
+            return this.emitClassFactorGetHander(description);
          }else{
             return module.getReferenceNameByModule( description );
          }
       }
       if( this.stack.object.isSuperExpression ){
          if( description && description.isMethodGetterDefinition ){
-            return `${object}[${this.checkRefsName("System")}.__KEY__].members.${property}.get.call(this)`;
+            return `${object}[${this.getClassFactorKey()}].members.${property}.get.call(this)`;
          }else if(description && description.isMethodSetterDefinition ){
-            return `${object}[${this.checkRefsName("System")}.__KEY__].members.${property}.set`;
+            return `${object}[${this.getClassFactorKey()}].members.${property}.set`;
          }else{
             return `${object}.prototype.${property}`;
          }

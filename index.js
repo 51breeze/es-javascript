@@ -21,7 +21,8 @@ const defaultConfig ={
     "name":'main.js',
     "pack":false,
     "importPath":Constant.BUILD_IMPORT_PATH_RELATIVE,
-    "strict":true, 
+    "strict":true,
+    "ns":'core',
 }
 
 const plugin = {

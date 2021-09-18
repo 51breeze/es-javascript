@@ -13,7 +13,7 @@ class ClassDeclaration extends Syntax{
         if( value ){
             if( item.isPropertyDefinition ){
                 if( !isStatic && modifier === "private"){
-                    properties.push(`"${name}":${value||null}`);
+                    properties.push(`'${name}':${value||null}`);
                     //return null;
                 }
                 return value;
@@ -104,7 +104,7 @@ class ClassDeclaration extends Syntax{
         emitter( methods , 'methods', methodContent , true);
         emitter( members , `members`, memberContent , false);
 
-        const iteratorType = this.stack.getGlobalTypeById("Iterator")
+        const iteratorType = this.getGlobalModuleById("Iterator")
         if( module.implements.includes(iteratorType) ){
             memberContent.push(`members[Symbol.iterator]={value:function(){return this;}}`)
         }
@@ -127,8 +127,8 @@ class ClassDeclaration extends Syntax{
         const construct = module.methodConstructor ? this.make(module.methodConstructor) : `${defaultConstructor.join("\r\n")}`;
         const description = [
             `id:${Constant.DECLARE_CLASS}`,
-            `ns:"${module.namespace.toString()}"`,
-            `name:"${module.id}"`,
+            `ns:'${module.namespace.toString()}'`,
+            `name:'${module.id}'`,
             `private:${Constant.REFS_DECLARE_PRIVATE_NAME}`,
         ];
 
@@ -139,17 +139,13 @@ class ClassDeclaration extends Syntax{
             description.push(`inherit:${module.getReferenceNameByModule(inherit)}`);
         }
 
-        this.addDepend( this.compilation.getModuleById("System") );
-
         this.createDependencies(module,refs);
         refs.push(`var ${Constant.REFS_DECLARE_PRIVATE_NAME}=Symbol("private");`);
+        
+        //alias refs
         if( topRefs.size > 0 ){
             topRefs.forEach( (value,name)=>{
-                if(name==="System"){
-                    refs.push( `var ${value} = System;` );
-                }else if(name === Constant.REFS_DECLARE_PRIVATE_NAME){
-                    refs.push( `var ${value} = ${Constant.REFS_DECLARE_PRIVATE_NAME};` );
-                }
+                refs.push( `var ${value} = ${name};` );
             });
         }
 
@@ -167,28 +163,17 @@ class ClassDeclaration extends Syntax{
 
         const config  = this.getConfig();
         const parts = refs.concat(construct,content);
-        parts.push(`System.setClass(${this.getIdByModule(module)},${module.id},${this.getDescription(description)});`);
+        parts.push( this.emitClassFactorSetHander( module, description) );
         const external = this.buildExternal();
-        if( config.pack ){
-            const moduleContent = [
-                `/*class ${module.getName()}*/`, 
-                `(function(System){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(System));`
-            ];
-            if( external ){
-                moduleContent.push( external );
-            }
-            return moduleContent.join("\r\n");
-        }else{
-            if( external ){
-                parts.push( external );
-            }
-            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-                parts.push(`export default ${this.module.id};`)
-            }else{
-                parts.push(`module.exports=${this.module.id};`)
-            }
-            return parts.join("\r\n");
+        if( external ){
+            parts.push( external );
         }
+        if( !config.pack && config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+            parts.push(`export default ${this.module.id};`);
+        }else{
+            parts.push(`module.exports=${this.module.id};`);
+        }
+        return parts.join("\r\n");
     }
 }
 
