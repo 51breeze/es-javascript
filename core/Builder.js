@@ -58,7 +58,7 @@ class Builder extends Syntax{
         const compiler    = this.compiler;
         compilation.completed(this.name,false);
         try{
-            this.createCore();
+            this.emitCore();
             compilation.modules.forEach( module =>{
                 if( this.isNeedBuild(module) ){
                     const stack = compilation.getStackByModule(module);
@@ -142,6 +142,10 @@ class Builder extends Syntax{
     }
 
     emitCore(){
+        const loaded = this.loadCoreModule;
+        if( loaded ){
+            return loaded;
+        }
         const compiler    = this.compiler;
         const filesystem  = compiler.getOutputFileSystem( this.name );
         const config = this.getConfig();
@@ -151,12 +155,12 @@ class Builder extends Syntax{
         filesystem.mkdirpSync( path.dirname(file) );
         filesystem.writeFileSync(file, content );
         const output = config.output || options.output;
-        const filename = 'Creator.js';
+        const filename = path.basename(file);
         const outputFile = path.join(output,(config.ns||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
         if( config.emitFile ){
             this.emitFile(outputFile, filesystem.readFileSync(file) );
         } 
-        return {file,content,filename,outputFile};
+        return this.loadCoreModule = {file,content,filename,outputFile};
     }
 
     bootstrap(entrances, modules){
