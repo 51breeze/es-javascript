@@ -14,15 +14,14 @@ const loadStack=()=>{
 const defaultConfig ={
     "target":"es6",
     "useDefineProperty":false,
-    "module":Constant.BUILD_REFS_MODULE_ES6,
-    "build":Constant.BUILD_ALL_FILE,
+    "module":'es', //ES CommonJS
     "emitFile":false,
     "suffix":'.js',
     "name":'main.js',
     "pack":false,
-    "importPath":Constant.BUILD_IMPORT_PATH_RELATIVE,
     "strict":true,
     "ns":'core',
+    'useAbsolutePathImport':false,
 }
 
 const plugin = {

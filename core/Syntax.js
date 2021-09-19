@@ -105,7 +105,8 @@ class Syntax extends events.EventEmitter {
         if( config.pack ){
             return `${this.getClassHelper()}.exports=${name || module.id};`;
         }
-        if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+        const mod = config.module || 'commonjs';
+        if( mod.toLowerCase() === 'es' ){
             return `export default ${name || module.id};`;
         }else{
             return `module.exports=${name || module.id};`;
@@ -334,7 +335,9 @@ class Syntax extends events.EventEmitter {
     createDependencies(module, refs){
         const config = this.getConfig();
         if( !config.pack ){
-            refs.push( this.createImport(this.getClassHelper(), this.getCoreFileOutputPath( require.resolve('./Creator'), module ) ) );
+            const coreFile = require.resolve('./Creator');
+            const coreImportFile = config.importAbsolutePath && !config.emitFile ? coreFile : this.getCoreFileOutputPath( coreFile, module );
+            refs.push( this.createImport(this.getClassHelper(), coreImportFile ) );
         }
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
@@ -347,7 +350,7 @@ class Syntax extends events.EventEmitter {
                     }else{
                         refs.push( this.emitImportClass(depModule, name) );
                     }
-                }else if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
+                }else if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
                     refs.push( this.createImport(name, file.replace(/\\/g,'/') ) );
                 }else{
@@ -362,7 +365,7 @@ class Syntax extends events.EventEmitter {
         const options = this.getOptions();
         const output = config.output || options.output;
         const filename = PATH.join(output,(config.ns||'').replace(/\./g,'/'),PATH.basename(file)).replace(/\\/g,'/').replace(/\\/g,'/');
-        if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
+        if( config.useAbsolutePathImport ){
             return filename;
         }else{
             return './'+PATH.relative(PATH.dirname(this.getOutputAbsolutePath(context)),filename).replace(/\\/g,'/');
@@ -371,7 +374,8 @@ class Syntax extends events.EventEmitter {
 
     createImport(name, file){
         const config = this.getConfig();
-        if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+        const mod = config.module || 'commonjs';
+        if( mod.toLowerCase() === 'es' ){
             return `import ${name} from "${file}";`
         }else{
             return `var ${name} = require("${file}");`
