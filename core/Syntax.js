@@ -335,8 +335,8 @@ class Syntax extends events.EventEmitter {
     createDependencies(module, refs){
         const config = this.getConfig();
         if( !config.pack ){
-            const coreFile = require.resolve('./Creator');
-            const coreImportFile = config.importAbsolutePath && !config.emitFile ? coreFile : this.getCoreFileOutputPath( coreFile, module );
+            const coreFile = require.resolve('./Creator').replace(/\\/g,'/');
+            const coreImportFile = config.useAbsolutePathImport && !config.emitFile ? coreFile : this.getCoreFileOutputPath( coreFile, module );
             refs.push( this.createImport(this.getClassHelper(), coreImportFile ) );
         }
         this.getDependencies(module).forEach( depModule=>{
