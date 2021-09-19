@@ -2,10 +2,10 @@ var __MODULES__=[];
 var key=Symbol("CLASS_KEY");
 module.exports={
     'key':key,
-    'get':function(id){
+    'require':function(id){
         return __MODULES__[id];
     },
-    'set':function(id,moduleClass,description){
+    'creator':function(id,moduleClass,description){
         if( description ){
             if( description.inherit ){
                 Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});

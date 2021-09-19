@@ -9,9 +9,7 @@ class Builder extends Syntax{
             const compilation = this.compilation;
             const compiler    = this.compiler;
             const buildModules = new Set();
-            const beforeContent = [];
             const filesystem  = compiler.getOutputFileSystem( this.name );
-            const options     = this.getOptions();
             const config      = this.getConfig();
             const builder = ( module )=>{
                 if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
@@ -39,37 +37,11 @@ class Builder extends Syntax{
                 }
             }
 
+            this.emitCore();
             compilation.completed(this.name,false);
             compilation.modules.forEach( module =>builderAll(module) );
-            this.createCore();
             if( config.pack ){
-                const outputPath= path.resolve(config.output || options.output, config.name);
-                const modules = new Map();
-                const added = new Set();
-                const push = (module)=>{
-                    const value = filesystem.readFileSync( this.getModuleFile(module) );
-                    if( value ){
-                        const comment = `/*class  ${module.getName()}*/\r\n`; 
-                        modules.set(this.getIdByModule(module), `${comment}function(module,export,require){\r\n${value.replace(/\r\n/g,'\r\n\t')}\r\n}`);
-                    }
-                }
-                const every=(module)=>{
-                    if( !added.has(module) )return;
-                    added.add( module );
-                    if( this.isNeedBuild(module) && this.isUsed(module) ){
-                        push( module );
-                        this.getDependencies(module).forEach( depModule=>{
-                            every(depModule);
-                        });
-                    }
-                }
-                compilation.modules.forEach( module =>every(module) );
-                if(config.strict){
-                    beforeContent.push(`"use strict";`)
-                }
-
-                const contents= this.bootstrap(this.getIdByModule( compilation.modules.values()[1]), '{'+Array.from(modules.values()).join(',')+'}');
-                this.emitFile(outputPath, beforeContent.concat( contents ).join("\r\n") );
+                this.doPack();
             }
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
@@ -111,17 +83,51 @@ class Builder extends Syntax{
         }
     }
 
-    createCore(){
-        const filesystem  = this.compiler.getOutputFileSystem( this.name );
-        const coreModule = Polyfill.modules.get('ClassFactor');
-        const coreFile = this.getModuleFile( coreModule );
+    doPack(){
+        const compilation = this.compilation;
+        const compiler    = this.compiler;
         const config = this.getConfig();
-        if( !filesystem.existsSync( coreFile ) ){
-            filesystem.mkdirpSync( path.dirname(coreFile) );
-            filesystem.writeFileSync(coreFile, this.loadCore() );
-            if( config.emitFile ){
-                this.emitFile( this.getOutputAbsolutePath( coreModule ), filesystem.readFileSync(file) );
+        const options = this.getOptions();
+        const outputPath= path.resolve(config.output || options.output, config.name);
+        const content = [];
+        const added = new Set();
+        const filesystem  = compiler.getOutputFileSystem( this.name );
+        const push = (module)=>{
+            const value = filesystem.readFileSync( this.getModuleFile(module) );
+            if( value ){
+                const id = this.getIdByModule(module);
+                const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
+                const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
+                const code = `${comment}function(${this.getClassHelper()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
+                content.push({id,code});
             }
+        }
+        const every=(module)=>{
+            if( added.has(module) )return;
+            added.add( module );
+            if( this.isNeedBuild(module) && this.isUsed(module) ){
+                this.getDependencies(module).forEach( depModule=>{
+                    every(depModule);
+                });
+                push( module );
+            }
+        }
+
+        const main = [];
+        compilation.modules.forEach( module =>{
+            main.push( module );
+            every(module)
+        });
+
+        content.sort((a,b)=>{
+            return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+        });
+
+        const bootstrap= this.bootstrap( main, `{\r\n${content.map(item=>`${item.id}:${item.code}`).join(',\r\n')}\r\n}`);
+        if(config.strict){
+            this.emitFile(outputPath, `"use strict";\r\n${bootstrap}` );
+        }else{
+            this.emitFile(outputPath, bootstrap );
         }
     }
 
@@ -135,12 +141,32 @@ class Builder extends Syntax{
         return !isDeclaratorModule || isPolyfill;
     }
 
-    bootstrap(mainId, modules){
+    emitCore(){
+        const compiler    = this.compiler;
+        const filesystem  = compiler.getOutputFileSystem( this.name );
+        const config = this.getConfig();
+        const options = this.getOptions();
+        const file = require.resolve('./Creator.js');
+        const content = fs.readFileSync( file ).toString();
+        filesystem.mkdirpSync( path.dirname(file) );
+        filesystem.writeFileSync(file, content );
+        const output = config.output || options.output;
+        const filename = 'Creator.js';
+        const outputFile = path.join(output,(config.ns||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
+        if( config.emitFile ){
+            this.emitFile(outputFile, filesystem.readFileSync(file) );
+        } 
+        return {file,content,filename,outputFile};
+    }
+
+    bootstrap(entrances, modules){
         const bootstrap = fs.readFileSync( path.join(__dirname,"../bootstrap.js") ).toString();
-        return bootstrap.replace(/\[CODE\[([A-Z|_]+?)\]\]/g,function(a,name){
+        return bootstrap.replace(/\[CODE\[([A-Z|_]+?)\]\]/g,(a,name)=>{
                 switch(name){
-                    case "MAIN_IDENTIFIER" :
-                        return mainId;
+                    case "MAIN_ENTER" :
+                        return entrances.map( module=>{
+                            return `/*enter class ${module.getName()}*/\r\n\trequire(${this.getIdByModule(module)});`;
+                        }).join('\r\n');
                     case "MODULES":
                         return modules;
                 }

@@ -47,21 +47,10 @@ class EnumDeclaration extends Syntax{
         this.createDependencies(module,refs);
 
         const construct = `function ${module.id}(){}`;
-        const config  = this.getConfig();
         const parts = refs.concat(construct,content);
-        parts.push(this.emitClassFactorSetHander(module, description));
-
-        if( config.pack ){
-            const factor = this.getClassFactorName();
-            return `/*enum ${module.getName()}*/\r\n(function(${factor}){\r\n\t${parts.join("\r\n").replace(/\r\n/g,'\r\n\t')}\r\n}(${factor}));`;
-        }else{
-            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-                parts.push(`export default ${this.module.id};`)
-            }else{
-                parts.push(`module.exports=${this.module.id};`)
-            }
-            return parts.join("\r\n");
-        }
+        parts.push(this.emitCreateClassDescription(module, description));
+        parts.push( this.emitExportClass(module) );
+        return parts.join("\r\n");
     }
 
     emitter(){

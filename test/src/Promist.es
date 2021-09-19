@@ -69,7 +69,7 @@ test.testAwait();
 const result1 = test.loadRemoteData(1);
 //const result2= await this.loadRemoteData(2,'', done);
 result1.then((data)=>{
-        console.log( data, "============" );
+    console.log( data, "============" );
 });
 
 const res = test.add()

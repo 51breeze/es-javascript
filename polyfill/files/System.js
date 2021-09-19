@@ -1,8 +1,6 @@
 function System(){
     throw new SyntaxError('System is not constructor.');
 };
-
-var __KEY__ = ClassFactor.__KEY__;
 System.getIterator=function getIterator(object){
     if( !object )return null;
     if( object[Symbol.iterator] ){

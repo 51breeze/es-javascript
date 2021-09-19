@@ -5,5 +5,8 @@ module.exports={
     export:"EventDispatcher",
     require:['System'],
     isSystem:false,
+    getContent(syntax){
+        return this.content;
+    },
     namespace:"core"
 }

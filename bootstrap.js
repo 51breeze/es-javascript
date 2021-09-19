@@ -43,12 +43,13 @@
     
         var module = installedModules[identifier] = {
             'id': identifier,
-            'key':key,
             'creator':creator,
-            'exports': {}
+            'require':require,
+            'exports': {},
+            'key':key,
         };
     
-        definedModules[identifier].call(module, module.exports, require);
+        definedModules[identifier].call(module, module, require);
         return module.exports;
     }
 
@@ -62,6 +63,6 @@
     /**
      * 加载入口文件
      */
-    require([CODE[MAIN_IDENTIFIER]]);
+    [CODE[MAIN_ENTER]]
     
 }([CODE[MODULES]]));

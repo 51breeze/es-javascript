@@ -1,49 +1,81 @@
 "use strict";
-/*ClassFactor*/
-var ClassFactor=(function(){
-	var __MODULES__=[];
-	var __KEY__=Symbol("ClassFactor");
-	var ClassFactor={
-	    __KEY__:__KEY__,
-	    __MODULES__:__MODULES__,
-	    get:function(id){
-	        return __MODULES__[id];
-	    },
-	    set:function(id,classObject,description){
-	        if( description ){
-	            if( description.inherit ){
-	                Object.defineProperty(classObject,"prototype",{value:Object.create(description.inherit.prototype)});
-	            }
-	            if( description.methods ){
-	                Object.defineProperties(classObject,description.methods);
-	            }
-	            if( description.members ){
-	                Object.defineProperties(classObject.prototype,description.members);
-	            }
-	            Object.defineProperty(classObject,__KEY__,{value:description});
-	            Object.defineProperty(classObject,"name",{value:description.name});
-	        }
-	        Object.defineProperty(classObject.prototype,"constructor",{value:classObject});
-	        __MODULES__[id] = classObject;
-	    }
-	};
-	return ClassFactor;
-}());
-/*interface com.TestInterface*/
-(function(ClassFactor){
-	function TestInterface(){}
-	ClassFactor.set(2,TestInterface,{
-		id:2,
-		ns:"com",
-		name:"TestInterface"
-	});
-}(ClassFactor));
-/*class Person*/
-(function(ClassFactor){
-	var TestInterface = ClassFactor.get(2);
+(function(definedModules){
+
+    /**
+     * 已加载的模块
+     */
+    var installedModules = {};
+    var key=Symbol("CLASS_KEY");
+
+    /**
+     * 生成类的描述信息
+     * @param {*} moduleClass 
+     * @param {*} description 
+     */
+     function creator(moduleClass,description){
+        if( description ){
+            if( description.inherit ){
+                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+            }
+            if( description.methods ){
+                Object.defineProperties(moduleClass,description.methods);
+            }
+            if( description.members ){
+                Object.defineProperties(moduleClass.prototype,description.members);
+            }
+            Object.defineProperty(moduleClass,key,{value:description});
+            Object.defineProperty(moduleClass,'name',{value:description.name});
+        }
+        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
+    }
+    
+    /**
+     * 加载并初始化模块
+     * @param string 
+     */
+    function require( identifier ){
+        if( installedModules[identifier] ){
+            return installedModules[identifier].exports;
+        }
+    
+        if( !definedModules.hasOwnProperty(identifier) ){
+             throw new ReferenceError("Require module '"+identifier +"' is not exists.");
+        }
+    
+        var module = installedModules[identifier] = {
+            'id': identifier,
+            'creator':creator,
+            'require':require,
+            'exports': {},
+            'key':key,
+        };
+    
+        definedModules[identifier].call(module, module, require);
+        return module.exports;
+    }
+
+    /**
+     * 判断是否有定义此标识符的模块
+     */
+    require.has=function has( identifier ){
+        return definedModules.hasOwnProperty(identifier);
+    }
+
+    /**
+     * 加载入口文件
+     */
+    /*enter class Test*/
+	require(5);
+    
+}({
+0:/*
+Class Person
+*/
+function(__MODULE__){
+	var TestInterface = __MODULE__.require(2);
 	var _private=Symbol("private");
 	function Person(name){
-		Object.defineProperty(this,_private,{value:{"_name":'',"_type":null}});
+		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
 		Object.call(this);
 		this[_private]._name=name;
 	}
@@ -86,189 +118,57 @@ var ClassFactor=(function(){
 	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
 	
 	}};
-	ClassFactor.set(0,Person,{
+	__MODULE__.creator(Person,{
 		id:1,
-		ns:"",
-		name:"Person",
+		ns:'',
+		name:'Person',
 		private:_private,
 		imps:[TestInterface],
 		inherit:Object,
 		members:members
 	});
-}(ClassFactor));
-/*enum Types*/
-(function(ClassFactor){
+	__MODULE__.exports=Person;
+},
+1:/*
+Enum Types
+*/
+function(__MODULE__){
 	function Types(){}
 	const methods = {};
 	methods.ADDRESS={m:3,d:6,value:0};
 	methods[0]={m:3,d:5,value:"ADDRESS"};
 	methods.NAME={m:3,d:6,value:1};
 	methods[1]={m:3,d:5,value:"NAME"};
-	ClassFactor.set(1,Types,{
+	__MODULE__.creator(Types,{
 		id:3,
 		ns:"",
 		name:"Types",
 		inherit:Object,
 		methods:methods
 	});
-}(ClassFactor));
-/*declare EventDispatcher*/
-(function(ClassFactor){
-	var System = ClassFactor.get(3);
-	/*
-	 * EaseScript
-	 * Copyright © 2017 EaseScript All rights reserved.
-	 * Released under the MIT license
-	 * https://github.com/51breeze/EaseScript
-	 * @author Jun Ye <664371281@qq.com>
-	 * @require System,Object,Event,Internal,Symbol
-	 */
-	var privateKey = Symbol('EventDispatcher');
-	function EventDispatcher( target ){
-	    if( !(this instanceof EventDispatcher) ){
-	        return target && target instanceof EventDispatcher ? target : new EventDispatcher( target );
-	    }
-	    this[privateKey]={};
-	    if( target ){
-	        if( target instanceof EventDispatcher){
-	            this[privateKey] = target;
-	        }else if(typeof target ==="object"){
-	            this[privateKey] = target[privateKey] || (target[privateKey]={});
-	        }
-	    }
-	}
-	
-	EventDispatcher.prototype=Object.create(Object.prototype,{
-	    "constructor":{value:EventDispatcher}
+	__MODULE__.exports=Types;
+},
+2:/*
+Interface com.TestInterface
+*/
+function(__MODULE__){
+	function TestInterface(){}
+	__MODULE__.creator(TestInterface,{
+		id:2,
+		ns:'com',
+		name:'TestInterface'
 	});
-	
-	
-	/**
-	 * 判断是否有指定类型的侦听器
-	 * @param type
-	 * @param listener
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.hasEventListener=function hasEventListener( type , listener ){
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        return target.hasEventListener(type, listener);
-	    }
-	    if( Object.prototype.hasOwnProperty.call(target,type) ){
-	        var events = target[type];
-	        var length = events.length;
-	        if( typeof listener !== "function" ){
-	            return length > 0;
-	        }
-	        while (length > 0){
-	            --length;
-	            if ( events[length].callback === listener ){
-	                return true;
-	            }
-	        }
-	    }
-	    return false;
-	};
-	
-	/**
-	 * 添加侦听器
-	 * @param type
-	 * @param listener
-	 * @param priority
-	 * @returns {EventDispatcher}
-	 */
-	EventDispatcher.prototype.addEventListener=function addEventListener(type,callback,useCapture,priority,reference){
-	    if( typeof type !== 'string' )throw new TypeError('Invalid event type');
-	    if( typeof callback !== 'function' )throw new TypeError('Invalid callback function');
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        target.addEventListener(type,callback,useCapture,priority,reference||this);
-	        return this;
-	    }
-	
-	    var events = target[type] || (target[type]=[]);
-	    events.push({
-	        'callback':callback,
-	        'useCapture':useCapture,
-	        'priority':priority,
-	        'reference':reference
-	    });
-	
-	    if( events.length > 1 )events.sort(function(a,b){
-	        return a.priority=== b.priority ? 0 : (a.priority < b.priority ? 1 : -1);
-	    });
-	    return true;
-	};
-	
-	/**
-	 * 移除指定类型的侦听器
-	 * @param type
-	 * @param listener
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.removeEventListener=function removeEventListener(type,listener){
-	    var target =  this[privateKey];
-	    if(target instanceof EventDispatcher ){
-	        return target.removeEventListener(type,listener);
-	    }
-	    var events = target[type] || [];
-	    var len = events.length >> 0;
-	    if( !listener ){
-	        events.splice(0, len);
-	        return true;
-	    }
-	    while(len>0 && events[--len] ){
-	        var item = events[--len];
-	        if( listener ){
-	            if( item.callback === listener ){
-	                events.splice(len, 1);
-	            }
-	        }
-	    }
-	    return len != events.length;
-	};
-	
-	/**
-	 * 调度指定事件
-	 * @param event
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        return target.dispatchEvent(event);
-	    }
-	    event.target = event.currentTarget = this;
-	    var events = target[ event.type ];
-	    var len = events.length >> 0;
-	    if( len > 0 ){
-	        var index = 0;
-	        while(index < len){
-	            var item = events[ index++ ];
-	            var thisArg = item.reference || this;
-	            item.callback.call(thisArg , event);
-	            if( event.immediatePropagationStopped===true )
-	               return false;
-	        }
-	        return !event.immediatePropagationStopped;
-	    }
-	    return false;
-	};
-	ClassFactor.set(6,EventDispatcher,{
-		id:1,
-		ns:"core",
-		global:true,
-		name:"EventDispatcher"
-	});
-}(ClassFactor));
-/*declare System*/
-(function(ClassFactor){
-	var EventDispatcher = ClassFactor.get(6);
+	__MODULE__.exports=TestInterface;
+},
+3:/*
+Class System
+*/
+function(__MODULE__){
+	var EventDispatcher = __MODULE__.require(6);
+	var __KEY__ = __MODULE__.key;
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
 	};
-	
-	var __KEY__ = ClassFactor.__KEY__;
 	System.getIterator=function getIterator(object){
 	    if( !object )return null;
 	    if( object[Symbol.iterator] ){
@@ -410,18 +310,21 @@ var ClassFactor=(function(){
 	    }
 	    return __EventDispatcher;
 	}
-	ClassFactor.set(3,System,{
+	__MODULE__.creator(System,{
 		id:1,
-		ns:"core",
+		ns:'core',
 		global:true,
-		name:"System"
+		name:'System'
 	});
-}(ClassFactor));
-/*declare Reflect*/
-(function(ClassFactor){
-	var System = ClassFactor.get(3);
+	__MODULE__.exports=System;
+},
+4:/*
+Class Reflect
+*/
+function(__MODULE__){
+	var System = __MODULE__.require(3);
+	var __KEY__ = __MODULE__.key;
 	var _Reflect = (function(_Reflect){
-	    var __KEY__ = ClassFactor.__KEY__;
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
 	        if( !System.isFunction( theClass ) ){
 	            throw new TypeError('is not class or function');
@@ -640,23 +543,26 @@ var ClassFactor=(function(){
 	    return Reflect;
 	
 	}(Reflect));
-	ClassFactor.set(4,_Reflect,{
+	__MODULE__.creator(_Reflect,{
 		id:1,
-		ns:"core",
+		ns:'core',
 		global:true,
-		name:"Reflect"
+		name:'Reflect'
 	});
-}(ClassFactor));
-/*class Test*/
-(function(ClassFactor){
-	var Person = ClassFactor.get(0);
-	var Types = ClassFactor.get(1);
-	var TestInterface = ClassFactor.get(2);
-	var System = ClassFactor.get(3);
-	var Reflect = ClassFactor.get(4);
+	__MODULE__.exports=_Reflect;
+},
+5:/*
+Class Test
+*/
+function(__MODULE__){
+	var Person = __MODULE__.require(0);
+	var Types = __MODULE__.require(1);
+	var TestInterface = __MODULE__.require(2);
+	var System = __MODULE__.require(3);
+	var Reflect = __MODULE__.require(4);
 	var _private=Symbol("private");
 	function Test(name,age){
-		Object.defineProperty(this,_private,{value:{"bbss":'bbss',"age":40,"len":5,"currentIndex":0}});
+		Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
 		Person.call(this,name);
 		Person.prototype.setType.call(this,'1');
 		this.target;
@@ -1085,9 +991,9 @@ var ClassFactor=(function(){
 		return [str,cc,x,b];
 	}};
 	members.name={m:3,d:4,enumerable:true,get:function name(){
-		return Person[ClassFactor.__KEY__].members.name.get.call(this);
+		return Person[__MODULE__.key].members.name.get.call(this);
 	},set:function name(value){
-		Person[ClassFactor.__KEY__].members.name.set.call(this,value);
+		Person[__MODULE__.key].members.name.set.call(this,value);
 	}};
 	members.avg={m:3,d:3,value:function avg(yy,bbc){
 		var ii = function(){
@@ -1123,19 +1029,173 @@ var ClassFactor=(function(){
 		return dd;
 	}};
 	members[Symbol.iterator]={value:function(){return this;}}
-	ClassFactor.set(5,Test,{
+	__MODULE__.creator(Test,{
 		id:1,
-		ns:"",
-		name:"Test",
+		ns:'',
+		name:'Test',
 		private:_private,
 		inherit:Person,
 		methods:methods,
 		members:members
 	});
-}(ClassFactor));
-/*externals code*/;
-(function(){
-	var Test = ClassFactor.get(5);
-	const test = new Test('Test');
-	test.start();
-}());
+	__MODULE__.exports=Test;
+	/*externals code*/;
+	(function(){
+		var Test = __MODULE__.require(5);
+		const test = new Test('Test');
+		test.start();
+	}());
+},
+6:/*
+Class EventDispatcher
+*/
+function(__MODULE__){
+	var System = __MODULE__.require(3);
+	/*
+	 * EaseScript
+	 * Copyright © 2017 EaseScript All rights reserved.
+	 * Released under the MIT license
+	 * https://github.com/51breeze/EaseScript
+	 * @author Jun Ye <664371281@qq.com>
+	 * @require System,Object,Event,Internal,Symbol
+	 */
+	var privateKey = Symbol('EventDispatcher');
+	function EventDispatcher( target ){
+	    if( !(this instanceof EventDispatcher) ){
+	        return target && target instanceof EventDispatcher ? target : new EventDispatcher( target );
+	    }
+	    this[privateKey]={};
+	    if( target ){
+	        if( target instanceof EventDispatcher){
+	            this[privateKey] = target;
+	        }else if(typeof target ==="object"){
+	            this[privateKey] = target[privateKey] || (target[privateKey]={});
+	        }
+	    }
+	}
+	
+	EventDispatcher.prototype=Object.create(Object.prototype,{
+	    "constructor":{value:EventDispatcher}
+	});
+	
+	
+	/**
+	 * 判断是否有指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.hasEventListener=function hasEventListener( type , listener ){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.hasEventListener(type, listener);
+	    }
+	    if( Object.prototype.hasOwnProperty.call(target,type) ){
+	        var events = target[type];
+	        var length = events.length;
+	        if( typeof listener !== "function" ){
+	            return length > 0;
+	        }
+	        while (length > 0){
+	            --length;
+	            if ( events[length].callback === listener ){
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
+	};
+	
+	/**
+	 * 添加侦听器
+	 * @param type
+	 * @param listener
+	 * @param priority
+	 * @returns {EventDispatcher}
+	 */
+	EventDispatcher.prototype.addEventListener=function addEventListener(type,callback,useCapture,priority,reference){
+	    if( typeof type !== 'string' )throw new TypeError('Invalid event type');
+	    if( typeof callback !== 'function' )throw new TypeError('Invalid callback function');
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        target.addEventListener(type,callback,useCapture,priority,reference||this);
+	        return this;
+	    }
+	
+	    var events = target[type] || (target[type]=[]);
+	    events.push({
+	        'callback':callback,
+	        'useCapture':useCapture,
+	        'priority':priority,
+	        'reference':reference
+	    });
+	
+	    if( events.length > 1 )events.sort(function(a,b){
+	        return a.priority=== b.priority ? 0 : (a.priority < b.priority ? 1 : -1);
+	    });
+	    return true;
+	};
+	
+	/**
+	 * 移除指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.removeEventListener=function removeEventListener(type,listener){
+	    var target =  this[privateKey];
+	    if(target instanceof EventDispatcher ){
+	        return target.removeEventListener(type,listener);
+	    }
+	    var events = target[type] || [];
+	    var len = events.length >> 0;
+	    if( !listener ){
+	        events.splice(0, len);
+	        return true;
+	    }
+	    while(len>0 && events[--len] ){
+	        var item = events[--len];
+	        if( listener ){
+	            if( item.callback === listener ){
+	                events.splice(len, 1);
+	            }
+	        }
+	    }
+	    return len != events.length;
+	};
+	
+	/**
+	 * 调度指定事件
+	 * @param event
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.dispatchEvent(event);
+	    }
+	    event.target = event.currentTarget = this;
+	    var events = target[ event.type ];
+	    var len = events.length >> 0;
+	    if( len > 0 ){
+	        var index = 0;
+	        while(index < len){
+	            var item = events[ index++ ];
+	            var thisArg = item.reference || this;
+	            item.callback.call(thisArg , event);
+	            if( event.immediatePropagationStopped===true )
+	               return false;
+	        }
+	        return !event.immediatePropagationStopped;
+	    }
+	    return false;
+	};
+	__MODULE__.creator(EventDispatcher,{
+		id:1,
+		ns:'core',
+		global:true,
+		name:'EventDispatcher'
+	});
+	__MODULE__.exports=EventDispatcher;
+}
+}));

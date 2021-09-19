@@ -6,7 +6,7 @@ class DeclaratorDeclaration extends Syntax{
         const module = this.module;
         const config = this.getConfig();
         const polyfillModule = Polyfill.modules.get(module.id);
-        const content = [polyfillModule.content];
+        const content = [ polyfillModule.getContent(this) ];
         const refs = [];
         if( !polyfillModule ){
             return null;
@@ -24,12 +24,8 @@ class DeclaratorDeclaration extends Syntax{
             `global:true`,
             `name:'${module.id}'`,
         ];
-        content.push(this.emitClassFactorSetHander(module, description, polyfillModule.export));
-        if( !config.pack &&config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-            content.push(`export default ${polyfillModule.export};`)
-        }else{
-            content.push(`module.exports=${polyfillModule.export};`)
-        }
+        content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
+        content.push( this.emitExportClass(module,polyfillModule.export) );
         return content.join("\r\n");
     }
 }

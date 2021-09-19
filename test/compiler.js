@@ -5,7 +5,6 @@ const path =require("path");
 const plugin = require("../index");
 plugin.config({pack:true});
 class Creator {
-
     constructor(options){
         const compiler = new Compiler(Object.assign({
             debug:true,

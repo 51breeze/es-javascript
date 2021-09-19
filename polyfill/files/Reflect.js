@@ -1,5 +1,4 @@
 var _Reflect = (function(_Reflect){
-    var __KEY__ = ClassFactor.__KEY__;
     var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
         if( !System.isFunction( theClass ) ){
             throw new TypeError('is not class or function');

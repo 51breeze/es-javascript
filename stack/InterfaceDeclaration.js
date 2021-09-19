@@ -20,17 +20,10 @@ class InterfaceDeclaration extends Syntax{
         const construct = `function ${module.id}(){}`;
         this.createDependencies(module,refs);
 
-        const config  = this.getConfig();
         const parts = refs.concat(construct);
-        parts.push(this.emitClassFactorSetHander(module, description));
-
-        if( !config.pack && config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-            parts.push(`export default ${this.module.id};`)
-        }else{
-            parts.push(`module.exports=${this.module.id};`)
-        }
+        parts.push(this.emitCreateClassDescription(module, description));
+        parts.push( this.emitExportClass(module) );
         return parts.join("\r\n");
-        
     }
 }
 

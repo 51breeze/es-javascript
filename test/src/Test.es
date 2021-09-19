@@ -380,7 +380,6 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         })
 
         this.getJson().name;
-
     }
 
     getJson():any{

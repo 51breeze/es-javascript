@@ -2,7 +2,9 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
-const classMap=new Map();
+const fs = require("fs");
+const path = require("path");
+const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
 
@@ -69,37 +71,45 @@ class Syntax extends events.EventEmitter {
         return name;
     }
 
-    getClassFactorKey(){
+    getClassHelper(){
         const config = this.getConfig();
         if( config.pack ){
-            const refs = this.checkRefsName('module');
-            return `${refs}.key;`
+            return `__MODULE__`;
+        }else{
+            return `__CLASS__`;
         }
-        const refs = this.checkRefsName(this.getClassFactorName());
-        return `${refs}.__KEY__`;
     }
 
-    getClassFactorName(){
-        return `ClassFactor`;
+    emitClassAccessKey(){
+        const refs = this.checkRefsName(this.getClassHelper());
+        return `${refs}.key`;
     }
 
-    emitClassFactorSetHander(module, description, name){
+    emitCreateClassDescription(module, description, name){
+        const refs = this.checkRefsName(this.getClassHelper());
         const config = this.getConfig();
         if( config.pack ){
-            const refs = this.checkRefsName('module');
-            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`
+            return `${refs}.creator(${name || module.id},${this.getDescription(description)});`;
+        }else{
+            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
         }
-        const refs = this.checkRefsName(this.getClassFactorName());
-        return `${refs}.set(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`
     }
 
-    emitClassFactorGetHander(module, name){
+    emitImportClass(module, name){
+        const refs = this.checkRefsName(this.getClassHelper());
+        return `var ${name || module.id} = ${refs}.require(${this.getIdByModule(module)});`
+    }
+
+    emitExportClass(module, name){
         const config = this.getConfig();
         if( config.pack ){
-            return `var ${name || module.id} = require(${this.getIdByModule(module)});`
+            return `${this.getClassHelper()}.exports=${name || module.id};`;
         }
-        const refs = this.checkRefsName(this.getClassFactorName());
-        return `var ${name || module.id} = ${refs}.get(${this.getIdByModule(module)});`
+        if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
+            return `export default ${name || module.id};`;
+        }else{
+            return `module.exports=${name || module.id};`;
+        }
     }
 
     generatorVarName(stack,name,flag=false){
@@ -132,12 +142,9 @@ class Syntax extends events.EventEmitter {
             const polyfillModule = Polyfill.modules.get( module.id );
             const filename = module.id+suffix;
             if( polyfillModule ){
-                return PATH.join(output,polyfillModule.namespace.replace(/\./g,'/'),filename).replace(/\\/g,'/');
+                return PATH.join(output,(config.ns||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
             }
             return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
-        }else if( !module.isModule && module.isCore && module.export ){
-            const filename = module.export+suffix;
-            return PATH.join(output,polyfillModule.namespace.replace(/\./g,'/'),filename).replace(/\\/g,'/');
         }
         const filepath = PATH.resolve(output, PATH.relative( workspace, module.file ) );
         const info = PATH.parse(filepath);
@@ -283,10 +290,10 @@ class Syntax extends events.EventEmitter {
         }) : true;
     }
     getIdByModule( module ){
-        if( !classMap.has(module) ){
-            classMap.set(module,classMap.size);
+        if( !moduleIdMap.has(module) ){
+            moduleIdMap.set(module,moduleIdMap.size);
         }
-        return classMap.get(module);
+        return moduleIdMap.get(module);
     }
     getIdByNamespace( namespace ){
         if( !namespaceMap.has(namespace) ){
@@ -321,16 +328,13 @@ class Syntax extends events.EventEmitter {
     }
 
     getModuleFile(module){
-        if( !module.isModule && module.isCore && module.export ){
-            return `${this.compilation.file}?id=ClassFactor&core=true`
-        }
         return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
     }
 
     createDependencies(module, refs){
         const config = this.getConfig();
         if( !config.pack ){
-            refs.push( this.createImport('ClassFactor', this.getModuleFile( Polyfill.modules.get('ClassFactor') ).replace(/\\/g,'/') ) );
+            refs.push( this.createImport(this.getClassHelper(), this.getCoreFileOutputPath( require.resolve('./Creator'), module ) ) );
         }
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
@@ -339,9 +343,9 @@ class Syntax extends events.EventEmitter {
                     const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
                     const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
                     if( polyfillModule ){
-                        refs.push( this.emitClassFactorGetHander(depModule) );
+                        refs.push( this.emitImportClass(depModule) );
                     }else{
-                        refs.push( this.emitClassFactorGetHander(depModule, name) );
+                        refs.push( this.emitImportClass(depModule, name) );
                     }
                 }else if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
                     const file = this.getModuleFile(depModule);
@@ -353,30 +357,24 @@ class Syntax extends events.EventEmitter {
         });
     }
 
-    loadCore(){
+    getCoreFileOutputPath( file, context ){
         const config = this.getConfig();
-        const polyfillModule = Polyfill.modules.get('ClassFactor');
-        const content = [polyfillModule.content];
-        const comment = `/*ClassFactor*/\r\n`;
-        if( config.pack ){
-            content.push(`return ${polyfillModule.export};`);
-            return `${comment}var ClassFactor=(function(){\r\n\t${content.join("\r\n").replace(/\r?\n/g,'\r\n\t')}\r\n}());`
+        const options = this.getOptions();
+        const output = config.output || options.output;
+        const filename = PATH.join(output,(config.ns||'').replace(/\./g,'/'),PATH.basename(file)).replace(/\\/g,'/').replace(/\\/g,'/');
+        if( config.importPath === Constant.BUILD_IMPORT_PATH_ABSOLUTE ){
+            return filename;
         }else{
-            if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-                content.push(`export default ${polyfillModule.export};`)
-            }else{
-                content.push(`module.exports=${polyfillModule.export};`)
-            }
-            return `${comment}${content.join("\r\n")}`;
+            return './'+PATH.relative(PATH.dirname(this.getOutputAbsolutePath(context)),filename).replace(/\\/g,'/');
         }
     }
 
-    createImport(name,refs){
+    createImport(name, file){
         const config = this.getConfig();
         if( config.module === Constant.BUILD_REFS_MODULE_ES6 ){
-            return `import ${name} from "${refs}";`
+            return `import ${name} from "${file}";`
         }else{
-            return `var ${name} = require("${refs}");`
+            return `var ${name} = require("${file}");`
         } 
     }
 
