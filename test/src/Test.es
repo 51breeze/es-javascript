@@ -74,8 +74,6 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         this.target;
     }
 
-    
-
     start(){
         it(`static get uuName accessor`, ()=>{
         
@@ -180,6 +178,18 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
             const res = this.restFun(1,"s","test");
             expect(res).toEqual([1,"s","test"]);
         })
+
+        it("test Event Dispatcher",()=>{
+            const d = new EventDispatcher();
+            d.addEventListener('eee',(e)=>{
+                e.data = {name:'event'};
+            });
+            const event = new Event('eee')
+            d.dispatchEvent( event );
+            expect({name:'event'}).toEqual( event.data );
+        })
+
+
 
         this.testEnumerableProperty();
        this.testComputeProperty();

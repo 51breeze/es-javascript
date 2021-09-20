@@ -4,7 +4,6 @@ const Polyfill = require("../core/Polyfill");
 class DeclaratorDeclaration extends Syntax{
     emitter(){
         const module = this.module;
-        const config = this.getConfig();
         const polyfillModule = Polyfill.modules.get(module.id);
         const content = [ polyfillModule.getContent(this) ];
         const refs = [];
@@ -22,6 +21,7 @@ class DeclaratorDeclaration extends Syntax{
             `id:${Constant.DECLARE_CLASS}`,
             `ns:'${polyfillModule.namespace}'`,
             `global:true`,
+            `dynamic:${!!module.dynamic}`,
             `name:'${module.id}'`,
         ];
         content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));

@@ -98,3 +98,11 @@ declare function expect(result:any):Matchers;
 declare class jasmine {
    public static var DEFAULT_TIMEOUT_INTERVAL:int
 }
+
+declare class Document extends Object {
+
+  addEventListener(type:string, fn:(e:any)=>void );
+
+}
+
+declare const document:Document;

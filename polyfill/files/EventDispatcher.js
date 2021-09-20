@@ -39,7 +39,10 @@ EventDispatcher.prototype.hasEventListener=function hasEventListener( type , lis
     }
     if( Object.prototype.hasOwnProperty.call(target,type) ){
         var events = target[type];
-        var length = events.length;
+        var length = events && events.length;
+        if( length < 1 ){
+            return false;
+        }
         if( typeof listener !== "function" ){
             return length > 0;
         }
@@ -95,7 +98,10 @@ EventDispatcher.prototype.removeEventListener=function removeEventListener(type,
         return target.removeEventListener(type,listener);
     }
     var events = target[type] || [];
-    var len = events.length >> 0;
+    var len = events && events.length >> 0;
+    if( len < 1 ){
+        return false;
+    }
     if( !listener ){
         events.splice(0, len);
         return true;
@@ -123,7 +129,7 @@ EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
     }
     event.target = event.currentTarget = this;
     var events = target[ event.type ];
-    var len = events.length >> 0;
+    var len = events && events.length >> 0;
     if( len > 0 ){
         var index = 0;
         while(index < len){

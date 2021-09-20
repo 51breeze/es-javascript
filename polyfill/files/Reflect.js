@@ -55,16 +55,17 @@ var _Reflect = (function(_Reflect){
     }
 
     function description(scope,target,name){
-        var isstatic = System.isClass(target);
-        var objClass = isstatic ? target : target.constructor;
+        var isStatic = System.isClass(target);
+        var objClass = isStatic ? target : target.constructor;
         var context = System.isClass(scope) ? scope : null;
-        var description = null;
-        if( !System.isClass(objClass) ){
-            return null;
+        var description = objClass[ __KEY__ ];
+        if( !isStatic && !System.isClass(objClass) ){
+            return target;
         }
+        var isDynamic = description && description.dynamic;
         while( objClass && (description = objClass[ __KEY__ ]) ){
-            var dataset = isstatic ? description.methods : description.members;
-            if( dataset.hasOwnProperty( name ) ){
+            var dataset = isStatic ? description.methods : description.members;
+            if( dataset && dataset.hasOwnProperty( name ) ){
                 const desc = dataset[name];
                 switch( desc.m & MODIFIER_PUBLIC ){
                     case MODIFIER_PRIVATE :
@@ -76,9 +77,12 @@ var _Reflect = (function(_Reflect){
                 }
             }
             objClass = description.inherit;
-            if( objClass === Object ){
-                return null;
-            }
+        }
+        if( isDynamic ){
+            return target;
+        }
+        if( Object.prototype.hasOwnProperty(name) ){
+            return {value:Object.prototype[name]};
         }
         return null;
     };
@@ -136,19 +140,19 @@ var _Reflect = (function(_Reflect){
         if( propertyKey==null )return target;
         if( propertyKey === '__proto__' )return null;
         if( target == null )throw new ReferenceError('target is null or undefined');
-        if(!(System.isClass(target) || System.isClass(target.constructor))){
-            return target[ propertyKey ];
-        }
         var desc = description(scope,target,propertyKey);
+        if( desc === target ){
+            return target[propertyKey] || null;
+        }
         if( desc === false ){
             throw new ReferenceError(`target.${propertyKey} inaccessible`);
         }
         if( !desc ){
-            throw new ReferenceError(`target.${propertyKey} is not exists.`);
+            throw new ReferenceError(`target.${propertyKey} is not exists`);
         }
         receiver = receiver || target;
         if(typeof receiver !=="object" ){
-            throw new ReferenceError(`target.${propertyKey} assignmented receiver can only is an object.`);
+            throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
         if( desc.d === DECLARE_PROPERTY_ACCESSOR ){
             if( !desc.get ){
@@ -156,7 +160,7 @@ var _Reflect = (function(_Reflect){
             }
             return desc.get.call(receiver);
         }
-        return desc.value;
+        return desc.value || null;
     };
 
     var DECLARE_PROPERTY_ACCESSOR = 4;
@@ -166,12 +170,10 @@ var _Reflect = (function(_Reflect){
         if( propertyKey==null )return target;
         if( propertyKey === '__proto__' )return null;
         if( target == null )throw new ReferenceError('target is null or undefined');
-        if(!(System.isClass(target) || System.isClass(target.constructor))){
-            target[ propertyKey ] = value;
-            return;
-        }
-
         var desc = description(scope,target,propertyKey);
+        if( desc === target ){
+            return target[propertyKey] = value;
+        }
         if( desc === false ){
             throw new ReferenceError(`target.${propertyKey} inaccessible`);
         }
@@ -180,7 +182,7 @@ var _Reflect = (function(_Reflect){
         }
         receiver = receiver || target;
         if(typeof receiver !=="object" ){
-            throw new ReferenceError(`target.${propertyKey} assignmented receiver can only is an object.`);
+            throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
         if( desc.d === DECLARE_PROPERTY_ACCESSOR ){
             if( !desc.set ){

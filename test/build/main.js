@@ -65,14 +65,14 @@
      * 加载入口文件
      */
     /*enter class Test*/
-	require(5);
+	require(7);
     
 }({
 0:/*
 Class Person
 */
 function(__MODULE__){
-	var TestInterface = __MODULE__.require(2);
+	var TestInterface = __MODULE__.require(4);
 	var _private=Symbol("private");
 	function Person(name){
 		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -130,6 +130,213 @@ function(__MODULE__){
 	__MODULE__.exports=Person;
 },
 1:/*
+Class EventDispatcher
+*/
+function(__MODULE__){
+	var System = __MODULE__.require(5);
+	/*
+	 * EaseScript
+	 * Copyright © 2017 EaseScript All rights reserved.
+	 * Released under the MIT license
+	 * https://github.com/51breeze/EaseScript
+	 * @author Jun Ye <664371281@qq.com>
+	 * @require System,Object,Event,Internal,Symbol
+	 */
+	var privateKey = Symbol('EventDispatcher');
+	function EventDispatcher( target ){
+	    if( !(this instanceof EventDispatcher) ){
+	        return target && target instanceof EventDispatcher ? target : new EventDispatcher( target );
+	    }
+	    this[privateKey]={};
+	    if( target ){
+	        if( target instanceof EventDispatcher){
+	            this[privateKey] = target;
+	        }else if(typeof target ==="object"){
+	            this[privateKey] = target[privateKey] || (target[privateKey]={});
+	        }
+	    }
+	}
+	
+	EventDispatcher.prototype=Object.create(Object.prototype,{
+	    "constructor":{value:EventDispatcher}
+	});
+	
+	
+	/**
+	 * 判断是否有指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.hasEventListener=function hasEventListener( type , listener ){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.hasEventListener(type, listener);
+	    }
+	    if( Object.prototype.hasOwnProperty.call(target,type) ){
+	        var events = target[type];
+	        var length = events && events.length;
+	        if( length < 1 ){
+	            return false;
+	        }
+	        if( typeof listener !== "function" ){
+	            return length > 0;
+	        }
+	        while (length > 0){
+	            --length;
+	            if ( events[length].callback === listener ){
+	                return true;
+	            }
+	        }
+	    }
+	    return false;
+	};
+	
+	/**
+	 * 添加侦听器
+	 * @param type
+	 * @param listener
+	 * @param priority
+	 * @returns {EventDispatcher}
+	 */
+	EventDispatcher.prototype.addEventListener=function addEventListener(type,callback,useCapture,priority,reference){
+	    if( typeof type !== 'string' )throw new TypeError('Invalid event type');
+	    if( typeof callback !== 'function' )throw new TypeError('Invalid callback function');
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        target.addEventListener(type,callback,useCapture,priority,reference||this);
+	        return this;
+	    }
+	
+	    var events = target[type] || (target[type]=[]);
+	    events.push({
+	        'callback':callback,
+	        'useCapture':useCapture,
+	        'priority':priority,
+	        'reference':reference
+	    });
+	
+	    if( events.length > 1 )events.sort(function(a,b){
+	        return a.priority=== b.priority ? 0 : (a.priority < b.priority ? 1 : -1);
+	    });
+	    return true;
+	};
+	
+	/**
+	 * 移除指定类型的侦听器
+	 * @param type
+	 * @param listener
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.removeEventListener=function removeEventListener(type,listener){
+	    var target =  this[privateKey];
+	    if(target instanceof EventDispatcher ){
+	        return target.removeEventListener(type,listener);
+	    }
+	    var events = target[type] || [];
+	    var len = events && events.length >> 0;
+	    if( len < 1 ){
+	        return false;
+	    }
+	    if( !listener ){
+	        events.splice(0, len);
+	        return true;
+	    }
+	    while(len>0 && events[--len] ){
+	        var item = events[--len];
+	        if( listener ){
+	            if( item.callback === listener ){
+	                events.splice(len, 1);
+	            }
+	        }
+	    }
+	    return len != events.length;
+	};
+	
+	/**
+	 * 调度指定事件
+	 * @param event
+	 * @returns {boolean}
+	 */
+	EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
+	    var target =  this[privateKey];
+	    if( target instanceof EventDispatcher ){
+	        return target.dispatchEvent(event);
+	    }
+	    event.target = event.currentTarget = this;
+	    var events = target[ event.type ];
+	    var len = events && events.length >> 0;
+	    if( len > 0 ){
+	        var index = 0;
+	        while(index < len){
+	            var item = events[ index++ ];
+	            var thisArg = item.reference || this;
+	            item.callback.call(thisArg , event);
+	            if( event.immediatePropagationStopped===true )
+	               return false;
+	        }
+	        return !event.immediatePropagationStopped;
+	    }
+	    return false;
+	};
+	__MODULE__.creator(EventDispatcher,{
+		id:1,
+		ns:'core',
+		global:true,
+		dynamic:false,
+		name:'EventDispatcher'
+	});
+	__MODULE__.exports=EventDispatcher;
+},
+2:/*
+Class Event
+*/
+function(__MODULE__){
+	/*
+	 * EaseScript
+	 * Copyright © 2017 EaseScript All rights reserved.
+	 * Released under the MIT license
+	 * https://github.com/51breeze/EaseScript
+	 * @author Jun Ye <664371281@qq.com>
+	 * @require System,Object,Event,Internal,Symbol
+	 */
+	function Event( type, bubbles,cancelable ){
+	    this.type = type;
+	    this.bubbles = bubbles;
+	    this.cancelable = cancelable;
+	    this.composed = false;
+	    this.currentTarget = null;
+	    this.target = null;
+	    this.defaultPrevented = false;
+	    this.eventPhase = NaN;
+	    this.isTrusted = false;
+	    this.returnValue = false;
+	    this.timeStamp = NaN;
+	    this.immediatePropagationStopped = false;
+	}
+	
+	Event.prototype.preventDefault=function(){
+	    this.defaultPrevented = true;
+	}
+	
+	Event.prototype.stopPropagation=function(){
+	    this.defaultPrevented = true;
+	    this.immediatePropagationStopped = true;
+	}
+	
+	Event.prototype.stopImmediatePropagation=function(){
+	    this.immediatePropagationStopped = true;
+	}
+	__MODULE__.creator(Event,{
+		id:1,
+		ns:'core',
+		global:true,
+		dynamic:true,
+		name:'Event'
+	});
+	__MODULE__.exports=Event;
+},
+3:/*
 Enum Types
 */
 function(__MODULE__){
@@ -148,7 +355,7 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Types;
 },
-2:/*
+4:/*
 Interface com.TestInterface
 */
 function(__MODULE__){
@@ -160,11 +367,11 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=TestInterface;
 },
-3:/*
+5:/*
 Class System
 */
 function(__MODULE__){
-	var EventDispatcher = __MODULE__.require(6);
+	var EventDispatcher = __MODULE__.require(1);
 	var __KEY__ = __MODULE__.key;
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
@@ -314,15 +521,16 @@ function(__MODULE__){
 		id:1,
 		ns:'core',
 		global:true,
+		dynamic:false,
 		name:'System'
 	});
 	__MODULE__.exports=System;
 },
-4:/*
+6:/*
 Class Reflect
 */
 function(__MODULE__){
-	var System = __MODULE__.require(3);
+	var System = __MODULE__.require(5);
 	var __KEY__ = __MODULE__.key;
 	var _Reflect = (function(_Reflect){
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
@@ -381,16 +589,17 @@ function(__MODULE__){
 	    }
 	
 	    function description(scope,target,name){
-	        var isstatic = System.isClass(target);
-	        var objClass = isstatic ? target : target.constructor;
+	        var isStatic = System.isClass(target);
+	        var objClass = isStatic ? target : target.constructor;
 	        var context = System.isClass(scope) ? scope : null;
-	        var description = null;
-	        if( !System.isClass(objClass) ){
-	            return null;
+	        var description = objClass[ __KEY__ ];
+	        if( !isStatic && !System.isClass(objClass) ){
+	            return target;
 	        }
+	        var isDynamic = description && description.dynamic;
 	        while( objClass && (description = objClass[ __KEY__ ]) ){
-	            var dataset = isstatic ? description.methods : description.members;
-	            if( dataset.hasOwnProperty( name ) ){
+	            var dataset = isStatic ? description.methods : description.members;
+	            if( dataset && dataset.hasOwnProperty( name ) ){
 	                const desc = dataset[name];
 	                switch( desc.m & MODIFIER_PUBLIC ){
 	                    case MODIFIER_PRIVATE :
@@ -402,9 +611,12 @@ function(__MODULE__){
 	                }
 	            }
 	            objClass = description.inherit;
-	            if( objClass === Object ){
-	                return null;
-	            }
+	        }
+	        if( isDynamic ){
+	            return target;
+	        }
+	        if( Object.prototype.hasOwnProperty(name) ){
+	            return {value:Object.prototype[name]};
 	        }
 	        return null;
 	    };
@@ -462,19 +674,19 @@ function(__MODULE__){
 	        if( propertyKey==null )return target;
 	        if( propertyKey === '__proto__' )return null;
 	        if( target == null )throw new ReferenceError('target is null or undefined');
-	        if(!(System.isClass(target) || System.isClass(target.constructor))){
-	            return target[ propertyKey ];
-	        }
 	        var desc = description(scope,target,propertyKey);
+	        if( desc === target ){
+	            return target[propertyKey] || null;
+	        }
 	        if( desc === false ){
 	            throw new ReferenceError(`target.${propertyKey} inaccessible`);
 	        }
 	        if( !desc ){
-	            throw new ReferenceError(`target.${propertyKey} is not exists.`);
+	            throw new ReferenceError(`target.${propertyKey} is not exists`);
 	        }
 	        receiver = receiver || target;
 	        if(typeof receiver !=="object" ){
-	            throw new ReferenceError(`target.${propertyKey} assignmented receiver can only is an object.`);
+	            throw new ReferenceError(`Assignment receiver can only is an object.`);
 	        }
 	        if( desc.d === DECLARE_PROPERTY_ACCESSOR ){
 	            if( !desc.get ){
@@ -482,7 +694,7 @@ function(__MODULE__){
 	            }
 	            return desc.get.call(receiver);
 	        }
-	        return desc.value;
+	        return desc.value || null;
 	    };
 	
 	    var DECLARE_PROPERTY_ACCESSOR = 4;
@@ -492,12 +704,10 @@ function(__MODULE__){
 	        if( propertyKey==null )return target;
 	        if( propertyKey === '__proto__' )return null;
 	        if( target == null )throw new ReferenceError('target is null or undefined');
-	        if(!(System.isClass(target) || System.isClass(target.constructor))){
-	            target[ propertyKey ] = value;
-	            return;
-	        }
-	
 	        var desc = description(scope,target,propertyKey);
+	        if( desc === target ){
+	            return target[propertyKey] = value;
+	        }
 	        if( desc === false ){
 	            throw new ReferenceError(`target.${propertyKey} inaccessible`);
 	        }
@@ -506,7 +716,7 @@ function(__MODULE__){
 	        }
 	        receiver = receiver || target;
 	        if(typeof receiver !=="object" ){
-	            throw new ReferenceError(`target.${propertyKey} assignmented receiver can only is an object.`);
+	            throw new ReferenceError(`Assignment receiver can only is an object.`);
 	        }
 	        if( desc.d === DECLARE_PROPERTY_ACCESSOR ){
 	            if( !desc.set ){
@@ -547,19 +757,22 @@ function(__MODULE__){
 		id:1,
 		ns:'core',
 		global:true,
+		dynamic:false,
 		name:'Reflect'
 	});
 	__MODULE__.exports=_Reflect;
 },
-5:/*
+7:/*
 Class Test
 */
 function(__MODULE__){
 	var Person = __MODULE__.require(0);
-	var Types = __MODULE__.require(1);
-	var TestInterface = __MODULE__.require(2);
-	var System = __MODULE__.require(3);
-	var Reflect = __MODULE__.require(4);
+	var EventDispatcher = __MODULE__.require(1);
+	var Event = __MODULE__.require(2);
+	var Types = __MODULE__.require(3);
+	var TestInterface = __MODULE__.require(4);
+	var System = __MODULE__.require(5);
+	var Reflect = __MODULE__.require(6);
 	var _private=Symbol("private");
 	function Test(name,age){
 		Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
@@ -668,6 +881,15 @@ function(__MODULE__){
 		it("test rest params",function(){
 			const res = _this.restFun(1,"s","test");
 			expect(res).toEqual([1,"s","test"]);
+		});
+		it("test Event Dispatcher",function(){
+			const d = new EventDispatcher();
+			d.addEventListener('eee',function(e){
+				e.data={name:'event'};
+			});
+			const event = new Event('eee');
+			d.dispatchEvent(event);
+			expect({name:'event'}).toEqual(event.data);
 		});
 		this.testEnumerableProperty();
 		this.testComputeProperty();
@@ -1041,161 +1263,9 @@ function(__MODULE__){
 	__MODULE__.exports=Test;
 	/*externals code*/;
 	(function(){
-		var Test = __MODULE__.require(5);
+		var Test = __MODULE__.require(7);
 		const test = new Test('Test');
 		test.start();
 	}());
-},
-6:/*
-Class EventDispatcher
-*/
-function(__MODULE__){
-	var System = __MODULE__.require(3);
-	/*
-	 * EaseScript
-	 * Copyright © 2017 EaseScript All rights reserved.
-	 * Released under the MIT license
-	 * https://github.com/51breeze/EaseScript
-	 * @author Jun Ye <664371281@qq.com>
-	 * @require System,Object,Event,Internal,Symbol
-	 */
-	var privateKey = Symbol('EventDispatcher');
-	function EventDispatcher( target ){
-	    if( !(this instanceof EventDispatcher) ){
-	        return target && target instanceof EventDispatcher ? target : new EventDispatcher( target );
-	    }
-	    this[privateKey]={};
-	    if( target ){
-	        if( target instanceof EventDispatcher){
-	            this[privateKey] = target;
-	        }else if(typeof target ==="object"){
-	            this[privateKey] = target[privateKey] || (target[privateKey]={});
-	        }
-	    }
-	}
-	
-	EventDispatcher.prototype=Object.create(Object.prototype,{
-	    "constructor":{value:EventDispatcher}
-	});
-	
-	
-	/**
-	 * 判断是否有指定类型的侦听器
-	 * @param type
-	 * @param listener
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.hasEventListener=function hasEventListener( type , listener ){
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        return target.hasEventListener(type, listener);
-	    }
-	    if( Object.prototype.hasOwnProperty.call(target,type) ){
-	        var events = target[type];
-	        var length = events.length;
-	        if( typeof listener !== "function" ){
-	            return length > 0;
-	        }
-	        while (length > 0){
-	            --length;
-	            if ( events[length].callback === listener ){
-	                return true;
-	            }
-	        }
-	    }
-	    return false;
-	};
-	
-	/**
-	 * 添加侦听器
-	 * @param type
-	 * @param listener
-	 * @param priority
-	 * @returns {EventDispatcher}
-	 */
-	EventDispatcher.prototype.addEventListener=function addEventListener(type,callback,useCapture,priority,reference){
-	    if( typeof type !== 'string' )throw new TypeError('Invalid event type');
-	    if( typeof callback !== 'function' )throw new TypeError('Invalid callback function');
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        target.addEventListener(type,callback,useCapture,priority,reference||this);
-	        return this;
-	    }
-	
-	    var events = target[type] || (target[type]=[]);
-	    events.push({
-	        'callback':callback,
-	        'useCapture':useCapture,
-	        'priority':priority,
-	        'reference':reference
-	    });
-	
-	    if( events.length > 1 )events.sort(function(a,b){
-	        return a.priority=== b.priority ? 0 : (a.priority < b.priority ? 1 : -1);
-	    });
-	    return true;
-	};
-	
-	/**
-	 * 移除指定类型的侦听器
-	 * @param type
-	 * @param listener
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.removeEventListener=function removeEventListener(type,listener){
-	    var target =  this[privateKey];
-	    if(target instanceof EventDispatcher ){
-	        return target.removeEventListener(type,listener);
-	    }
-	    var events = target[type] || [];
-	    var len = events.length >> 0;
-	    if( !listener ){
-	        events.splice(0, len);
-	        return true;
-	    }
-	    while(len>0 && events[--len] ){
-	        var item = events[--len];
-	        if( listener ){
-	            if( item.callback === listener ){
-	                events.splice(len, 1);
-	            }
-	        }
-	    }
-	    return len != events.length;
-	};
-	
-	/**
-	 * 调度指定事件
-	 * @param event
-	 * @returns {boolean}
-	 */
-	EventDispatcher.prototype.dispatchEvent=function dispatchEvent(event){
-	    var target =  this[privateKey];
-	    if( target instanceof EventDispatcher ){
-	        return target.dispatchEvent(event);
-	    }
-	    event.target = event.currentTarget = this;
-	    var events = target[ event.type ];
-	    var len = events.length >> 0;
-	    if( len > 0 ){
-	        var index = 0;
-	        while(index < len){
-	            var item = events[ index++ ];
-	            var thisArg = item.reference || this;
-	            item.callback.call(thisArg , event);
-	            if( event.immediatePropagationStopped===true )
-	               return false;
-	        }
-	        return !event.immediatePropagationStopped;
-	    }
-	    return false;
-	};
-	__MODULE__.creator(EventDispatcher,{
-		id:1,
-		ns:'core',
-		global:true,
-		name:'EventDispatcher'
-	});
-	__MODULE__.exports=EventDispatcher;
 }
 }));
