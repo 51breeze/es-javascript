@@ -4,11 +4,8 @@ class Identifier extends Syntax{
           const desc = this.stack.description();
           const module = this.module;
           if( module && this.compiler.callUtils("isClassType", desc) ){
-               if( this.compiler.callUtils("checkDepend", desc) ){
-                  return this.emitImportClass(desc);
-               }else{
-                  return module.getReferenceNameByModule( desc );
-               }
+               this.addDepend( desc );
+               return module.getReferenceNameByModule( desc );
           }
           return this.stack.value();
      }

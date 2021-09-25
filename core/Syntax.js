@@ -2,12 +2,9 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
-const fs = require("fs");
-const path = require("path");
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
-
 class Syntax extends events.EventEmitter {
 
     constructor(stack){
@@ -72,12 +69,11 @@ class Syntax extends events.EventEmitter {
     }
 
     getClassHelper(){
-        const config = this.getConfig();
-        if( config.pack ){
-            return `__MODULE__`;
-        }else{
-            return `__CLASS__`;
-        }
+        return Polyfill.modules.get('Class').export;
+    }
+
+    getPackModuleRefs(){
+        return '__MODULE__';
     }
 
     emitClassAccessKey(){
@@ -87,23 +83,23 @@ class Syntax extends events.EventEmitter {
 
     emitCreateClassDescription(module, description, name){
         const refs = this.checkRefsName(this.getClassHelper());
-        const config = this.getConfig();
-        if( config.pack ){
-            return `${refs}.creator(${name || module.id},${this.getDescription(description)});`;
-        }else{
-            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
-        }
+        return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
     }
 
     emitImportClass(module, name){
         const refs = this.checkRefsName(this.getClassHelper());
-        return `var ${name || module.id} = ${refs}.require(${this.getIdByModule(module)});`
+        return `var ${name || module.id} = ${refs}.require(${this.getIdByModule(module)});`;
+    }
+
+    emitPackImportClass(module, name){
+        const refs = this.getPackModuleRefs();
+        return `var ${name || module.id} = ${refs}.require(${this.getIdByModule(module)});`;
     }
 
     emitExportClass(module, name){
         const config = this.getConfig();
         if( config.pack ){
-            return `${this.getClassHelper()}.exports=${name || module.id};`;
+            return `${this.getPackModuleRefs()}.exports=${name || module.id};`;
         }
         const mod = config.module || 'commonjs';
         if( mod.toLowerCase() === 'es' ){
@@ -291,10 +287,11 @@ class Syntax extends events.EventEmitter {
         }) : true;
     }
     getIdByModule( module ){
-        if( !moduleIdMap.has(module) ){
-            moduleIdMap.set(module,moduleIdMap.size);
+        const file = ( typeof module ==='string' ? module : this.getModuleFile(module) ).replace(/\\/g,'/');
+        if( !moduleIdMap.has(file) ){
+            moduleIdMap.set(file,moduleIdMap.size);
         }
-        return moduleIdMap.get(module);
+        return moduleIdMap.get(file);
     }
     getIdByNamespace( namespace ){
         if( !namespaceMap.has(namespace) ){
@@ -334,27 +331,21 @@ class Syntax extends events.EventEmitter {
 
     createDependencies(module, refs){
         const config = this.getConfig();
-        if( !config.pack ){
-            const coreFile = require.resolve('./Creator').replace(/\\/g,'/');
-            const coreImportFile = config.useAbsolutePathImport && !config.emitFile ? coreFile : this.getCoreFileOutputPath( coreFile, module );
-            refs.push( this.createImport(this.getClassHelper(), coreImportFile ) );
+        const push = (value)=>{
+            if( refs.indexOf(value) < 0 ){
+                refs.push( value );
+            }
         }
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = module.getReferenceNameByModule( depModule );
                 if( config.pack ){
-                    const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
-                    const polyfillModule = isPolyfill && Polyfill.modules.get(depModule.id);
-                    if( polyfillModule ){
-                        refs.push( this.emitImportClass(depModule) );
-                    }else{
-                        refs.push( this.emitImportClass(depModule, name) );
-                    }
+                    push( this.emitPackImportClass(depModule, name) );
                 }else if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
-                    refs.push( this.createImport(name, file.replace(/\\/g,'/') ) );
+                    push( this.createImport(name, file.replace(/\\/g,'/') ) );
                 }else{
-                    refs.push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
+                    push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }
         });
@@ -364,7 +355,7 @@ class Syntax extends events.EventEmitter {
         const config = this.getConfig();
         const options = this.getOptions();
         const output = config.output || options.output;
-        const filename = PATH.join(output,(config.ns||'').replace(/\./g,'/'),PATH.basename(file)).replace(/\\/g,'/').replace(/\\/g,'/');
+        const filename = PATH.join(output,(config.ns||'').replace(/\./g,'/'),PATH.basename(file)).replace(/\\/g,'/');
         if( config.useAbsolutePathImport ){
             return filename;
         }else{

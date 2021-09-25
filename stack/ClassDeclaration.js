@@ -1,5 +1,6 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
+const { takeWhile } = require("lodash");
 class ClassDeclaration extends Syntax{
 
     emitStack(item,name,isStatic,properties,modifier){
@@ -101,6 +102,7 @@ class ClassDeclaration extends Syntax{
             topRefs.set(object.name,object.value);
         });
 
+        this.addDepend( this.getGlobalModuleById('Class') );
         emitter( methods , 'methods', methodContent , true);
         emitter( members , `members`, memberContent , false);
 
@@ -126,17 +128,17 @@ class ClassDeclaration extends Syntax{
 
         const construct = module.methodConstructor ? this.make(module.methodConstructor) : `${defaultConstructor.join("\r\n")}`;
         const description = [
-            `id:${Constant.DECLARE_CLASS}`,
-            `ns:'${module.namespace.toString()}'`,
-            `name:'${module.id}'`,
-            `private:${Constant.REFS_DECLARE_PRIVATE_NAME}`,
+            `'id':${Constant.DECLARE_CLASS}`,
+            `'ns':'${module.namespace.toString()}'`,
+            `'name':'${module.id}'`,
+            `'private':${Constant.REFS_DECLARE_PRIVATE_NAME}`,
         ];
 
         if( imps.length > 0 ){
-            description.push(`imps:[${imps.map(item=>module.getReferenceNameByModule(item)).join(",")}]`);
+            description.push(`'imps':[${imps.map(item=>module.getReferenceNameByModule(item)).join(",")}]`);
         }
         if( inherit ){
-            description.push(`inherit:${module.getReferenceNameByModule(inherit)}`);
+            description.push(`'inherit':${module.getReferenceNameByModule(inherit)}`);
         }
 
         this.createDependencies(module,refs);
@@ -151,13 +153,13 @@ class ClassDeclaration extends Syntax{
 
         if( methodContent.length > 0 ){
             content.push(`var methods = {};`);
-            description.push(`methods:methods`);
+            description.push(`'methods':methods`);
             content.push( methodContent.join("\r\n") )
         }
 
         if( memberContent.length > 0 ){
             content.push(`var members = {};`);
-            description.push(`members:members`);
+            description.push(`'members':members`);
             content.push( memberContent.join("\r\n") )
         }
 

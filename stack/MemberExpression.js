@@ -56,12 +56,10 @@ class MemberExpression extends Syntax{
       }
       
       if( this.compiler.callUtils("isClassType", description) ){
-         if( this.compiler.callUtils("checkDepend", module,description) ){
-            return this.emitImportClass(description);
-         }else{
-            return module.getReferenceNameByModule( description );
-         }
+         this.addDepend( description );
+         return module.getReferenceNameByModule( description );
       }
+      
       if( this.stack.object.isSuperExpression ){
          if( description && description.isMethodGetterDefinition ){
             return `${object}[${this.emitClassAccessKey()}].members.${property}.get.call(this)`;

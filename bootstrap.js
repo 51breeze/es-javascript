@@ -4,30 +4,7 @@
      * 已加载的模块
      */
     var installedModules = {};
-    var key=Symbol("CLASS_KEY");
 
-    /**
-     * 生成类的描述信息
-     * @param {*} moduleClass 
-     * @param {*} description 
-     */
-     function creator(moduleClass,description){
-        if( description ){
-            if( description.inherit ){
-                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
-            }
-            if( description.methods ){
-                Object.defineProperties(moduleClass,description.methods);
-            }
-            if( description.members ){
-                Object.defineProperties(moduleClass.prototype,description.members);
-            }
-            Object.defineProperty(moduleClass,key,{value:description});
-            Object.defineProperty(moduleClass,'name',{value:description.name});
-        }
-        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
-    }
-    
     /**
      * 加载并初始化模块
      * @param string 
@@ -43,13 +20,13 @@
     
         var module = installedModules[identifier] = {
             'id': identifier,
-            'creator':creator,
             'require':require,
-            'exports': {},
-            'key':key,
+            'done':false,
+            'exports':null,
         };
     
-        definedModules[identifier].call(module, module, require);
+        definedModules[identifier].call(module, module);
+        module.done = true;
         return module.exports;
     }
 

@@ -63,7 +63,7 @@ System.generator = function (thisArg, body) {
 
 
 System.className=function className(classObject){
-    var desc = classObject[ __KEY__ ];
+    var desc = classObject[ Class.key ];
     if(desc && desc.id === 1){
         if( desc.ns ){
             return desc.ns+'.'+desc.name;
@@ -76,8 +76,8 @@ System.className=function className(classObject){
 
 System.is=function is(left,right){
     if(!left || !right || typeof left !== "object")return false;
-    var rId = right[__KEY__] ? right[__KEY__].id : null;
-    var description =  left.constructor ? left.constructor[__KEY__] : null;
+    var rId = right[Class.key] ? right[Class.key].id : null;
+    var description =  left.constructor ? left.constructor[Class.key] : null;
     if( rId === 0 && description && description.id === 1 ){
         return (function check(description,id){
             if( !description )return false;
@@ -86,11 +86,11 @@ System.is=function is(left,right){
             if( inherit === right )return true;
             if( imps ){
                 for(var i=0;i<imps.length;i++){
-                    if( imps[i] === right || check( imps[i][__KEY__], 0 ) )return true;
+                    if( imps[i] === right || check( imps[i][Class.key], 0 ) )return true;
                 }
             }
-            if( inherit && inherit[ __KEY__ ].id === id){
-                return check( inherit[__KEY__], 0);
+            if( inherit && inherit[ Class.key ].id === id){
+                return check( inherit[Class.key], 0);
             }
             return false;
         })(description,1);
@@ -100,17 +100,17 @@ System.is=function is(left,right){
 
 System.isClass=function isClass(classObject){
     if( !classObject || !classObject.constructor)return false;
-    var desc = classObject[ __KEY__ ];
+    var desc = classObject[ Class.key ];
     return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
 }
 
 System.isInterface=function isInterface(classObject){
-    var desc = classObject && classObject[ __KEY__ ];
+    var desc = classObject && classObject[ Class.key ];
     return desc && desc.id === 2;
 }
 
 System.isEnum=function isEnum(classObject){
-    var desc = classObject && classObject[ __KEY__ ];
+    var desc = classObject && classObject[ Class.key ];
     return desc && desc.id === 3;
 }
 
@@ -142,3 +142,68 @@ System.getEventDispatcher=function getEventDispatcher(){
     }
     return __EventDispatcher;
 }
+
+/**
+ * 根据指定的类名获取类的对象
+ * @param name
+ * @returns {Object}
+ */
+ System.getDefinitionByName = function getDefinitionByName(name){
+     var module = Class.getClassByName(name);
+     if( module ){
+         return module;
+     }
+     throw new TypeError('"' + name + '" is not defined.');
+ };
+ 
+ System.hasClass = function hasClass(name){
+     return !!Class.getClassByName(name);
+ };
+ 
+ /**
+  * 返回类的完全限定类名
+  * @param value 需要完全限定类名称的对象。
+  * 可以将任何类型、对象实例、原始类型和类对象
+  * @returns {string}
+  */
+ System.getQualifiedClassName = function getQualifiedClassName( target ){
+     if( target == null )throw new ReferenceError( 'target is null or undefined' );
+     if( target===System )return 'System';
+     if( typeof target === "function" && target.prototype){
+         var desc = target && target[ Class.key ];
+         if( desc ){
+            return desc.ns ? desc.ns+'.'+desc.name : desc.name;
+         }
+         var str = target.toString();
+         str = str.substr(0, str.indexOf('(') );
+         return str.substr(str.lastIndexOf(' ')+1);
+     }
+     throw new ReferenceError( 'target is not Class' );
+ };
+ 
+ /**
+  * 返回对象的完全限定类名
+  * @param value 需要完全限定类名称的对象。
+  * 可以将任何类型、对象实例、原始类型和类对象
+  * @returns {string}
+  */
+ System.getQualifiedObjectName = function getQualifiedObjectName( target ){
+     if( target == null || typeof target !== "object"){
+         throw new ReferenceError( 'target is not object or is null' );
+     }
+     return System.getQualifiedClassName( Object.getPrototypeOf( target ).constructor );
+ };
+ /**
+  * 获取指定实例对象的超类名称
+  * @param value
+  * @returns {string}
+  */
+ System.getQualifiedSuperClassName =function getQualifiedSuperClassName(target){
+     if( target == null )throw new ReferenceError( 'target is null or undefined' );
+     var classname = System.getQualifiedClassName( Object.getPrototypeOf( target ).constructor );
+     var module = Class.getClassByName(classname);
+     if( module ){
+         return System.getQualifiedClassName( module.inherit || Object );
+     }
+     return null;
+ };

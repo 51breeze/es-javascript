@@ -99,10 +99,12 @@ declare class jasmine {
    public static var DEFAULT_TIMEOUT_INTERVAL:int
 }
 
-declare class Document extends Object {
 
-  addEventListener(type:string, fn:(e:any)=>void );
-
+declare System{
+    static getEventDispatcher():EventDispatcher;
+    static getDefinitionByName(name:string):Class;
+    static hasClass(name:string):boolean;
+    static getQualifiedClassName( target:Class ):string;
+    static getQualifiedObjectName( target:object ):string;
+    static getQualifiedSuperclassName(target:object):string;
 }
-
-declare const document:Document;

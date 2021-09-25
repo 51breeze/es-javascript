@@ -17,14 +17,15 @@ class DeclaratorDeclaration extends Syntax{
         if( refs.length > 0 ){
             content.unshift( refs.join("\r\n") );
         }
-        const description = [
-            `id:${Constant.DECLARE_CLASS}`,
-            `ns:'${polyfillModule.namespace}'`,
-            `global:true`,
-            `dynamic:${!!module.dynamic}`,
-            `name:'${module.id}'`,
-        ];
-        content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
+        if( !polyfillModule.notCreateDesc ){
+            const description = [
+                `'id':${Constant.DECLARE_CLASS}`,
+                `'global':true`,
+                `'dynamic':${!!module.dynamic}`,
+                `'name':'${module.id}'`,
+            ];
+            content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
+        }
         content.push( this.emitExportClass(module,polyfillModule.export) );
         return content.join("\r\n");
     }

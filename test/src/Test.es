@@ -189,10 +189,18 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
             expect({name:'event'}).toEqual( event.data );
         })
 
+         it("test System.getQualifiedObjectName",()=>{
+           
+            expect('Test').toEqual( System.getQualifiedObjectName(this) );
+            expect('String').toEqual( System.getQualifiedObjectName( new String('') ) );
+            expect('Test').toEqual( System.getQualifiedClassName(Test) );
+            expect('[Class Test]').toEqual( Test+'' );
+
+        });
 
 
         this.testEnumerableProperty();
-       this.testComputeProperty();
+        this.testComputeProperty();
         this.testLabel();
         this.testEnum();
        this.testIterator();

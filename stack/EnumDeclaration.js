@@ -19,12 +19,12 @@ class EnumDeclaration extends Syntax{
         const content = [];
         const refs = [];
         const description = [
-            `id:${Constant.DECLARE_ENUM}`,
-            `ns:"${module.namespace.toString()}"`,
-            `name:"${module.id}"`
+            `'id':${Constant.DECLARE_ENUM}`,
+            `'ns':'${module.namespace.toString()}'`,
+            `'name':'${module.id}'`
         ];
         if( inherit ){
-            description.push(`inherit:${inherit.id}`);
+            description.push(`'inherit':${inherit.id}`);
         }
 
         const memberContent = [];
@@ -36,16 +36,17 @@ class EnumDeclaration extends Syntax{
                 content.push(this.definePropertyDescription(proto,value,`"${name}"`,false,"public", Constant.DECLARE_PROPERTY_ENUM_KEY,true));
             }
         }
-        emitter( module.methods, "methods", memberContent );
 
+        this.addDepend( this.getGlobalModuleById('Class') );
+        emitter( module.methods, "methods", memberContent );
+        
         if( memberContent.length > 0 ){
             content.push(`const methods = {};`);
-            description.push(`methods:methods`);
+            description.push(`'methods':methods`);
             content.push( memberContent.join("\r\n") );
         }
         
         this.createDependencies(module,refs);
-
         const construct = `function ${module.id}(){}`;
         const parts = refs.concat(construct,content);
         parts.push(this.emitCreateClassDescription(module, description));

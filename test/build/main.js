@@ -5,30 +5,7 @@
      * 已加载的模块
      */
     var installedModules = {};
-    var key=Symbol("CLASS_KEY");
 
-    /**
-     * 生成类的描述信息
-     * @param {*} moduleClass 
-     * @param {*} description 
-     */
-     function creator(moduleClass,description){
-        if( description ){
-            if( description.inherit ){
-                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
-            }
-            if( description.methods ){
-                Object.defineProperties(moduleClass,description.methods);
-            }
-            if( description.members ){
-                Object.defineProperties(moduleClass.prototype,description.members);
-            }
-            Object.defineProperty(moduleClass,key,{value:description});
-            Object.defineProperty(moduleClass,'name',{value:description.name});
-        }
-        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
-    }
-    
     /**
      * 加载并初始化模块
      * @param string 
@@ -44,13 +21,13 @@
     
         var module = installedModules[identifier] = {
             'id': identifier,
-            'creator':creator,
             'require':require,
-            'exports': {},
-            'key':key,
+            'done':false,
+            'exports':null,
         };
     
-        definedModules[identifier].call(module, module, require);
+        definedModules[identifier].call(module, module);
+        module.done = true;
         return module.exports;
     }
 
@@ -65,7 +42,7 @@
      * 加载入口文件
      */
     /*enter class Test*/
-	require(7);
+	require(8);
     
 }({
 0:/*
@@ -73,6 +50,7 @@ Class Person
 */
 function(__MODULE__){
 	var TestInterface = __MODULE__.require(4);
+	var Class = __MODULE__.require(5);
 	var _private=Symbol("private");
 	function Person(name){
 		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -118,14 +96,14 @@ function(__MODULE__){
 	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
 	
 	}};
-	__MODULE__.creator(Person,{
-		id:1,
-		ns:'',
-		name:'Person',
-		private:_private,
-		imps:[TestInterface],
-		inherit:Object,
-		members:members
+	Class.creator(0,Person,{
+		'id':1,
+		'ns':'',
+		'name':'Person',
+		'private':_private,
+		'imps':[TestInterface],
+		'inherit':Object,
+		'members':members
 	});
 	__MODULE__.exports=Person;
 },
@@ -133,7 +111,7 @@ function(__MODULE__){
 Class EventDispatcher
 */
 function(__MODULE__){
-	var System = __MODULE__.require(5);
+	var Class = __MODULE__.require(5);
 	/*
 	 * EaseScript
 	 * Copyright © 2017 EaseScript All rights reserved.
@@ -279,12 +257,11 @@ function(__MODULE__){
 	    }
 	    return false;
 	};
-	__MODULE__.creator(EventDispatcher,{
-		id:1,
-		ns:'core',
-		global:true,
-		dynamic:false,
-		name:'EventDispatcher'
+	Class.creator(1,EventDispatcher,{
+		'id':1,
+		'global':true,
+		'dynamic':false,
+		'name':'EventDispatcher'
 	});
 	__MODULE__.exports=EventDispatcher;
 },
@@ -292,6 +269,7 @@ function(__MODULE__){
 Class Event
 */
 function(__MODULE__){
+	var Class = __MODULE__.require(5);
 	/*
 	 * EaseScript
 	 * Copyright © 2017 EaseScript All rights reserved.
@@ -327,12 +305,11 @@ function(__MODULE__){
 	Event.prototype.stopImmediatePropagation=function(){
 	    this.immediatePropagationStopped = true;
 	}
-	__MODULE__.creator(Event,{
-		id:1,
-		ns:'core',
-		global:true,
-		dynamic:true,
-		name:'Event'
+	Class.creator(2,Event,{
+		'id':1,
+		'global':true,
+		'dynamic':true,
+		'name':'Event'
 	});
 	__MODULE__.exports=Event;
 },
@@ -340,18 +317,19 @@ function(__MODULE__){
 Enum Types
 */
 function(__MODULE__){
+	var Class = __MODULE__.require(5);
 	function Types(){}
 	const methods = {};
 	methods.ADDRESS={m:3,d:6,value:0};
 	methods[0]={m:3,d:5,value:"ADDRESS"};
 	methods.NAME={m:3,d:6,value:1};
 	methods[1]={m:3,d:5,value:"NAME"};
-	__MODULE__.creator(Types,{
-		id:3,
-		ns:"",
-		name:"Types",
-		inherit:Object,
-		methods:methods
+	Class.creator(3,Types,{
+		'id':3,
+		'ns':'',
+		'name':'Types',
+		'inherit':Object,
+		'methods':methods
 	});
 	__MODULE__.exports=Types;
 },
@@ -359,20 +337,79 @@ function(__MODULE__){
 Interface com.TestInterface
 */
 function(__MODULE__){
+	var Class = __MODULE__.require(5);
 	function TestInterface(){}
-	__MODULE__.creator(TestInterface,{
-		id:2,
-		ns:'com',
-		name:'TestInterface'
+	Class.creator(4,TestInterface,{
+		'id':2,
+		'ns':'com',
+		'name':'TestInterface'
 	});
 	__MODULE__.exports=TestInterface;
 },
 5:/*
+Class Class
+*/
+function(__MODULE__){
+	var __MODULES__=[];
+	var key=Symbol("CLASS_KEY");
+	var Class={
+	    'key':key,
+	    'modules':__MODULES__,
+	    'require':function(id){
+	        return __MODULES__[id];
+	    },
+	    'creator':function(id,moduleClass,description){
+	        if( description ){
+	            if( description.inherit ){
+	                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+	            }
+	            if( description.methods ){
+	                Object.defineProperties(moduleClass,description.methods);
+	            }
+	            if( description.members ){
+	                Object.defineProperties(moduleClass.prototype,description.members);
+	            }
+	            Object.defineProperty(moduleClass,key,{value:description});
+	            Object.defineProperty(moduleClass,'name',{value:description.name});
+	            Object.defineProperty(moduleClass,'toString',{value:function toString(){
+	                var name = description.ns ? description.ns+'.'+description.name : description.name;
+	                var id = description.id;
+	                if(id === 3){
+	                    return '[Enum '+name+']';
+	                }else if(id ===2){
+	                    return '[Interface '+name+']';
+	                }else {
+	                    return '[Class '+name+']';
+	                }
+	            }});
+	        }
+	        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
+	        __MODULES__[id] = moduleClass;
+	    },
+	    'getClassByName':function(name){
+	        var len = __MODULES__.length;
+	        var index = 0;
+	        for(;index<len;index++){
+	            var classModule = __MODULES__[index];
+	            var description = classModule[key];
+	            if( description ){
+	                var key = description.ns ? description.ns+'.'+description.name : description.name;
+	                if( key === name){
+	                    return classModule;
+	                }
+	            }
+	        }
+	        return null;
+	    }
+	};
+	__MODULE__.exports=Class;
+},
+6:/*
 Class System
 */
 function(__MODULE__){
+	var Class = __MODULE__.require(5);
 	var EventDispatcher = __MODULE__.require(1);
-	var __KEY__ = __MODULE__.key;
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
 	};
@@ -438,7 +475,7 @@ function(__MODULE__){
 	
 	
 	System.className=function className(classObject){
-	    var desc = classObject[ __KEY__ ];
+	    var desc = classObject[ Class.key ];
 	    if(desc && desc.id === 1){
 	        if( desc.ns ){
 	            return desc.ns+'.'+desc.name;
@@ -451,8 +488,8 @@ function(__MODULE__){
 	
 	System.is=function is(left,right){
 	    if(!left || !right || typeof left !== "object")return false;
-	    var rId = right[__KEY__] ? right[__KEY__].id : null;
-	    var description =  left.constructor ? left.constructor[__KEY__] : null;
+	    var rId = right[Class.key] ? right[Class.key].id : null;
+	    var description =  left.constructor ? left.constructor[Class.key] : null;
 	    if( rId === 0 && description && description.id === 1 ){
 	        return (function check(description,id){
 	            if( !description )return false;
@@ -461,11 +498,11 @@ function(__MODULE__){
 	            if( inherit === right )return true;
 	            if( imps ){
 	                for(var i=0;i<imps.length;i++){
-	                    if( imps[i] === right || check( imps[i][__KEY__], 0 ) )return true;
+	                    if( imps[i] === right || check( imps[i][Class.key], 0 ) )return true;
 	                }
 	            }
-	            if( inherit && inherit[ __KEY__ ].id === id){
-	                return check( inherit[__KEY__], 0);
+	            if( inherit && inherit[ Class.key ].id === id){
+	                return check( inherit[Class.key], 0);
 	            }
 	            return false;
 	        })(description,1);
@@ -475,17 +512,17 @@ function(__MODULE__){
 	
 	System.isClass=function isClass(classObject){
 	    if( !classObject || !classObject.constructor)return false;
-	    var desc = classObject[ __KEY__ ];
+	    var desc = classObject[ Class.key ];
 	    return desc && desc.id === 1 || (typeof classObject === "function" && classObject.constructor !== Function);
 	}
 	
 	System.isInterface=function isInterface(classObject){
-	    var desc = classObject && classObject[ __KEY__ ];
+	    var desc = classObject && classObject[ Class.key ];
 	    return desc && desc.id === 2;
 	}
 	
 	System.isEnum=function isEnum(classObject){
-	    var desc = classObject && classObject[ __KEY__ ];
+	    var desc = classObject && classObject[ Class.key ];
 	    return desc && desc.id === 3;
 	}
 	
@@ -517,21 +554,85 @@ function(__MODULE__){
 	    }
 	    return __EventDispatcher;
 	}
-	__MODULE__.creator(System,{
-		id:1,
-		ns:'core',
-		global:true,
-		dynamic:false,
-		name:'System'
+	
+	/**
+	 * 根据指定的类名获取类的对象
+	 * @param name
+	 * @returns {Object}
+	 */
+	 System.getDefinitionByName = function getDefinitionByName(name){
+	     var module = Class.getClassByName(name);
+	     if( module ){
+	         return module;
+	     }
+	     throw new TypeError('"' + name + '" is not defined.');
+	 };
+	 
+	 System.hasClass = function hasClass(name){
+	     return !!Class.getClassByName(name);
+	 };
+	 
+	 /**
+	  * 返回类的完全限定类名
+	  * @param value 需要完全限定类名称的对象。
+	  * 可以将任何类型、对象实例、原始类型和类对象
+	  * @returns {string}
+	  */
+	 System.getQualifiedClassName = function getQualifiedClassName( target ){
+	     if( target == null )throw new ReferenceError( 'target is null or undefined' );
+	     if( target===System )return 'System';
+	     if( typeof target === "function" && target.prototype){
+	         var desc = target && target[ Class.key ];
+	         if( desc ){
+	            return desc.ns ? desc.ns+'.'+desc.name : desc.name;
+	         }
+	         var str = target.toString();
+	         str = str.substr(0, str.indexOf('(') );
+	         return str.substr(str.lastIndexOf(' ')+1);
+	     }
+	     throw new ReferenceError( 'target is not Class' );
+	 };
+	 
+	 /**
+	  * 返回对象的完全限定类名
+	  * @param value 需要完全限定类名称的对象。
+	  * 可以将任何类型、对象实例、原始类型和类对象
+	  * @returns {string}
+	  */
+	 System.getQualifiedObjectName = function getQualifiedObjectName( target ){
+	     if( target == null || typeof target !== "object"){
+	         throw new ReferenceError( 'target is not object or is null' );
+	     }
+	     return System.getQualifiedClassName( Object.getPrototypeOf( target ).constructor );
+	 };
+	 /**
+	  * 获取指定实例对象的超类名称
+	  * @param value
+	  * @returns {string}
+	  */
+	 System.getQualifiedSuperclassName =function getQualifiedSuperclassName(target){
+	     if( target == null )throw new ReferenceError( 'target is null or undefined' );
+	     var classname = System.getQualifiedClassName( Object.getPrototypeOf( target ).constructor );
+	     var module = Class.getClassByName(classname);
+	     if( module ){
+	         return System.getQualifiedClassName( module.inherit || Object );
+	     }
+	     return null;
+	 };
+	Class.creator(6,System,{
+		'id':1,
+		'global':true,
+		'dynamic':false,
+		'name':'System'
 	});
 	__MODULE__.exports=System;
 },
-6:/*
+7:/*
 Class Reflect
 */
 function(__MODULE__){
-	var System = __MODULE__.require(5);
-	var __KEY__ = __MODULE__.key;
+	var Class = __MODULE__.require(5);
+	var System = __MODULE__.require(6);
 	var _Reflect = (function(_Reflect){
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
 	        if( !System.isFunction( theClass ) ){
@@ -581,7 +682,7 @@ function(__MODULE__){
 	
 	    function inContext(context,objClass){
 	        if( !System.isClass(objClass) )return;
-	        var inherit = context[ __KEY__ ].inherit;
+	        var inherit = context[ Class.key ].inherit;
 	        if( inherit === objClass ){
 	            return true;
 	        }
@@ -592,12 +693,12 @@ function(__MODULE__){
 	        var isStatic = System.isClass(target);
 	        var objClass = isStatic ? target : target.constructor;
 	        var context = System.isClass(scope) ? scope : null;
-	        var description = objClass[ __KEY__ ];
+	        var description = objClass[ Class.key ];
 	        if( !isStatic && !System.isClass(objClass) ){
 	            return target;
 	        }
 	        var isDynamic = description && description.dynamic;
-	        while( objClass && (description = objClass[ __KEY__ ]) ){
+	        while( objClass && (description = objClass[ Class.key ]) ){
 	            var dataset = isStatic ? description.methods : description.members;
 	            if( dataset && dataset.hasOwnProperty( name ) ){
 	                const desc = dataset[name];
@@ -727,7 +828,7 @@ function(__MODULE__){
 	            if( System.isClass(target) ){
 	                target[propertyKey] = value;
 	            }else if( System.isClass(target.constructor) ){
-	                var p = target.constructor[__KEY__]._private;
+	                var p = target.constructor[Class.key]._private;
 	                target[p][propertyKey] = value;
 	            }else {
 	                throw new ReferenceError(`target.${propertyKey} non object.`); 
@@ -753,16 +854,15 @@ function(__MODULE__){
 	    return Reflect;
 	
 	}(Reflect));
-	__MODULE__.creator(_Reflect,{
-		id:1,
-		ns:'core',
-		global:true,
-		dynamic:false,
-		name:'Reflect'
+	Class.creator(7,_Reflect,{
+		'id':1,
+		'global':true,
+		'dynamic':false,
+		'name':'Reflect'
 	});
 	__MODULE__.exports=_Reflect;
 },
-7:/*
+8:/*
 Class Test
 */
 function(__MODULE__){
@@ -771,8 +871,9 @@ function(__MODULE__){
 	var Event = __MODULE__.require(2);
 	var Types = __MODULE__.require(3);
 	var TestInterface = __MODULE__.require(4);
-	var System = __MODULE__.require(5);
-	var Reflect = __MODULE__.require(6);
+	var Class = __MODULE__.require(5);
+	var System = __MODULE__.require(6);
+	var Reflect = __MODULE__.require(7);
 	var _private=Symbol("private");
 	function Test(name,age){
 		Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
@@ -890,6 +991,12 @@ function(__MODULE__){
 			const event = new Event('eee');
 			d.dispatchEvent(event);
 			expect({name:'event'}).toEqual(event.data);
+		});
+		it("test System.getQualifiedObjectName",function(){
+			expect('Test').toEqual(System.getQualifiedObjectName(_this));
+			expect('String').toEqual(System.getQualifiedObjectName(new String('')));
+			expect('Test').toEqual(System.getQualifiedClassName(Test));
+			expect('[Class Test]').toEqual(Test + '');
 		});
 		this.testEnumerableProperty();
 		this.testComputeProperty();
@@ -1213,9 +1320,9 @@ function(__MODULE__){
 		return [str,cc,x,b];
 	}};
 	members.name={m:3,d:4,enumerable:true,get:function name(){
-		return Person[__MODULE__.key].members.name.get.call(this);
+		return Person[Class.key].members.name.get.call(this);
 	},set:function name(value){
-		Person[__MODULE__.key].members.name.set.call(this,value);
+		Person[Class.key].members.name.set.call(this,value);
 	}};
 	members.avg={m:3,d:3,value:function avg(yy,bbc){
 		var ii = function(){
@@ -1251,19 +1358,19 @@ function(__MODULE__){
 		return dd;
 	}};
 	members[Symbol.iterator]={value:function(){return this;}}
-	__MODULE__.creator(Test,{
-		id:1,
-		ns:'',
-		name:'Test',
-		private:_private,
-		inherit:Person,
-		methods:methods,
-		members:members
+	Class.creator(8,Test,{
+		'id':1,
+		'ns':'',
+		'name':'Test',
+		'private':_private,
+		'inherit':Person,
+		'methods':methods,
+		'members':members
 	});
 	__MODULE__.exports=Test;
 	/*externals code*/;
 	(function(){
-		var Test = __MODULE__.require(7);
+		var Test = Class.require(8);
 		const test = new Test('Test');
 		test.start();
 	}());

@@ -37,7 +37,6 @@ class Builder extends Syntax{
                 }
             }
 
-            this.emitCore();
             compilation.completed(this.name,false);
             compilation.modules.forEach( module =>builderAll(module) );
             if( config.pack ){
@@ -58,7 +57,6 @@ class Builder extends Syntax{
         const compiler    = this.compiler;
         compilation.completed(this.name,false);
         try{
-            this.emitCore();
             compilation.modules.forEach( module =>{
                 if( this.isNeedBuild(module) ){
                     const stack = compilation.getStackByModule(module);
@@ -98,7 +96,7 @@ class Builder extends Syntax{
                 const id = this.getIdByModule(module);
                 const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
                 const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
-                const code = `${comment}function(${this.getClassHelper()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
+                const code = `${comment}function(${this.getPackModuleRefs()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
                 content.push({id,code});
             }
         }
@@ -125,9 +123,9 @@ class Builder extends Syntax{
 
         const bootstrap= this.bootstrap( main, `{\r\n${content.map(item=>`${item.id}:${item.code}`).join(',\r\n')}\r\n}`);
         if(config.strict){
-            this.emitFile(outputPath, `"use strict";\r\n${bootstrap}` );
+            this.emitFile(outputPath, `"use strict";\r\n${bootstrap}`);
         }else{
-            this.emitFile(outputPath, bootstrap );
+            this.emitFile(outputPath, bootstrap);
         }
     }
 
@@ -139,28 +137,6 @@ class Builder extends Syntax{
         const isDeclaratorModule = module.isDeclaratorModule;
         const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
         return !isDeclaratorModule || isPolyfill;
-    }
-
-    emitCore(){
-        const loaded = this.loadCoreModule;
-        if( loaded ){
-            return loaded;
-        }
-        const compiler    = this.compiler;
-        const filesystem  = compiler.getOutputFileSystem( this.name );
-        const config = this.getConfig();
-        const options = this.getOptions();
-        const file = require.resolve('./Creator.js');
-        const content = fs.readFileSync( file ).toString();
-        filesystem.mkdirpSync( path.dirname(file) );
-        filesystem.writeFileSync(file, content );
-        const output = config.output || options.output;
-        const filename = path.basename(file);
-        const outputFile = path.join(output,(config.ns||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
-        if( config.emitFile ){
-            this.emitFile(outputFile, filesystem.readFileSync(file) );
-        } 
-        return this.loadCoreModule = {file,content,filename,outputFile};
     }
 
     bootstrap(entrances, modules){

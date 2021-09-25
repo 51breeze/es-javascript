@@ -47,7 +47,7 @@ var _Reflect = (function(_Reflect){
 
     function inContext(context,objClass){
         if( !System.isClass(objClass) )return;
-        var inherit = context[ __KEY__ ].inherit;
+        var inherit = context[ Class.key ].inherit;
         if( inherit === objClass ){
             return true;
         }
@@ -58,12 +58,12 @@ var _Reflect = (function(_Reflect){
         var isStatic = System.isClass(target);
         var objClass = isStatic ? target : target.constructor;
         var context = System.isClass(scope) ? scope : null;
-        var description = objClass[ __KEY__ ];
+        var description = objClass[ Class.key ];
         if( !isStatic && !System.isClass(objClass) ){
             return target;
         }
         var isDynamic = description && description.dynamic;
-        while( objClass && (description = objClass[ __KEY__ ]) ){
+        while( objClass && (description = objClass[ Class.key ]) ){
             var dataset = isStatic ? description.methods : description.members;
             if( dataset && dataset.hasOwnProperty( name ) ){
                 const desc = dataset[name];
@@ -193,7 +193,7 @@ var _Reflect = (function(_Reflect){
             if( System.isClass(target) ){
                 target[propertyKey] = value;
             }else if( System.isClass(target.constructor) ){
-                var p = target.constructor[__KEY__]._private;
+                var p = target.constructor[Class.key]._private;
                 target[p][propertyKey] = value;
             }else {
                 throw new ReferenceError(`target.${propertyKey} non object.`); 
