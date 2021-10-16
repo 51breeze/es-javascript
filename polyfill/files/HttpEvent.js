@@ -4,7 +4,6 @@
  * Released under the MIT license
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
- * @require Event,Object
  */
 function HttpEvent( type, bubbles,cancelable ){
     if( !(this instanceof HttpEvent) )return new HttpEvent(type, bubbles,cancelable);

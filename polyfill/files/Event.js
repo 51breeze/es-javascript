@@ -3,7 +3,6 @@
  * Released under the MIT license
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
- * @require System,Object
  */
 function Event( type, bubbles, cancelable ){
     if( !type || typeof type !=="string" )throw new TypeError('event type is not string');

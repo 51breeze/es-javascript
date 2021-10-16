@@ -3,7 +3,7 @@ const path = require("path");
 module.exports={
     content: fs.readFileSync( path.join(__dirname,"./files/EventDispatcher.js") ),
     export:"EventDispatcher",
-    require:['Class'],
+    require:['Class','Event'],
     getContent(syntax){
         return this.content;
     },

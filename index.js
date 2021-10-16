@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const Syntax = require("./core/Syntax");
 const Builder = require("./core/Builder");
-const Constant = require("./core/Constant");
+const {merge} = require("lodash");
 const modules = new Map();
 const loadStack=()=>{
     const dirname = path.join(__dirname,"stack");
@@ -24,9 +25,10 @@ const defaultConfig ={
     'useAbsolutePathImport':false,
 }
 
-const plugin = {
+const profile={
     name:'javascript',
     platform:'client',
+    configuration:defaultConfig,
     make(stack){
         const stackModule = modules.get( stack.toString() );
         if( stackModule ){
@@ -34,41 +36,53 @@ const plugin = {
         }
         throw new Error(`Stack '${stack.toString()}' is not found.`);
     }
+}
+
+const properties ={
+    name:profile.name,
+    platform:profile.platform,
+    version:require("./package.json").version,
+    config(options){
+        const target = Syntax.prototype.configuration;
+        if(options){
+            merge(target, options);
+        }
+        return target;
+    },
+    start(compilation, done, options){
+        if(options)this.config(options);
+        const builder = new Builder( compilation.stack );
+        builder.start(done);
+    },
+    build(compilation, done, options){
+        if(options)this.config(options);
+        const builder = new Builder( compilation.stack );
+        builder.build(done);
+    }
+}
+
+function plugin(complier){
+    if( modules.size === 0 ){
+        loadStack();
+    }
+    this.complier = complier;
+    complier.loadTypes([require.resolve('./types/web.es')],true,this);
 };
 
-const Syntax = require("./core/Syntax");
-Syntax.prototype.configuration = defaultConfig;
-for(var name in plugin){
+for(var name in profile){
     Object.defineProperty(Syntax.prototype, name, {
-        value:plugin[name],
+        value:profile[name],
         enumerable:false,
         configurable:false
     });
 }
 
-plugin.config=function config(options){
-    if(options){
-        Syntax.prototype.configuration = Object.assign({}, defaultConfig, Syntax.prototype.configuration||{},  options||{});
-    }
-    return Syntax.prototype.configuration;
-}
-
-plugin.start=function start(compilation, done, options){
-    if(options)this.config(options);
-    if( modules.size === 0 ){
-        loadStack();
-    }
-    const builder = new Builder( compilation.stack );
-    builder.start(done);
-}
-
-plugin.build=function build(compilation, done, options){
-    if(options)this.config(options);
-    if( modules.size === 0 ){
-        loadStack();
-    }
-    const builder = new Builder( compilation.stack );
-    builder.build(done);
+for(var name in properties){
+    Object.defineProperty(plugin.prototype,name,{
+        value:properties[name],
+        enumerable:false,
+        configurable:false
+    });
 }
 
 module.exports = plugin;

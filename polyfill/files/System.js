@@ -61,19 +61,6 @@ System.generator = function (thisArg, body) {
     }
 }
 
-
-System.className=function className(classObject){
-    var desc = classObject[ Class.key ];
-    if(desc && desc.id === 1){
-        if( desc.ns ){
-            return desc.ns+'.'+desc.name;
-        }else{
-            return desc.name;
-        }
-    }
-    return null;
-}
-
 System.is=function is(left,right){
     if(!left || !right || typeof left !== "object")return false;
     var rId = right[Class.key] ? right[Class.key].id : null;

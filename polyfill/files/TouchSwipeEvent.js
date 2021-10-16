@@ -4,7 +4,6 @@
  * Released under the MIT license
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
-* @require Event,TouchEvent,Object;
 */
 function TouchSwipeEvent(type, bubbles, cancelable)
 {
@@ -129,8 +128,8 @@ function invoke(listener, dispatchHandle ){
             dispatchHandle(swipeEvent);
         }
     }
-    listener.dispatcher.addEventListener(TouchEvent.TOUCH_START,handle, false, -1000)
-        .addEventListener(TouchEvent.TOUCH_MOVE,handle, false, -1000)
-        .addEventListener(TouchEvent.TOUCH_END,handle, false, -1000);
+    listener.dispatcher.addEventListener(TouchEvent.TOUCH_START,handle, false, -999999)
+        .addEventListener(TouchEvent.TOUCH_MOVE,handle, false, -999999)
+        .addEventListener(TouchEvent.TOUCH_END,handle, false, -999999);
 };
 Event.fix.hooks[ TouchSwipeEvent.TOUCH_SWIPE_START ] = Event.fix.hooks[ TouchSwipeEvent.TOUCH_SWIPE_MOVE ] = Event.fix.hooks[ TouchSwipeEvent.TOUCH_SWIPE_END ] = invoke;
