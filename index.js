@@ -66,7 +66,8 @@ function plugin(complier){
         loadStack();
     }
     this.complier = complier;
-    complier.loadTypes([require.resolve('./types/web.es')],true,this);
+    //const types = complier.options.types || (complier.options.types=[]);
+    //types.push( require.resolve('./types/web.es') );
 };
 
 for(var name in profile){
