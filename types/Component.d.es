@@ -18,7 +18,6 @@ package web.components{
         public activated();
         public deactivated();
         public destroyed();
-        public errorCaptured();
         public beforeCreate();
         public beforeMount();
         public beforeUpdate();
