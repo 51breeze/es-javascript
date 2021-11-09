@@ -29,10 +29,15 @@ const profile={
     name:'javascript',
     platform:'client',
     configuration:defaultConfig,
-    make(stack){
+    make(stack, ...args){
         const stackModule = modules.get( stack.toString() );
         if( stackModule ){
-            return (new stackModule(stack)).emitter();
+            const obj = new stackModule(stack);
+            if( args.length > 0 ){
+                return obj.emitter.apply(obj, args);
+            }else{
+                return obj.emitter();
+            }
         }
         throw new Error(`Stack '${stack.toString()}' is not found.`);
     }

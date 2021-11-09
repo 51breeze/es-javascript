@@ -1,7 +1,7 @@
 const Syntax = require("../core/Syntax");
 class JSXMemberExpression extends Syntax{
     emitter(){
-        return this.stack.raw();
+        return null;
     }
 }
 module.exports = JSXMemberExpression;

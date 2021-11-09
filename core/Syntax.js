@@ -226,7 +226,7 @@ class Syntax extends events.EventEmitter {
         return !!(stack && stack.isSwitchCase);
     }
 
-    getIndent(num=null){
+    getIndentNum( num=null ){
         let level = num === null ? this.scope.level : num;
         if( num === null ){
             const asyncIndent = this.scope.asyncParentScopeOf ? 4 : 0;
@@ -258,7 +258,11 @@ class Syntax extends events.EventEmitter {
                 level+=asyncIndent;
             }
         }
-        level = this.getLevel(level);
+        return level;
+    }
+
+    getIndent(num=null){
+        const level = this.getLevel( this.getIndentNum( num ) );
         return level > 0 ? "\t".repeat( level ) : '';
     }
 
@@ -329,6 +333,14 @@ class Syntax extends events.EventEmitter {
         return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
     }
 
+    getModuleReferenceName(module,context){
+        context = context || this.module;
+        if( context ){
+            return context.getReferenceNameByModule( module );
+        }
+        return module.namespace.getChain().concat(module.id).join("_");
+    }
+
     createDependencies(module, refs){
         const config = this.getConfig();
         const push = (value)=>{
@@ -338,7 +350,7 @@ class Syntax extends events.EventEmitter {
         }
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
-                const name = module.getReferenceNameByModule( depModule );
+                const name = this.getModuleReferenceName(depModule, module);
                 if( config.pack ){
                     push( this.emitPackImportClass(depModule, name) );
                 }else if( config.useAbsolutePathImport ){
@@ -425,6 +437,10 @@ class Syntax extends events.EventEmitter {
             this.addDepend( inherit[0] );
         }
         return inherit[0] || null;
+    }
+
+    getJsxCreateElementHandle(){
+        return 'createElement';
     }
 
     emitter(){}

@@ -44,7 +44,7 @@ class Property extends Syntax{
                 return this.assignmentExpression(name, this.computeValue(`${obj}.${name}`,value) );
             }
         }else{
-            const key = this.stack.key.raw();
+            const key = this.stack.key.value();
             const value = this.make(this.stack.init);
             if( this.stack.parentStack.hasChildComputed ){
                const refs = this.generatorVarName(this.stack.parentStack,"_c");
@@ -54,7 +54,7 @@ class Property extends Syntax{
                     return `${refs}[${key}]=${value}`
                }
             }
-            return `${key}:${value}`;
+            return `"${key}":${value}`;
         }
     }
 }

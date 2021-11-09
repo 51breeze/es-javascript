@@ -25,11 +25,10 @@
   },
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
-    "lodash": "^4.17.21",
-    "acorn-jsx": "^5.2.0"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "easescript": "0.0.55",
+    "easescript": "0.0.59",
     "jasmine": "^3.10.0"
   }
 }

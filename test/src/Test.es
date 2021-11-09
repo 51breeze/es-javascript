@@ -8,6 +8,10 @@ import com.TestInterface;
 import Person;
 import Types;
 
+@Embed(img='img.png');
+@Embed('style.css');
+
+
 /**
 * Test a class
 */
@@ -208,6 +212,21 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
        this.testAwait();
        this.testTuple();
        this.next();
+    }
+
+
+    private onClick(){
+
+        
+    }
+
+    private jsx(){
+        return <div onclick={this.onClick} class="my" style={{'color':'red'}} xmlns:s="com">
+          <div>child</div>
+          <s:Person>
+            <span>ssssssssss</span>
+          </s:Person>
+        </div>
     }
 
     private testEnumerableProperty(){
