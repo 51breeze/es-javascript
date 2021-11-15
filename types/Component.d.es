@@ -25,14 +25,13 @@ package web.components{
 
     }
 
-    declare class Skin{
-
+    declare class Skin extends Component{
         public constructor(props);
     }
+
     declare class Metadata{
+        
     }
 
-    declare class Script{
-    }
 
 }

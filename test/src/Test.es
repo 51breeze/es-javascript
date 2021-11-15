@@ -7,10 +7,14 @@ package;
 import com.TestInterface;
 import Person;
 import Types;
+//import Skin;
 
-@Embed(img='img.png');
-@Embed('style.css');
+//@Embed(Types='img.png');
+@Embed('assets/style.css');
 
+//@Skin(TestSkin = Skin)
+
+import Skin;
 
 /**
 * Test a class
@@ -227,6 +231,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
             <span>ssssssssss</span>
           </s:Person>
         </div>
+    }
+
+    render(){
+        //return Skin;
     }
 
     private testEnumerableProperty(){
