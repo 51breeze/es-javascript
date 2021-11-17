@@ -7,14 +7,10 @@ package;
 import com.TestInterface;
 import Person;
 import Types;
-//import Skin;
+import Skin;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
-
-//@Skin(TestSkin = Skin)
-
-import Skin;
 
 /**
 * Test a class
@@ -225,6 +221,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
     }
 
     private jsx(){
+        var b = new Skin();
         return <div onclick={this.onClick} class="my" style={{'color':'red'}} xmlns:s="com">
           <div>child</div>
           <s:Person>

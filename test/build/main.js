@@ -42,7 +42,7 @@
      * 加载入口文件
      */
     /*enter class Test*/
-	require(8);
+	require(10);
     
 }({
 0:/*
@@ -50,7 +50,7 @@ Class Person
 */
 function(__MODULE__){
 	var TestInterface = __MODULE__.require(4);
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	var _private=Symbol("private");
 	function Person(name){
 		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -111,7 +111,7 @@ function(__MODULE__){
 Class EventDispatcher
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	var Event = __MODULE__.require(2);
 	/*
 	 * EaseScript
@@ -342,7 +342,7 @@ function(__MODULE__){
 Class Event
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	/*
 	 * Copyright © 2017 EaseScript All rights reserved.
 	 * Released under the MIT license
@@ -591,7 +591,7 @@ function(__MODULE__){
 Enum Types
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	function Types(){}
 	const methods = {};
 	methods.ADDRESS={m:3,d:6,value:0};
@@ -611,7 +611,7 @@ function(__MODULE__){
 Interface com.TestInterface
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	function TestInterface(){}
 	Class.creator(4,TestInterface,{
 		'id':2,
@@ -621,6 +621,29 @@ function(__MODULE__){
 	__MODULE__.exports=TestInterface;
 },
 5:/*
+Class Skin
+*/
+function(__MODULE__){
+	function Skin(){}
+},
+6:/*
+Class com.Person
+*/
+function(__MODULE__){
+	var Class = __MODULE__.require(7);
+	var _private=Symbol("private");
+	function Person(){
+		this.hasOwnProperty("name");
+	}
+	Class.creator(6,Person,{
+		'id':1,
+		'ns':'com',
+		'name':'Person',
+		'private':_private
+	});
+	__MODULE__.exports=Person;
+},
+7:/*
 Class Class
 */
 function(__MODULE__){
@@ -678,11 +701,11 @@ function(__MODULE__){
 	};
 	__MODULE__.exports=Class;
 },
-6:/*
+8:/*
 Class System
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
+	var Class = __MODULE__.require(7);
 	var EventDispatcher = __MODULE__.require(1);
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
@@ -880,7 +903,7 @@ function(__MODULE__){
 	     }
 	     return null;
 	 };
-	Class.creator(6,System,{
+	Class.creator(8,System,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -888,12 +911,12 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=System;
 },
-7:/*
+9:/*
 Class Reflect
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(5);
-	var System = __MODULE__.require(6);
+	var Class = __MODULE__.require(7);
+	var System = __MODULE__.require(8);
 	var _Reflect = (function(_Reflect){
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
 	        if( !System.isFunction( theClass ) ){
@@ -1115,7 +1138,7 @@ function(__MODULE__){
 	    return Reflect;
 	
 	}(Reflect));
-	Class.creator(7,_Reflect,{
+	Class.creator(9,_Reflect,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -1123,7 +1146,7 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=_Reflect;
 },
-8:/*
+10:/*
 Class Test
 */
 function(__MODULE__){
@@ -1132,9 +1155,11 @@ function(__MODULE__){
 	var Event = __MODULE__.require(2);
 	var Types = __MODULE__.require(3);
 	var TestInterface = __MODULE__.require(4);
-	var Class = __MODULE__.require(5);
-	var System = __MODULE__.require(6);
-	var Reflect = __MODULE__.require(7);
+	var Skin = __MODULE__.require(5);
+	var com_Person = __MODULE__.require(6);
+	var Class = __MODULE__.require(7);
+	var System = __MODULE__.require(8);
+	var Reflect = __MODULE__.require(9);
 	var _private=Symbol("private");
 	function Test(name,age){
 		Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
@@ -1273,6 +1298,7 @@ function(__MODULE__){
 	
 	}};
 	members.jsx={m:1,d:3,value:function jsx(){
+		var b = new Skin();
 		return 	createElement('div',{
 			"on":{
 				"click":this.onClick
@@ -1643,7 +1669,7 @@ function(__MODULE__){
 		return dd;
 	}};
 	members[Symbol.iterator]={value:function(){return this;}}
-	Class.creator(8,Test,{
+	Class.creator(10,Test,{
 		'id':1,
 		'ns':'',
 		'name':'Test',
@@ -1655,7 +1681,7 @@ function(__MODULE__){
 	__MODULE__.exports=Test;
 	/*externals code*/;
 	(function(){
-		var Test = Class.require(8);
+		var Test = Class.require(10);
 		const test = new Test('Test');
 		test.start();
 	}());

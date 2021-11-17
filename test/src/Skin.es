@@ -1,22 +1,16 @@
 <s:Skin xmlns:s="web.components">
-    <s:Metadata>[HostComponent("es.components.DataGrid")]</s:Metadata>
-    <s:Script>
 
-        import es.events.PaginationEvent;
-        import es.core.Display;
-        import es.core.Skin;
+    <script>
+
+        @HostComponent();
 
         @override
-        mount(){
-            //super.mount();
+        mounted(){
+           
             
         }
     
-    </s:Script>
-
-    <s:Skin.style>
-    
-    </s:Skin.style>
+    </script>
 
     <div></div>
 

@@ -25,6 +25,7 @@ package web.components{
 
     }
 
+    @SkinClass
     declare class Skin extends Component{
         public constructor(props);
     }
