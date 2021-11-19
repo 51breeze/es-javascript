@@ -46,11 +46,88 @@
     
 }({
 0:/*
+Class com.Person
+*/
+function(__MODULE__){
+	var Class = __MODULE__.require(1);
+	var _private=Symbol("private");
+	function Person(){
+		this.hasOwnProperty("name");
+	}
+	Class.creator(0,Person,{
+		'id':1,
+		'ns':'com',
+		'name':'Person',
+		'private':_private
+	});
+	__MODULE__.exports=Person;
+},
+1:/*
+Class Class
+*/
+function(__MODULE__){
+	var __MODULES__=[];
+	var key=Symbol("CLASS_KEY");
+	var Class={
+	    'key':key,
+	    'modules':__MODULES__,
+	    'require':function(id){
+	        return __MODULES__[id];
+	    },
+	    'creator':function(id,moduleClass,description){
+	        if( description ){
+	            if( description.inherit ){
+	                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+	            }
+	            if( description.methods ){
+	                Object.defineProperties(moduleClass,description.methods);
+	            }
+	            if( description.members ){
+	                Object.defineProperties(moduleClass.prototype,description.members);
+	            }
+	            Object.defineProperty(moduleClass,key,{value:description});
+	            Object.defineProperty(moduleClass,'name',{value:description.name});
+	            Object.defineProperty(moduleClass,'toString',{value:function toString(){
+	                var name = description.ns ? description.ns+'.'+description.name : description.name;
+	                var id = description.id;
+	                if(id === 3){
+	                    return '[Enum '+name+']';
+	                }else if(id ===2){
+	                    return '[Interface '+name+']';
+	                }else {
+	                    return '[Class '+name+']';
+	                }
+	            }});
+	        }
+	        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
+	        if( id ){
+	            __MODULES__[id] = moduleClass;
+	        }
+	    },
+	    'getClassByName':function(name){
+	        var len = __MODULES__.length;
+	        var index = 0;
+	        for(;index<len;index++){
+	            var classModule = __MODULES__[index];
+	            var description = classModule[key];
+	            if( description ){
+	                var key = description.ns ? description.ns+'.'+description.name : description.name;
+	                if( key === name){
+	                    return classModule;
+	                }
+	            }
+	        }
+	        return null;
+	    }
+	};
+	__MODULE__.exports=Class;
+},
+2:/*
 Class Person
 */
 function(__MODULE__){
-	var TestInterface = __MODULE__.require(4);
-	var Class = __MODULE__.require(7);
+	var TestInterface = __MODULE__.require(6);
+	var Class = __MODULE__.require(1);
 	var _private=Symbol("private");
 	function Person(name){
 		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -96,7 +173,7 @@ function(__MODULE__){
 	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
 	
 	}};
-	Class.creator(0,Person,{
+	Class.creator(2,Person,{
 		'id':1,
 		'ns':'',
 		'name':'Person',
@@ -107,12 +184,12 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Person;
 },
-1:/*
+3:/*
 Class EventDispatcher
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
-	var Event = __MODULE__.require(2);
+	var Class = __MODULE__.require(1);
+	var Event = __MODULE__.require(4);
 	/*
 	 * EaseScript
 	 * Copyright © 2017 EaseScript All rights reserved.
@@ -330,7 +407,7 @@ function(__MODULE__){
 	Listener.prototype.proxyHandle = null;
 	Listener.prototype.proxyTarget = null;
 	Listener.prototype.proxyType = null;
-	Class.creator(1,EventDispatcher,{
+	Class.creator(3,EventDispatcher,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -338,11 +415,11 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=EventDispatcher;
 },
-2:/*
+4:/*
 Class Event
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	/*
 	 * Copyright © 2017 EaseScript All rights reserved.
 	 * Released under the MIT license
@@ -579,7 +656,7 @@ function(__MODULE__){
 	    id = window.setInterval(handle,50);
 	    return true;
 	}
-	Class.creator(2,Event,{
+	Class.creator(4,Event,{
 		'id':1,
 		'global':true,
 		'dynamic':true,
@@ -587,18 +664,18 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Event;
 },
-3:/*
+5:/*
 Enum Types
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	function Types(){}
 	const methods = {};
 	methods.ADDRESS={m:3,d:6,value:0};
 	methods[0]={m:3,d:5,value:"ADDRESS"};
 	methods.NAME={m:3,d:6,value:1};
 	methods[1]={m:3,d:5,value:"NAME"};
-	Class.creator(3,Types,{
+	Class.creator(5,Types,{
 		'id':3,
 		'ns':'',
 		'name':'Types',
@@ -607,106 +684,66 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Types;
 },
-4:/*
+6:/*
 Interface com.TestInterface
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	function TestInterface(){}
-	Class.creator(4,TestInterface,{
+	Class.creator(6,TestInterface,{
 		'id':2,
 		'ns':'com',
 		'name':'TestInterface'
 	});
 	__MODULE__.exports=TestInterface;
 },
-5:/*
+7:/*
 Class Skin
 */
 function(__MODULE__){
-	function Skin(){}
-},
-6:/*
-Class com.Person
-*/
-function(__MODULE__){
-	var Class = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	var _private=Symbol("private");
-	function Person(){
-		this.hasOwnProperty("name");
+	function Skin(){
+		Object.defineProperty(this,_private,{value:{'test':'sss'}});
+		web_components_Skin.call(this);
+		this.name = "ssss";
 	}
-	Class.creator(6,Person,{
+	var members = {};
+	members.test={m:1,d:1,writable:true,value:'sss'};
+	members.mounted={m:3,d:3,value:function mounted(){
+	
+	}};
+	members.name={m:3,d:4,enumerable:true,get:function name(){
+		return 'name';
+	},set:function name(value){
+	
+	}};
+	members.render={m:3,d:3,value:function render(createElement){
+		return createElement('div',null, [
+		createElement('div',null, [
+				this.name
+			]),
+		createElement('div',null, [
+				'sdfs'
+			])
+		]);
+	}};
+	Class.creator(7,Skin,{
 		'id':1,
-		'ns':'com',
-		'name':'Person',
-		'private':_private
+		'ns':'',
+		'name':'Skin',
+		'private':_private,
+		'inherit':web_components_Skin,
+		'members':members
 	});
-	__MODULE__.exports=Person;
-},
-7:/*
-Class Class
-*/
-function(__MODULE__){
-	var __MODULES__=[];
-	var key=Symbol("CLASS_KEY");
-	var Class={
-	    'key':key,
-	    'modules':__MODULES__,
-	    'require':function(id){
-	        return __MODULES__[id];
-	    },
-	    'creator':function(id,moduleClass,description){
-	        if( description ){
-	            if( description.inherit ){
-	                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
-	            }
-	            if( description.methods ){
-	                Object.defineProperties(moduleClass,description.methods);
-	            }
-	            if( description.members ){
-	                Object.defineProperties(moduleClass.prototype,description.members);
-	            }
-	            Object.defineProperty(moduleClass,key,{value:description});
-	            Object.defineProperty(moduleClass,'name',{value:description.name});
-	            Object.defineProperty(moduleClass,'toString',{value:function toString(){
-	                var name = description.ns ? description.ns+'.'+description.name : description.name;
-	                var id = description.id;
-	                if(id === 3){
-	                    return '[Enum '+name+']';
-	                }else if(id ===2){
-	                    return '[Interface '+name+']';
-	                }else {
-	                    return '[Class '+name+']';
-	                }
-	            }});
-	        }
-	        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
-	        __MODULES__[id] = moduleClass;
-	    },
-	    'getClassByName':function(name){
-	        var len = __MODULES__.length;
-	        var index = 0;
-	        for(;index<len;index++){
-	            var classModule = __MODULES__[index];
-	            var description = classModule[key];
-	            if( description ){
-	                var key = description.ns ? description.ns+'.'+description.name : description.name;
-	                if( key === name){
-	                    return classModule;
-	                }
-	            }
-	        }
-	        return null;
-	    }
-	};
-	__MODULE__.exports=Class;
+	__MODULE__.exports=Skin;
 },
 8:/*
 Class System
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
-	var EventDispatcher = __MODULE__.require(1);
+	var Class = __MODULE__.require(1);
+	var EventDispatcher = __MODULE__.require(3);
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
 	};
@@ -915,7 +952,7 @@ function(__MODULE__){
 Class Reflect
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	var System = __MODULE__.require(8);
 	var _Reflect = (function(_Reflect){
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
@@ -1150,14 +1187,14 @@ function(__MODULE__){
 Class Test
 */
 function(__MODULE__){
-	var Person = __MODULE__.require(0);
-	var EventDispatcher = __MODULE__.require(1);
-	var Event = __MODULE__.require(2);
-	var Types = __MODULE__.require(3);
-	var TestInterface = __MODULE__.require(4);
-	var Skin = __MODULE__.require(5);
-	var com_Person = __MODULE__.require(6);
-	var Class = __MODULE__.require(7);
+	var Person = __MODULE__.require(2);
+	var com_Person = __MODULE__.require(0);
+	var EventDispatcher = __MODULE__.require(3);
+	var Event = __MODULE__.require(4);
+	var Types = __MODULE__.require(5);
+	var TestInterface = __MODULE__.require(6);
+	var Skin = __MODULE__.require(7);
+	var Class = __MODULE__.require(1);
 	var System = __MODULE__.require(8);
 	var Reflect = __MODULE__.require(9);
 	var _private=Symbol("private");
@@ -1299,22 +1336,45 @@ function(__MODULE__){
 	}};
 	members.jsx={m:1,d:3,value:function jsx(){
 		var b = new Skin();
+		var com = (function(){
+			var com_Person = __MODULE__.require(0);
+			var Class = __MODULE__.require(1);
+			var _private=Symbol("private");
+			function Person(){
+					com_Person.call(this);
+			}
+			var members = {};
+			members.name={m:3,d:4,enumerable:true,get:function name(){
+					return 'sss';
+				},set:function name(value){
+	
+				}};
+			members.render={m:3,d:3,value:function render(createElement){
+					return createElement('span',null, [
+							'ssssssssss'
+						]);
+				}};
+			Class.creator(null,Person,{
+				'id':1,
+				'ns':'',
+				'name':'Person',
+				'private':_private,
+				'inherit':com_Person,
+				'members':members
+			});
+			return Person;
+		}());
 		return 	createElement('div',{
-			"on":{
-				"click":this.onClick
-				},
-			"class":"my",
-			"style":{"color":'red'}
-			}, [
-			createElement('div',null, [
-				'child'
-			]),
-			createElement(com_Person,null, [
-				createElement('span',null, [
-					'ssssssssss'
+				"on":{
+					"click":this.onClick
+					},
+				"class":"my",
+				"style":{"color":'red'}
+				}, [
+				createElement('div',null, [
+					'child'
 				])
-			])
-		]);
+			]);
 	}};
 	members.render={m:3,d:3,value:function render(){
 	

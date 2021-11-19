@@ -16,11 +16,14 @@ class Builder extends Syntax{
                     const file = this.getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
                     if(stack){
-                        filesystem.mkdirpSync( path.dirname(file) );
-                        filesystem.writeFileSync(file, this.make(stack) );
-                        if( config.emitFile ){
-                            this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                        } 
+                        const content = this.make(stack);
+                        if( content ){
+                            filesystem.mkdirpSync( path.dirname(file) );
+                            filesystem.writeFileSync(file, content );
+                            if( config.emitFile ){
+                                this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
+                            } 
+                        }
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -91,13 +94,16 @@ class Builder extends Syntax{
         const added = new Set();
         const filesystem  = compiler.getOutputFileSystem( this.name );
         const push = (module)=>{
-            const value = filesystem.readFileSync( this.getModuleFile(module) );
-            if( value ){
-                const id = this.getIdByModule(module);
-                const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
-                const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
-                const code = `${comment}function(${this.getPackModuleRefs()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
-                content.push({id,code});
+            const file = this.getModuleFile(module);
+            if( filesystem.existsSync( file ) ){
+                const value = filesystem.readFileSync( file );
+                if( value ){
+                    const id = this.getIdByModule(module);
+                    const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
+                    const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
+                    const code = `${comment}function(${this.getPackModuleRefs()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
+                    content.push({id,code});
+                }
             }
         }
         const every=(module)=>{

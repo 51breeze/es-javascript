@@ -1,17 +1,29 @@
-<s:Skin xmlns:s="web.components">
+<s:Skin xmlns:s="web.components" name="ssss">
 
     <script>
 
-        @HostComponent();
+
+        private var test:string = 'sss';
 
         @override
         mounted(){
-           
-            
+
+        }
+
+        set name(value:string){
+
+        }
+
+        get name():string{
+
+            return 'name'
+
         }
     
     </script>
 
-    <div></div>
+   
+    <div>{name}</div>
+    <div>sdfs</div>
 
 </s:Skin>

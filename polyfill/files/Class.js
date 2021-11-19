@@ -32,7 +32,9 @@ var Class={
             }});
         }
         Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
-        __MODULES__[id] = moduleClass;
+        if( id ){
+            __MODULES__[id] = moduleClass;
+        }
     },
     'getClassByName':function(name){
         var len = __MODULES__.length;

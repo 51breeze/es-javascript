@@ -7,10 +7,18 @@ class Program extends Syntax{
         }
         return null;
     }
+    buildJsx(){
+        const root = this.stack.body[0];
+        return this.make(root, 0);
+    }
     emitter(){
-       return this.stack.body.map(item =>{
-            return this.make(item);
-       }).join("\n");
+        if( this.compilation.jsx ){
+            return this.buildJsx();
+        }else{
+            return this.stack.body.map(item =>{
+                    return this.make(item);
+            }).join("\n");
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
-const { takeWhile } = require("lodash");
 class ClassDeclaration extends Syntax{
 
     emitStack(item,name,isStatic,properties,modifier){

@@ -7,7 +7,7 @@ class Creator {
     constructor(options){
         const compiler = new Compiler(Object.assign({
             debug:true,
-            diagnose:true,
+            diagnose:false,
             autoLoadDescribeFile:true,
             output:path.join(__dirname,"./build"),
             workspace:path.join(__dirname,"./src"),

@@ -83,7 +83,11 @@ class Syntax extends events.EventEmitter {
 
     emitCreateClassDescription(module, description, name){
         const refs = this.checkRefsName(this.getClassHelper());
-        return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
+        if( module && module.isFragment ){
+            return `${refs}.creator(null,${name || module.id},${this.getDescription(description)});`;
+        }else{
+            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
+        }
     }
 
     emitImportClass(module, name){
@@ -97,6 +101,9 @@ class Syntax extends events.EventEmitter {
     }
 
     emitExportClass(module, name){
+        if( module.isFragment ){
+            return `return ${name || module.id};`;
+        }
         const config = this.getConfig();
         if( config.pack ){
             return `${this.getPackModuleRefs()}.exports=${name || module.id};`;
@@ -441,6 +448,10 @@ class Syntax extends events.EventEmitter {
 
     getJsxCreateElementHandle(){
         return 'createElement';
+    }
+    
+    getJsxCreateComponentHandle(){
+        return 'createComponent';
     }
 
     emitter(){}
