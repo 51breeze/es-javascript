@@ -12,7 +12,7 @@ class Program extends Syntax{
         return this.make(root, 0);
     }
     emitter(){
-        if( this.compilation.jsx ){
+        if( this.compilation.JSX ){
             return this.buildJsx();
         }else{
             return this.stack.body.map(item =>{

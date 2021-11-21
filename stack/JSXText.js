@@ -7,9 +7,8 @@ class JSXText extends Syntax{
 
     emitter(level=0){
         const value = this.stack.value().trim();
-        if( value ){
-            const indent = this.getIndent( level )
-            return `${indent}'${value}'`;
+        if( value ){  
+            return `'${value}'`;
         }
         return null;
     }

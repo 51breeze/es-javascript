@@ -223,23 +223,16 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
     private jsx(){
         var b = new Skin();
 
-
+/*
         var com = <s:Person xmlns:s="com">
-                        <script>
-                            set name (value:string){
-
-                            }
-                            get name():string{
-                                return 'sss';
-                            }
-                        </script>
                         <span>ssssssssss</span>
-                    </s:Person>
+                </s:Person>
 
         return <div onclick={this.onClick} class="my" style={{'color':'red'}} xmlns:s="com">
                <div>child</div>
+               {com}
               
-        </div>
+        </div>*/
     }
 
     render(){

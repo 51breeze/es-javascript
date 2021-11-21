@@ -123,6 +123,9 @@ package web.components{
         public get state():State;
         public set stateGroup( value:State[] );
         public get stateGroup():State[];
+        public set states(vlaue:State[]);
+        public set data(vlaue:object);
+
         public created();
         public updated();
         public render();

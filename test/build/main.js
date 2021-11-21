@@ -42,92 +42,15 @@
      * 加载入口文件
      */
     /*enter class Test*/
-	require(10);
+	require(9);
     
 }({
 0:/*
-Class com.Person
-*/
-function(__MODULE__){
-	var Class = __MODULE__.require(1);
-	var _private=Symbol("private");
-	function Person(){
-		this.hasOwnProperty("name");
-	}
-	Class.creator(0,Person,{
-		'id':1,
-		'ns':'com',
-		'name':'Person',
-		'private':_private
-	});
-	__MODULE__.exports=Person;
-},
-1:/*
-Class Class
-*/
-function(__MODULE__){
-	var __MODULES__=[];
-	var key=Symbol("CLASS_KEY");
-	var Class={
-	    'key':key,
-	    'modules':__MODULES__,
-	    'require':function(id){
-	        return __MODULES__[id];
-	    },
-	    'creator':function(id,moduleClass,description){
-	        if( description ){
-	            if( description.inherit ){
-	                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
-	            }
-	            if( description.methods ){
-	                Object.defineProperties(moduleClass,description.methods);
-	            }
-	            if( description.members ){
-	                Object.defineProperties(moduleClass.prototype,description.members);
-	            }
-	            Object.defineProperty(moduleClass,key,{value:description});
-	            Object.defineProperty(moduleClass,'name',{value:description.name});
-	            Object.defineProperty(moduleClass,'toString',{value:function toString(){
-	                var name = description.ns ? description.ns+'.'+description.name : description.name;
-	                var id = description.id;
-	                if(id === 3){
-	                    return '[Enum '+name+']';
-	                }else if(id ===2){
-	                    return '[Interface '+name+']';
-	                }else {
-	                    return '[Class '+name+']';
-	                }
-	            }});
-	        }
-	        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
-	        if( id ){
-	            __MODULES__[id] = moduleClass;
-	        }
-	    },
-	    'getClassByName':function(name){
-	        var len = __MODULES__.length;
-	        var index = 0;
-	        for(;index<len;index++){
-	            var classModule = __MODULES__[index];
-	            var description = classModule[key];
-	            if( description ){
-	                var key = description.ns ? description.ns+'.'+description.name : description.name;
-	                if( key === name){
-	                    return classModule;
-	                }
-	            }
-	        }
-	        return null;
-	    }
-	};
-	__MODULE__.exports=Class;
-},
-2:/*
 Class Person
 */
 function(__MODULE__){
-	var TestInterface = __MODULE__.require(6);
-	var Class = __MODULE__.require(1);
+	var TestInterface = __MODULE__.require(4);
+	var Class = __MODULE__.require(6);
 	var _private=Symbol("private");
 	function Person(name){
 		Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -173,7 +96,7 @@ function(__MODULE__){
 	members.addressNamesss={m:2,d:3,value:function addressNamesss(){
 	
 	}};
-	Class.creator(2,Person,{
+	Class.creator(0,Person,{
 		'id':1,
 		'ns':'',
 		'name':'Person',
@@ -184,12 +107,12 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Person;
 },
-3:/*
+1:/*
 Class EventDispatcher
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
-	var Event = __MODULE__.require(4);
+	var Class = __MODULE__.require(6);
+	var Event = __MODULE__.require(2);
 	/*
 	 * EaseScript
 	 * Copyright © 2017 EaseScript All rights reserved.
@@ -407,7 +330,7 @@ function(__MODULE__){
 	Listener.prototype.proxyHandle = null;
 	Listener.prototype.proxyTarget = null;
 	Listener.prototype.proxyType = null;
-	Class.creator(3,EventDispatcher,{
+	Class.creator(1,EventDispatcher,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -415,11 +338,11 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=EventDispatcher;
 },
-4:/*
+2:/*
 Class Event
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
+	var Class = __MODULE__.require(6);
 	/*
 	 * Copyright © 2017 EaseScript All rights reserved.
 	 * Released under the MIT license
@@ -656,7 +579,7 @@ function(__MODULE__){
 	    id = window.setInterval(handle,50);
 	    return true;
 	}
-	Class.creator(4,Event,{
+	Class.creator(2,Event,{
 		'id':1,
 		'global':true,
 		'dynamic':true,
@@ -664,18 +587,18 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Event;
 },
-5:/*
+3:/*
 Enum Types
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
+	var Class = __MODULE__.require(6);
 	function Types(){}
 	const methods = {};
 	methods.ADDRESS={m:3,d:6,value:0};
 	methods[0]={m:3,d:5,value:"ADDRESS"};
 	methods.NAME={m:3,d:6,value:1};
 	methods[1]={m:3,d:5,value:"NAME"};
-	Class.creator(5,Types,{
+	Class.creator(3,Types,{
 		'id':3,
 		'ns':'',
 		'name':'Types',
@@ -684,24 +607,24 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Types;
 },
-6:/*
+4:/*
 Interface com.TestInterface
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
+	var Class = __MODULE__.require(6);
 	function TestInterface(){}
-	Class.creator(6,TestInterface,{
+	Class.creator(4,TestInterface,{
 		'id':2,
 		'ns':'com',
 		'name':'TestInterface'
 	});
 	__MODULE__.exports=TestInterface;
 },
-7:/*
+5:/*
 Class Skin
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
+	var Class = __MODULE__.require(6);
 	var _private=Symbol("private");
 	function Skin(){
 		Object.defineProperty(this,_private,{value:{'test':'sss'}});
@@ -718,17 +641,42 @@ function(__MODULE__){
 	},set:function name(value){
 	
 	}};
-	members.render={m:3,d:3,value:function render(createElement){
-		return createElement('div',null, [
-		createElement('div',null, [
-				this.name
-			]),
-		createElement('div',null, [
-				'sdfs'
-			])
-		]);
+	members.list={m:3,d:4,enumerable:true,get:function list(){
+		return ['ssss','sssss'];
 	}};
-	Class.creator(7,Skin,{
+	members.render={m:3,d:3,value:function render(createElement){
+		var name = this.name;
+		var list = this.list;
+		return createElement('div',null, [
+			name ? createElement('div',null, ['1']) : 
+			name ? createElement('div',null, ['2']) : 
+			createElement('div',null, ['3']),
+			createElement('div',null, ['3'])
+		].concat(
+			list.map(function(item){
+				return !name ? createElement('div',null, [
+					createElement('div',{
+						"class":"ssss"
+						}, [
+						createElement('div',null, [
+							createElement('div',{
+								"class":""
+								}, [
+								createElement('div',null, [item])
+							])
+						])
+					])
+				]) : null;
+			})
+		).concat([
+			createElement('div',{
+				"class":""
+				}, [
+				createElement('div',null, ['666'])
+			])
+		]));
+	}};
+	Class.creator(5,Skin,{
 		'id':1,
 		'ns':'',
 		'name':'Skin',
@@ -738,12 +686,72 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=Skin;
 },
-8:/*
+6:/*
+Class Class
+*/
+function(__MODULE__){
+	var __MODULES__=[];
+	var key=Symbol("CLASS_KEY");
+	var Class={
+	    'key':key,
+	    'modules':__MODULES__,
+	    'require':function(id){
+	        return __MODULES__[id];
+	    },
+	    'creator':function(id,moduleClass,description){
+	        if( description ){
+	            if( description.inherit ){
+	                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+	            }
+	            if( description.methods ){
+	                Object.defineProperties(moduleClass,description.methods);
+	            }
+	            if( description.members ){
+	                Object.defineProperties(moduleClass.prototype,description.members);
+	            }
+	            Object.defineProperty(moduleClass,key,{value:description});
+	            Object.defineProperty(moduleClass,'name',{value:description.name});
+	            Object.defineProperty(moduleClass,'toString',{value:function toString(){
+	                var name = description.ns ? description.ns+'.'+description.name : description.name;
+	                var id = description.id;
+	                if(id === 3){
+	                    return '[Enum '+name+']';
+	                }else if(id ===2){
+	                    return '[Interface '+name+']';
+	                }else {
+	                    return '[Class '+name+']';
+	                }
+	            }});
+	        }
+	        Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
+	        if( id ){
+	            __MODULES__[id] = moduleClass;
+	        }
+	    },
+	    'getClassByName':function(name){
+	        var len = __MODULES__.length;
+	        var index = 0;
+	        for(;index<len;index++){
+	            var classModule = __MODULES__[index];
+	            var description = classModule[key];
+	            if( description ){
+	                var key = description.ns ? description.ns+'.'+description.name : description.name;
+	                if( key === name){
+	                    return classModule;
+	                }
+	            }
+	        }
+	        return null;
+	    }
+	};
+	__MODULE__.exports=Class;
+},
+7:/*
 Class System
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
-	var EventDispatcher = __MODULE__.require(3);
+	var Class = __MODULE__.require(6);
+	var EventDispatcher = __MODULE__.require(1);
 	function System(){
 	    throw new SyntaxError('System is not constructor.');
 	};
@@ -940,7 +948,7 @@ function(__MODULE__){
 	     }
 	     return null;
 	 };
-	Class.creator(8,System,{
+	Class.creator(7,System,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -948,12 +956,12 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=System;
 },
-9:/*
+8:/*
 Class Reflect
 */
 function(__MODULE__){
-	var Class = __MODULE__.require(1);
-	var System = __MODULE__.require(8);
+	var Class = __MODULE__.require(6);
+	var System = __MODULE__.require(7);
 	var _Reflect = (function(_Reflect){
 	    var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
 	        if( !System.isFunction( theClass ) ){
@@ -1175,7 +1183,7 @@ function(__MODULE__){
 	    return Reflect;
 	
 	}(Reflect));
-	Class.creator(9,_Reflect,{
+	Class.creator(8,_Reflect,{
 		'id':1,
 		'global':true,
 		'dynamic':false,
@@ -1183,20 +1191,19 @@ function(__MODULE__){
 	});
 	__MODULE__.exports=_Reflect;
 },
-10:/*
+9:/*
 Class Test
 */
 function(__MODULE__){
-	var Person = __MODULE__.require(2);
-	var com_Person = __MODULE__.require(0);
-	var EventDispatcher = __MODULE__.require(3);
-	var Event = __MODULE__.require(4);
-	var Types = __MODULE__.require(5);
-	var TestInterface = __MODULE__.require(6);
-	var Skin = __MODULE__.require(7);
-	var Class = __MODULE__.require(1);
-	var System = __MODULE__.require(8);
-	var Reflect = __MODULE__.require(9);
+	var Person = __MODULE__.require(0);
+	var EventDispatcher = __MODULE__.require(1);
+	var Event = __MODULE__.require(2);
+	var Types = __MODULE__.require(3);
+	var TestInterface = __MODULE__.require(4);
+	var Skin = __MODULE__.require(5);
+	var Class = __MODULE__.require(6);
+	var System = __MODULE__.require(7);
+	var Reflect = __MODULE__.require(8);
 	var _private=Symbol("private");
 	function Test(name,age){
 		Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
@@ -1336,45 +1343,6 @@ function(__MODULE__){
 	}};
 	members.jsx={m:1,d:3,value:function jsx(){
 		var b = new Skin();
-		var com = (function(){
-			var com_Person = __MODULE__.require(0);
-			var Class = __MODULE__.require(1);
-			var _private=Symbol("private");
-			function Person(){
-					com_Person.call(this);
-			}
-			var members = {};
-			members.name={m:3,d:4,enumerable:true,get:function name(){
-					return 'sss';
-				},set:function name(value){
-	
-				}};
-			members.render={m:3,d:3,value:function render(createElement){
-					return createElement('span',null, [
-							'ssssssssss'
-						]);
-				}};
-			Class.creator(null,Person,{
-				'id':1,
-				'ns':'',
-				'name':'Person',
-				'private':_private,
-				'inherit':com_Person,
-				'members':members
-			});
-			return Person;
-		}());
-		return 	createElement('div',{
-				"on":{
-					"click":this.onClick
-					},
-				"class":"my",
-				"style":{"color":'red'}
-				}, [
-				createElement('div',null, [
-					'child'
-				])
-			]);
 	}};
 	members.render={m:3,d:3,value:function render(){
 	
@@ -1729,7 +1697,7 @@ function(__MODULE__){
 		return dd;
 	}};
 	members[Symbol.iterator]={value:function(){return this;}}
-	Class.creator(10,Test,{
+	Class.creator(9,Test,{
 		'id':1,
 		'ns':'',
 		'name':'Test',
@@ -1741,7 +1709,7 @@ function(__MODULE__){
 	__MODULE__.exports=Test;
 	/*externals code*/;
 	(function(){
-		var Test = Class.require(10);
+		var Test = Class.require(9);
 		const test = new Test('Test');
 		test.start();
 	}());
