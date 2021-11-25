@@ -47,6 +47,7 @@ const properties ={
     name:profile.name,
     platform:profile.platform,
     version:require("./package.json").version,
+    modules,
     config(options){
         const target = Syntax.prototype.configuration;
         if(options){
