@@ -128,7 +128,7 @@ package web.components{
 
         public created();
         public updated();
-        public render();
+        public render(createElement:(name:string|Component,data:{},children:Node[])=>Node);
         public mounted();
         public activated();
         public deactivated();

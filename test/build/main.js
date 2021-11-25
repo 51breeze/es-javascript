@@ -655,24 +655,38 @@ function(__MODULE__){
 		].concat(
 			list.map(function(item){
 				return !name ? createElement('div',null, [
-					createElement('div',{
-						"class":"ssss"
-						}, [
-						createElement('div',null, [
-							createElement('div',{
-								"class":""
-								}, [
-								createElement('div',null, [item])
-							])
+						createElement('div',null, ['sssssssssss']),
+						createElement('div',{
+							"class":"ssss"
+							}, [
+							createElement('div',null, 
+								(function(item){
+									var _item = [];
+									if( typeof item ==='number' ){
+										item = Array.from({length:item}, function(v,i){return i;});
+									}
+									var Index=0;
+									for(var _itemValueKey in item){
+										var itemValue = item[_itemValueKey];
+										_item.push(createElement('div',{
+											"class":""
+											}, [
+											createElement('div',null, [itemValue])
+										]));
+										Index++;
+									}
+									return _item;
+								}(item)).concat([
+								createElement('span',null, ['======'])
+							]))
 						])
-					])
-				]) : null;
+					]) : null;
 			})
 		).concat([
 			createElement('div',{
 				"class":""
 				}, [
-				createElement('div',null, ['666'])
+				createElement('div',null, ['item'])
 			])
 		]));
 	}};

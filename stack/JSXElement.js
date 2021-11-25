@@ -44,14 +44,43 @@ class JSXElement extends Syntax{
             const directive = directives.shift();
             const name = directive.name.value();
             const condition = directive.value && directive.value.value();
-            if( name ==="foreach" ){
-                const [refs, item] = condition.split('as');
+            if( name ==="foreach" || name ==="for" ){
+                let [refs, item] = condition.split('as').map( value=>value.trim() );
                 if( cmd.includes('if') ){
                     cmd.pop();
                     content.push('null');
                     element = content.splice(0,content.length).join(' : ');
                 }
-                content.push(`\r\n${indent}${refs.trim()}.map(function(${item.trim()}){\r\n${indent}\treturn ${this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'))};\r\n${indent}})`);
+                element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
+                if( name ==="foreach"){
+                    content.push(`\r\n${indent}${refs.trim()}.map(function(${item.trim()}){\r\n${indent}\treturn ${element};\r\n${indent}})`);
+                }else{
+                    let [_item, key, index] =  item.split(',').map( val=>val.trim() );
+                    let dec = index ? `${indent}\t\t${index}++;` : '';
+                    let code = [`${indent}(function(${refs}){`];
+                    if( !key ){
+                        key = `_${_item}Key`;
+                    }
+
+                    item = _item;
+                    code.push(`${indent}\tvar _${refs} = [];`);
+                    code.push(`${indent}\tif( typeof ${refs} ==='number' ){`);
+                    code.push(`${indent}\t\t${refs} = Array.from({length:${refs}}, function(v,i){return i;});`);
+                    code.push(`${indent}\t}`);
+                    if( dec ){
+                        code.push( `${indent}\tvar ${index}=0;` );
+                    }
+                    code.push(`${indent}\tfor(var ${key} in ${refs}){`);
+                    code.push(`${indent}\t\tvar ${item} = ${refs}[${key}];`);
+                    code.push(`${indent}\t\t_${refs}.push(${element});`);
+                    if( dec ){
+                        code.push(dec);
+                    }
+                    code.push(`${indent}\t}`);
+                    code.push(`${indent}\treturn _${refs};`);
+                    code.push(`${indent}}(${refs}))`);
+                    content.push(`\r\n${code.join("\r\n")}`);
+                }
                 cmd.push(name);
             }else if( name ==="if" ){
                 content.push( `\r\n${indent}${condition} ? ${this.cleanWhitespace(element)}` )
@@ -115,7 +144,7 @@ class JSXElement extends Syntax{
                 }else if( !last.end ){
                     value = last.content.join(''); 
                 }
-                if( last.cmd.includes('foreach') ){
+                if( last.cmd.includes('foreach') || last.cmd.includes('for')){
                     if( part.length > 0 ){
                         content.push( part.splice(0, part.length) );
                     }

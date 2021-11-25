@@ -28,25 +28,28 @@
     
     </script>
 
+
+    <style file="./assets/style.css" />
+
    
-
-
-    <div cmd:if="name">1</div>
+    <div cmd:if="name" >1</div>
     <div cmd:elseif="name">2</div>
     <div cmd:else>3</div>
     
     <div cmd:foreach="list as item" cmd:if="!name">
-         <div class="ssss">
+        <div>sssssssssss</div>
+        <div class="ssss">
              <div>
-                <div class="">
-                    <div>{item}</div>
+                <div class="" cmd:for="item as itemValue,,Index">
+                    <div>{itemValue}</div>
                 </div>
+                <span>======</span>
             </div>
         </div>
     </div>
 
     <div class="">
-       <div>666</div>
+       <div>item</div>
     </div>
 
 
