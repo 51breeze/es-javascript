@@ -52,3 +52,4 @@ var Class={
         return null;
     }
 };
+export default Class;

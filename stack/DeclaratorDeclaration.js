@@ -1,18 +1,36 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
 const Polyfill = require("../core/Polyfill");
+const fs = require("fs");
 class DeclaratorDeclaration extends Syntax{
     emitter(){
         const module = this.module;
         const polyfillModule = Polyfill.modules.get(module.id);
-        const content = [ polyfillModule.getContent(this) ];
-        const refs = [];
+        if( module.require ){
+            return fs.readFileSync(module.file);
+        }
         if( !polyfillModule ){
             return null;
         }
+
+        const content = [ polyfillModule.getContent(this) ];
+        const refs = [];
+        
         polyfillModule.require.forEach( name=>{
-            this.addDepend( this.stack.getModuleById(name) );
+            const module = this.stack.getModuleById(name);
+            if( module ){
+                this.addDepend( module );
+            }else{
+                this.error(`the '${name}' dependency does not exist`);
+            }
         });
+
+        module.extends.forEach( dep=>{
+            if( dep.isClass ){
+                this.addDepend( dep );
+            } 
+        });
+
         this.createDependencies(module,refs);
         if( refs.length > 0 ){
             content.unshift( refs.join("\r\n") );

@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "easescript": "0.0.59",
-    "jasmine": "^3.10.0"
+    "jasmine": "^3.10.0",
+    "vue": "^2.6.14"
   }
 }

@@ -14,6 +14,7 @@ const loadStack=()=>{
 
 const defaultConfig ={
     "target":"es6",
+    "webComponent":"vue",
     "useDefineProperty":false,
     "module":'es', //ES CommonJS
     "emitFile":false,
@@ -76,6 +77,12 @@ function plugin(complier){
     //types.push( require.resolve('./types/web.es') );
 };
 
+Object.defineProperty(plugin.prototype, 'constructor', {
+    value:plugin,
+    enumerable:false,
+    configurable:false
+});
+
 for(var name in profile){
     Object.defineProperty(Syntax.prototype, name, {
         value:profile[name],
@@ -90,6 +97,19 @@ for(var name in properties){
         enumerable:false,
         configurable:false
     });
+    if( ['name','platform','version'].includes( name ) ){
+        Object.defineProperty(plugin,name,{
+            value:properties[name],
+            enumerable:true,
+            configurable:false
+        });
+    }
 }
+
+Object.defineProperty(plugin,'modules',{
+    value:modules,
+    enumerable:true,
+    configurable:false
+});
 
 module.exports = plugin;

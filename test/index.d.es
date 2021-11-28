@@ -109,23 +109,20 @@ declare System{
     static getQualifiedSuperclassName(target:object):string;
 }
 
+package web{
+    @require(Vue = "vue/dist/vue.js")
+    declare class Vue{
+        constructor(props?:object);
+        static extend( options:object );
+    }
+}
 
 package web.components{
 
-    declare class State{
-        public constructor(name:string);
-    }
-
+    @WebComponent
     declare class Component{
-
-        public constructor(props);
-        public set state(vlaue:State);
-        public get state():State;
-        public set stateGroup( value:State[] );
-        public get stateGroup():State[];
-        public set states(vlaue:State[]);
-        public set data(vlaue:object);
-
+        public constructor(props?:object);
+        public getReceiveValue<T>(name?:string, defaultValue?:any):T | null;
         public created();
         public updated();
         public render(createElement:(name:string|Component,data:{},children:Node[])=>Node);
@@ -137,17 +134,6 @@ package web.components{
         public beforeMount();
         public beforeUpdate();
         public beforeDestroy();
-
     }
-
-    @SkinClass
-    declare class Skin extends Component{
-        public constructor(props);
-    }
-
-    declare class Metadata{
-        
-    }
-
 
 }

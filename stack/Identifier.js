@@ -5,7 +5,7 @@ class Identifier extends Syntax{
           const module = this.module;
 
           if( desc && (desc.isMethodGetterDefinition || desc.isPropertyDefinition) ){
-              return `this.${this.stack.value()}`;
+               return `this.${this.stack.value()}`;
           }
 
           if( module && this.compiler.callUtils("isClassType", desc) ){

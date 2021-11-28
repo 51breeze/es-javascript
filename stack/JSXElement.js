@@ -1,4 +1,5 @@
 const Syntax = require("../core/Syntax");
+const Constant = require("../core/Constant");
 class JSXElement extends Syntax{
     
     makeProperty(attrs, level=0){
@@ -198,7 +199,52 @@ class JSXElement extends Syntax{
         }
     }
 
+    emitDefaultClass(render){
+        const module = this.module;
+        const inherit = this.getInherit( module );
+        const refs = [];
+        const description = [
+            `'id':${Constant.DECLARE_CLASS}`,
+            `'ns':'${module.namespace.toString()}'`,
+            `'name':'${module.id}'`,
+            `'members':members`,
+            `'private':${Constant.REFS_DECLARE_PRIVATE_NAME}`,
+        ];
+        if( inherit ){
+            this.addDepend( inherit );
+            description.push(`'inherit':${this.getModuleReferenceName( inherit )}`);
+        }
+
+        this.addDepend( this.getGlobalModuleById('Class') );
+        this.createDependencies(module,refs);
+        refs.push(`var ${Constant.REFS_DECLARE_PRIVATE_NAME}=Symbol("private");`);
+
+        const callSuper = this.semicolon(`${this.getModuleReferenceName( inherit )}.call(this, options)`);
+        const content = [`function ${module.id}(options){${callSuper}}`];
+        content.push(`var members = {};`);
+        content.push(this.definePropertyDescription(
+            `members`,
+            'render',
+            render( this ),
+            false,
+            'public',
+            Constant.DECLARE_PROPERTY_FUN,
+            false
+        ));
+
+        const parts = refs.concat(content);
+        parts.push( this.emitCreateClassDescription( module, description) );
+        if( inherit && this.isInheritWebComponent(module) ){
+            if( this.getConfig('webComponent') ==="vue" ){
+                parts.push( this.emitVueCreateClass(module, inherit, [], []) );
+            }
+        }
+        parts.push( this.emitExportClass(module) );
+        return parts.join("\r\n");
+    }
+
     makeClass(script, children, props, level){
+        const module = this.module;
         let element = children.length > 0 ?  this.makeChildren(children,level) : null;
         if( children.length > 0 ){
             const handle = this.getJsxCreateElementHandle();
@@ -216,13 +262,23 @@ class JSXElement extends Syntax{
             references.push( this.semicolon(`var ${name} = this.${name}`) );
         });
 
-        const classContent = this.make( script, (context)=>{
+        let classContent = ``;
+        const render = (context)=>{
             const indent = this.getIndent(level-1);
             const hand = this.getJsxCreateElementHandle();
-            return `function render(${hand}){\r\n${references.join('\r\n')}\r\n${indent}\treturn ${element};\r\n${indent}}`
-        }, properties );
+            if( references.length > 0 ){
+                return `function render(${hand}){\r\n${references.join('\r\n')}\r\n${indent}\treturn ${element};\r\n${indent}}`;
+            }else{
+                return `function render(${hand}){\r\n${indent}\treturn ${element};\r\n${indent}}`; 
+            }
+        };
+        if( script ){
+            classContent = this.make( script, render , properties );
+        }else {
+            classContent = this.emitDefaultClass( render );
+        }
 
-        if( this.module.isFragment ){
+        if( module.isFragment ){
             return `(function(){\r\n\t\t${classContent.replace(/([\r\n\t]+)/g,'$1\t\t')}\r\n\t}())`;
         }
         return classContent;
@@ -265,6 +321,7 @@ class JSXElement extends Syntax{
         const children = this.stack.children.filter(child=>!(child.isJSXScript || child.isJSXStyle));
         const script = this.stack.children.find( child=>child.isJSXScript );
         const style  = this.stack.children.find( child=>child.isJSXStyle );
+        const isRoot = this.stack.jsxRootElement === this.stack;
         const data={
             props:{},
             attrs:{},
@@ -273,7 +330,8 @@ class JSXElement extends Syntax{
         };
         this.createAttributes(data);
         this.createProperties(children,data,level);
-        if( script ){
+        const desc = this.stack.des
+        if(isRoot && this.stack.isComponent){
             return this.makeClass(script, children, data.props, level);
         }else{
             return this.makeElement(

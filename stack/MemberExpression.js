@@ -69,6 +69,7 @@ class MemberExpression extends Syntax{
             return `${object}.prototype.${property}`;
          }
       }
+
       if(description && description.isPropertyDefinition && description.modifier && description.modifier.value() === "private"){
          return `${object}[${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)}].${property}`;
       }

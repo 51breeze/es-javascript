@@ -73,7 +73,7 @@ class Syntax extends events.EventEmitter {
     }
 
     getPackModuleRefs(){
-        return '__MODULE__';
+        return 'module';
     }
 
     emitClassAccessKey(){
@@ -146,7 +146,7 @@ class Syntax extends events.EventEmitter {
             const polyfillModule = Polyfill.modules.get( module.id );
             const filename = module.id+suffix;
             if( polyfillModule ){
-                return PATH.join(output,(config.ns||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
+                return PATH.join(output,(polyfillModule.namespace||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
             }
             return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
         }
@@ -325,23 +325,30 @@ class Syntax extends events.EventEmitter {
         if( this.compilation.isPolicy(2,depModule) ){
             return false;
         }
+        const isUsed = this.isUsed(depModule);
         const isRequire = !depModule.isDeclaratorModule && 
-                            this.isUsed(depModule) &&
+                            isUsed &&
                             this.compiler.callUtils("isLocalModule", depModule) && 
                             !this.compiler.callUtils("checkDepend",module, depModule);         
         const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
         if( isRequire || isPolyfill){
             return true;
         }
-        return false;
+        return isUsed && depModule.require;
     }
 
     getModuleFile(module){
+        if(module.require){
+            return module.file;
+        }
         return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
     }
 
     getModuleReferenceName(module,context){
         context = context || this.module;
+        if( module.require ){
+            return module.id;
+        }
         if( context ){
             return context.getReferenceNameByModule( module );
         }
@@ -360,6 +367,8 @@ class Syntax extends events.EventEmitter {
                 const name = this.getModuleReferenceName(depModule, module);
                 if( config.pack ){
                     push( this.emitPackImportClass(depModule, name) );
+                }else if( depModule.require ){
+                    push( this.createImport(name, depModule.require ) );
                 }else if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
                     push( this.createImport(name, file.replace(/\\/g,'/') ) );
@@ -392,13 +401,16 @@ class Syntax extends events.EventEmitter {
         } 
     }
 
-    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute){
+    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute, configurable){
         const map={
             "public":Constant.MODIFIER_PUBLIC,
             "protected":Constant.MODIFIER_PROTECTED,
             "private":Constant.MODIFIER_PRIVATE,
         }
         const items = [`m:${map[modifier]},d:${id}`]
+        if( configurable ){
+            items.push( `configurable:true` );
+        }
         if( id === Constant.DECLARE_PROPERTY_VAR ){
             items.push(`writable:true`);
         }
@@ -446,12 +458,56 @@ class Syntax extends events.EventEmitter {
         return inherit[0] || null;
     }
 
+    getAvailableOriginType( type ){
+        if( type ){
+            const originType = this.compiler.callUtils('getOriginType', type);
+            switch( originType.id ){
+                case 'String' :
+                case 'Number' :
+                case 'Array' :
+                case 'Function' :
+                case 'Object' :
+                case 'Boolean' :
+                case 'RegExp' :
+                    return originType.id;
+                default :
+            }
+        }
+        return null;
+    }
+
+    emitVueCreateClass(module, inherit, props, data){
+        const refs = module.getReferenceNameByModule(inherit);
+        const handle = `${refs}.makeComponent`;
+        const properties = [];
+        const indent = this.getIndent();
+        if( props.length > 0 ){
+            properties.push( `props:{\r\n\t\t${indent}${props.join(`,\r\n\t\t${indent}`)}\r\n\t${indent}}` );
+        }
+        if( data.length > 0 ){
+            properties.push( `data:{\r\n\t\t${indent}${data.join(`,\r\n\t\t${indent}`)}\r\n\t${indent}}` );
+        }
+        return this.semicolon(`${handle}('${module.id}', ${module.id}, {\r\n\t${indent}${properties.join(`,\r\n\t${indent}`)}\r\n})`);
+    }
+
     getJsxCreateElementHandle(){
         return 'createElement';
     }
     
     getJsxCreateComponentHandle(){
         return 'createComponent';
+    }
+
+    isInheritWebComponent(classModule){
+        while( classModule=classModule.inherit ){
+            const stack = this.compilation.getStackByModule( classModule );
+            if( stack ){
+                if( stack.annotations.some( item=>item.name.toLowerCase() === 'webcomponent' ) ){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     emitter(){}

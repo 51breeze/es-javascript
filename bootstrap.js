@@ -22,10 +22,10 @@
             'id': identifier,
             'require':require,
             'done':false,
-            'exports':null,
+            'exports':{},
         };
     
-        definedModules[identifier].call(module, module);
+        definedModules[identifier].call(module, module, module.exports);
         module.done = true;
         return module.exports;
     }

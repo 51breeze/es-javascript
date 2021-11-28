@@ -4,9 +4,9 @@ class SuperExpression  extends Syntax {
         const parent = this.module.extends[0];
         const fnScope = this.scope.getScopeByType("function");
         if( fnScope.isConstructor && !this.parentStack.isMemberExpression ){
-           return `${parent.id}`;
+           return this.getModuleReferenceName(parent);
         }
-        return `${parent.id}`;
+        return this.getModuleReferenceName(parent);
     }
 }
 

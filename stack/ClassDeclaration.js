@@ -47,6 +47,9 @@ class ClassDeclaration extends Syntax{
         const imps    = this.getImps(module);
         const inherit = this.getInherit(module);
         const refs = [];
+        const props = [];
+        const data = [];
+        const isWeb = this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent( module );
         const emitter=(target,proto,content,isStatic,descriptive)=>{
             for( var name in target ){
                 const item = target[ name ];
@@ -61,8 +64,22 @@ class ClassDeclaration extends Syntax{
                         false,
                         modifier,
                         kind,
-                        descriptive
+                        descriptive,
+                        isWeb
                     ));
+
+                    if( !isStatic ){
+                        if( modifier ==="public" ){
+                            const type = this.getAvailableOriginType( item.type() );
+                            if( value ){
+                                props.push( `${name}:{type:${type},default:${value}}` );
+                            }else{
+                                props.push( `${name}:{type:${type}}` );
+                            }
+                        }else{
+                            data.push( `${name}:${value || null}` );
+                        }
+                    }
                     
                 }else if( item.isAccessor ){
                     content.push(this.definePropertyDescription(
@@ -75,8 +92,17 @@ class ClassDeclaration extends Syntax{
                         true,
                         modifier,
                         Constant.DECLARE_PROPERTY_ACCESSOR,
-                        descriptive
+                        descriptive,
+                        isWeb
                     ));
+                    if( !isStatic && item.set ){
+                        if( modifier === "public" ){
+                            const type = this.getAvailableOriginType( item.set.params[0] && item.set.params[0].type() );
+                            props.push( `${name}:{type:${type}}` );
+                        }else{
+                            data.push( `${name}:${null}` );
+                        }
+                    }
                 }else{
                     let kind = Constant.DECLARE_PROPERTY_FUN;
                     content.push(this.definePropertyDescription(
@@ -110,8 +136,8 @@ class ClassDeclaration extends Syntax{
             memberContent.push(`members[Symbol.iterator]={value:function(){return this;}}`)
         }
 
-        const parentClassName = module.extends.length > 0 ? module.getReferenceNameByModule( module.extends[0] ) : 'Object';
-        const callSuper = module.extends.length > 0 ? `${parentClassName}.call(this);` : '';
+        const parentClassName = inherit ? this.getModuleReferenceName( inherit ) : 'Object';
+        const callSuper = inherit ? `${parentClassName}.call(this);` : '';
         const defaultConstructor=[`function ${module.id}(){`];
 
         if( properties.length > 0 ){
@@ -134,10 +160,10 @@ class ClassDeclaration extends Syntax{
         ];
 
         if( imps.length > 0 ){
-            description.push(`'imps':[${imps.map(item=>module.getReferenceNameByModule(item)).join(",")}]`);
+            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
         }
         if( inherit ){
-            description.push(`'inherit':${module.getReferenceNameByModule(inherit)}`);
+            description.push(`'inherit':${this.getModuleReferenceName( inherit )}`);
         }
 
         this.createDependencies(module,refs);
@@ -165,10 +191,18 @@ class ClassDeclaration extends Syntax{
         const parts = refs.concat(construct,content);
         const external = this.buildExternal();
         parts.push( this.emitCreateClassDescription( module, description) );
+
+        if( inherit && this.isInheritWebComponent(module) ){
+            if( this.getConfig('webComponent') ==="vue" ){
+                parts.push( this.emitVueCreateClass(module, inherit, props, data) );
+            }
+        }
+
         parts.push( this.emitExportClass(module) );
         if( external ){
             parts.push( external );
         }
+
         return parts.join("\r\n");
     }
 }

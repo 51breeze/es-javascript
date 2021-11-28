@@ -11,18 +11,38 @@ class Builder extends Syntax{
             const buildModules = new Set();
             const filesystem  = compiler.getOutputFileSystem( this.name );
             const config      = this.getConfig();
+            const makeContent = (module, content, file)=>{
+                if( content ){
+                    filesystem.mkdirpSync( path.dirname(file) );
+                    filesystem.writeFileSync(file, content );
+                    if( config.emitFile ){
+                        this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
+                    } 
+                }
+            };
+            const buildRequireAnnotation=(module,stack)=>{
+                const name = stack.name.toLowerCase();
+                if( name === "require" ){
+                    const args = stack.getArguments();
+                    args.forEach( item=>{
+                        const name = item.assigned ? item.key : item.value;
+                        const requireModule = module.namespace.get(name);
+                        if( requireModule ){
+                            makeContent( requireModule, fs.readFileSync(requireModule.file), requireModule.file);
+                        }
+                    });
+                }
+            };
             const builder = ( module )=>{
                 if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
-                    const file = this.getModuleFile(module);
                     const stack = compilation.getStackByModule(module);
                     if(stack){
-                        const content = this.make(stack);
-                        if( content ){
-                            filesystem.mkdirpSync( path.dirname(file) );
-                            filesystem.writeFileSync(file, content );
-                            if( config.emitFile ){
-                                this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                            } 
+                        if( stack.isAnnotationDeclaration ){
+                            buildRequireAnnotation(module,stack);
+                        }else{
+                            const file = this.getModuleFile(module);
+                            const content = this.make(stack);
+                            makeContent(module, content, file);
                         }
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
@@ -101,7 +121,7 @@ class Builder extends Syntax{
                     const id = this.getIdByModule(module);
                     const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
                     const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
-                    const code = `${comment}function(${this.getPackModuleRefs()}){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
+                    const code = `${comment}function(${this.getPackModuleRefs()},exports){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
                     content.push({id,code});
                 }
             }
@@ -139,6 +159,9 @@ class Builder extends Syntax{
         if(!module)return false;
         if( module.compilation.isPolicy(2,module) ){
             return false;
+        }
+        if( module.require ){
+            return module;
         }
         const isDeclaratorModule = module.isDeclaratorModule;
         const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );

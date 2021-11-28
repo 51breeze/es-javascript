@@ -1,9 +1,8 @@
-<s:Skin xmlns:s="web.components"  xmlns:a="web.components.Skin" name="ssss"  xmlns:cmd="@directive">
+<s:Skin xmlns:s="com"  xmlns:a="com.Skin" xmlns:cmd="@directive">
 
     <script>
 
         import web.components.State;
-
 
         private var test:string = 'sss';
 
@@ -12,19 +11,25 @@
 
         }
 
-        set name(value:string){
+        private var _name:string = 'Yejun';
 
+        set name(value:string){
+            this._name = value;
         }
 
         get name():string{
-
-            return 'name'
-
+            return this._name;
         }
 
         get list():string[]{
-            return ['ssss', 'sssss'];
+            return this._list || ['ssss', 'sssss'];
         }
+
+        private var _list:string[] = null;
+        set list( value:string[] ){
+           this._list = value; 
+        }
+
     
     </script>
 

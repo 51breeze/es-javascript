@@ -19,7 +19,7 @@ class JSXScript extends Syntax{
         return null;
     }
 
-    emitter( render , initProperties){
+    createVueClass(render , initProperties){
         const module = this.module;
         const methods = module.methods;
         const members = module.members;
@@ -27,6 +27,10 @@ class JSXScript extends Syntax{
         const content = [];
         const inherit = this.getInherit(module);
         const refs = [];
+        const props = [];
+        const initialProps = [];
+        const data = [];
+        const isWeb = this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent( module );
         const emitter=(target,proto,content,isStatic,descriptive)=>{
             for( var name in target ){
                 const item = target[ name ];
@@ -41,8 +45,22 @@ class JSXScript extends Syntax{
                         false,
                         modifier,
                         kind,
-                        descriptive
+                        descriptive,
+                        isWeb,
                     ));
+                    if( !isStatic ){
+                        if( modifier ==="public" ){
+                            const type = this.getAvailableOriginType( item.type() );
+                            if( value ){
+                                props.push( `${name}:{type:${type},default:${value}}` );
+                            }else{
+                                props.push( `${name}:{type:${type}}` );
+                            }
+                            //initialProps.push( this.semicolon(`\tthis.${name} = this.getReceiveValue('${name}', this.${name})`) );
+                        }else{
+                            data.push( `${name}:${value || null}` );
+                        }
+                    }
                     
                 }else if( item.isAccessor ){
                     content.push(this.definePropertyDescription(
@@ -55,8 +73,18 @@ class JSXScript extends Syntax{
                         true,
                         modifier,
                         Constant.DECLARE_PROPERTY_ACCESSOR,
-                        descriptive
+                        descriptive,
+                        isWeb
                     ));
+                    if( !isStatic && item.set ){
+                        if( modifier === "public" ){
+                            const type = this.getAvailableOriginType( item.set.params[0] && item.set.params[0].type() );
+                            props.push( `${name}:{type:${type}}` );
+                            //initialProps.push( this.semicolon(`\tthis.${name} = this.getReceiveValue('${name}', this.${name})`) );
+                        }else{
+                            data.push( `${name}:${null}` );
+                        }
+                    }
                 }else{
                     let kind = Constant.DECLARE_PROPERTY_FUN;
                     content.push(this.definePropertyDescription(
@@ -98,31 +126,33 @@ class JSXScript extends Syntax{
             ));
         }
 
-        const parentClassName = module.extends.length > 0 ? module.getReferenceNameByModule( module.extends[0] ) : 'Object';
-        const callSuper = module.extends.length > 0 ? `\t${parentClassName}.call(this)` : '';
-        const defaultConstructor=[`function ${module.id}(){`];
+        const parentClassName = inherit ? this.getModuleReferenceName( inherit ) : null;
+        const callSuper = parentClassName ? `\t${parentClassName}.call(this, options)` : null;
+        const defaultConstructor=[`function ${module.id}(options){`];
 
         if( properties.length > 0 ){
-            if( module.methodConstructor ){
-                module.methodConstructor.once("fetchClassProperty",(event)=>{
-                    event.properties = `{${properties.join(",")}}`;
-                });
-            }else{
-                defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:{${properties.join(",")}}})`) )
-            }
+            defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:{${properties.join(",")}}})`) )
         }
+
         if( callSuper ){
-            defaultConstructor.push( this.semicolon( callSuper) );
+            defaultConstructor.push( this.semicolon(callSuper) );
         }
+
         if( initProperties && initProperties.length > 0){
-            if( module.methodConstructor ){
-                module.methodConstructor.once("fetchClassInitProperties",(event)=>{
-                    event.properties = initProperties;
-                });
-            }
-            defaultConstructor.push( initProperties.map( item=>this.semicolon(`\t${item}`) ).join('\r\n') );
+            initialProps.unshift( initProperties.map( item=>this.semicolon(`\t${item}`) ).join('\r\n') );
+        }
+
+        if( initialProps.length > 0 ){
+            defaultConstructor.push( initialProps.join("\r\n") );
         }
         defaultConstructor.push('}');
+
+        if( module.methodConstructor ){
+            module.methodConstructor.once("fetchClassProperty",(event)=>{
+                event.properties = `{${properties.join(",")}}`;
+                event.initialProps = initialProps.join("\r\n");
+            });
+        }
 
         const construct = module.methodConstructor ? this.make(module.methodConstructor) : `${defaultConstructor.join("\r\n")}`;
         const description = [
@@ -133,7 +163,8 @@ class JSXScript extends Syntax{
         ];
 
         if( inherit ){
-            description.push(`'inherit':${module.getReferenceNameByModule(inherit)}`);
+            this.addDepend( inherit );
+            description.push(`'inherit':${this.getModuleReferenceName( inherit )}`);
         }
 
         this.createDependencies(module,refs);
@@ -160,8 +191,20 @@ class JSXScript extends Syntax{
 
         const parts = refs.concat(construct,content);
         parts.push( this.emitCreateClassDescription( module, description) );
+        if( inherit && this.isInheritWebComponent(module) ){
+            if( this.getConfig('webComponent') ==="vue" ){
+                parts.push( this.emitVueCreateClass(module, inherit, props, data) );
+            }
+        }
         parts.push( this.emitExportClass(module) );
         return parts.join("\r\n");
+    }
+
+    emitter(render , initProperties){
+        if( this.getConfig('webComponent') === 'vue' ){
+            return this.createVueClass(render , initProperties)
+        }
+        return null;
     }
 
 }

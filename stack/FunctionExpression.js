@@ -80,10 +80,13 @@ class FunctionExpression extends Syntax{
         }else{
             const content = before.concat(insertBefore.splice(0),body);
             if( this.stack.isConstructor ){
-                const event={properties:null};
+                const event={properties:null, initialProps:null};
                 this.stack.parentStack.dispatcher("fetchClassProperty",event);
                 if( event.properties ){
                     content.unshift(this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:${event.properties}})`));
+                }
+                if( event.initialProps ){
+                    content.push( event.initialProps );
                 }
             }
             if( (key && !config.pure) || this.stack.isConstructor || this.stack.isFunctionDeclaration ){

@@ -7,7 +7,7 @@ package;
 import com.TestInterface;
 import Person;
 import Types;
-import Skin;
+import PersonSkin;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
@@ -221,7 +221,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
     }
 
     private jsx(){
-        var b = new Skin();
+        var b = new PersonSkin();
 
 /*
         var com = <s:Person xmlns:s="com">
