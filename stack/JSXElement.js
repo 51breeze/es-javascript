@@ -10,7 +10,7 @@ class JSXElement extends Syntax{
                 if( value ){
                     props.push( `"${n}":${value}` );
                 }
-            }else if( attrs ){
+            }else if( attrs[n] ){
                 props.push( `"${n}":${attrs[n]}` );
             }
         }
@@ -35,7 +35,7 @@ class JSXElement extends Syntax{
         const indent = this.getIndent( level );
         let content = [];
         if( !child.directives || !(child.directives.length > 0) ){
-            return {cmd,content:[element]};
+            return {cmd,child,content:[element]};
         }
         const directives = child.directives.slice(0).sort( (a,b)=>{
             return b.name.value() === 'foreach' ? -1 : 0;
@@ -54,7 +54,7 @@ class JSXElement extends Syntax{
                 }
                 element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
                 if( name ==="foreach"){
-                    content.push(`\r\n${indent}${refs.trim()}.map(function(${item.trim()}){\r\n${indent}\treturn ${element};\r\n${indent}})`);
+                    content.push(`\r\n${indent}${refs.trim()}.map((function(${item.trim()}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`);
                 }else{
                     let [_item, key, index] =  item.split(',').map( val=>val.trim() );
                     let dec = index ? `${indent}\t\t${index}++;` : '';
@@ -79,7 +79,7 @@ class JSXElement extends Syntax{
                     }
                     code.push(`${indent}\t}`);
                     code.push(`${indent}\treturn _${refs};`);
-                    code.push(`${indent}}(${refs}))`);
+                    code.push(`${indent}}).call(this,${refs})`);
                     content.push(`\r\n${code.join("\r\n")}`);
                 }
                 cmd.push(name);
@@ -104,10 +104,10 @@ class JSXElement extends Syntax{
                 content.push( element );
             }
         }
-        return {cmd,content};
+        return {cmd,child,content};
     }
 
-    makeChildren(children,level){
+    makeChildren(children,data,level){
         const content = [];
         const part = [];
         const inline = this.getIndent(level);
@@ -118,7 +118,16 @@ class JSXElement extends Syntax{
         const next = ()=>{
             if( index<len ){
                 const child = children[index++];
-                return this.makeDirectives(child, this.make(child, level+1) , last, level+1);
+                const elem = this.makeDirectives(child, this.make(child, level+1) , last, level+1);
+                if( child.isSlot ){
+                    const name = child.openingElement.name.value();
+                    let refSlot = child.getSlotDescription(name);
+                    if( refSlot && refSlot.attributes.length > 0 ){
+                        data.scopedSlots[ name ] = elem.content.join('');
+                        return next();
+                    }
+                }
+                return elem;
             }
             return null;
         }
@@ -145,7 +154,7 @@ class JSXElement extends Syntax{
                 }else if( !last.end ){
                     value = last.content.join(''); 
                 }
-                if( last.cmd.includes('foreach') || last.cmd.includes('for')){
+                if( last.cmd.includes('foreach') || last.cmd.includes('for') || last.child.isSlot ){
                     if( part.length > 0 ){
                         content.push( part.splice(0, part.length) );
                     }
@@ -178,20 +187,29 @@ class JSXElement extends Syntax{
                 segments.push( item );
             }
         });
+
         if( segments.length > 1 ){
             const base = segments.shift();
-            return `${base}.concat(${segments.join(`\r\n${inline}).concat(`)})`;
+            return `${base}.concat(${segments.join(`,\r\n\t${inline}`)})`;
         }
         return segments[0];
     }
 
-    makeElement(name,data,children,level=0){
-        const handle = this.getJsxCreateElementHandle();
+    makeElement(name,data,children,level){
+
+        const elements = children && children.length > 0 ? this.makeChildren(children,data,level) : null;
         let inline = this.getIndent(level);
         let first = this.stack.parentStack.isJSXElement ?  `\r\n${inline}` : '';
+        let handle = this.getJsxCreateElementHandle();
+        if( !this.compilation.JSX ){
+            handle = this.generatorRefName(this.stack.jsxRootElement,handle,handle,()=>{
+                return this.getJsxCreateElementRefs();
+            });
+        }
+
         data = this.makeProperty(data,level);
-        if( children && children.length > 0 ){
-            return `${first}${handle}(${name},${data}, ${this.makeChildren(children,level)})`;
+        if( elements ){
+            return `${first}${handle}(${name},${data}, ${elements})`;
         }else if(data){
             return `${first}${handle}(${name},${data})`;
         }else{
@@ -243,9 +261,9 @@ class JSXElement extends Syntax{
         return parts.join("\r\n");
     }
 
-    makeClass(script, children, props, level){
+    makeClass(script, children, data, level){
         const module = this.module;
-        let element = children.length > 0 ?  this.makeChildren(children,level) : null;
+        let element = children && children.length > 0 ?  this.makeChildren(children,data,level) : null;
         if( children.length > 0 ){
             const handle = this.getJsxCreateElementHandle();
             const inline = this.getIndent(level);
@@ -253,6 +271,7 @@ class JSXElement extends Syntax{
         }
 
         const properties = [];
+        const props = data.props;
         for( var name in props ){
             properties.push(`${name} = ${props[name]}`);
         }
@@ -261,17 +280,16 @@ class JSXElement extends Syntax{
         this.stack.jsxReferences.forEach(name=>{
             references.push( this.semicolon(`var ${name} = this.${name}`) );
         });
+        references.push( this.emitVueCreateElement() );
 
         let classContent = ``;
         const render = (context)=>{
             const indent = this.getIndent(level-1);
             const hand = this.getJsxCreateElementHandle();
-            if( references.length > 0 ){
-                return `function render(${hand}){\r\n${references.join('\r\n')}\r\n${indent}\treturn ${element};\r\n${indent}}`;
-            }else{
-                return `function render(${hand}){\r\n${indent}\treturn ${element};\r\n${indent}}`; 
-            }
+            references.push( `${indent}\treturn ${element};` );
+            return `function render(${hand}){\r\n${references.join('\r\n')}\r\n${indent}}`;
         };
+
         if( script ){
             classContent = this.make( script, render , properties );
         }else {
@@ -293,10 +311,26 @@ class JSXElement extends Syntax{
             if(name){
                 if(name ==="class"){
                     data['class'] = value;
+                }else if(name ==="staticClass"){
+                    data['staticClass'] = value;
+                }else if(name ==="staticStyle"){
+                    data['staticStyle'] = value;
                 }else if(name ==="style"){
                     data['style'] = value;
                 }else if(name ==="innerHTML"){
                     data['domProps'][name] = value;
+                }else if(name ==="key"){
+                    data[name] = value;
+                }else if(name ==="ref"){
+                    data[name] = value;
+                }else if(name ==="refInFor"){
+                    data[name] = value;
+                }else if(name ==="tag"){
+                    data[name] = value;
+                }else if(name ==="transition"){
+                    data[name] = value;
+                }else if(name ==="hook"){
+                    data[name] = value;
                 }else if( /^on/i.test(name) ){
                     data['on'][name.substr(2)] = value;
                 }else if( item.isMemberProperty ){
@@ -311,8 +345,12 @@ class JSXElement extends Syntax{
     createProperties(children,data,level){
         children.forEach( child=>{
             if( child.isProperty ){
-                const [name,value] = this.make( child, level );
+                const [name,value] = this.make( child, level+1 );
                 data.props[name] = value;
+            }else if( child.isSlot ){
+                // const name = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='name' );
+                // const scope = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='scope' );
+                // const children = child.children.map( child=>this.make(child) );
             }
         });
     }
@@ -326,13 +364,32 @@ class JSXElement extends Syntax{
             props:{},
             attrs:{},
             on:{},
-            domProps:{}
+            nativeOn:{},
+            slot:void 0,
+            scopedSlots:{},
+            domProps:{},
+            key:void 0,
+            ref:void 0,
+            refInFor:void 0,
+            tag:void 0,
+            staticClass:void 0,
+            class:void 0,
+            staticStyle:{},
+            style:{},
+            staticStyle:{},
+            hook:{},
+            transition:{}
         };
+
+        if( this.stack.parentStack.isSlot ){
+            const name = this.stack.parentStack.openingElement.name.value();
+            data.slot = `'${name}'`;
+        }
+
         this.createAttributes(data);
         this.createProperties(children,data,level);
-        const desc = this.stack.des
-        if(isRoot && this.stack.isComponent){
-            return this.makeClass(script, children, data.props, level);
+        if(isRoot && this.compilation.JSX && this.stack.isComponent){
+            return this.makeClass(script, children, data, level);
         }else{
             return this.makeElement(
                 this.make(this.stack.openingElement),
@@ -343,8 +400,50 @@ class JSXElement extends Syntax{
         }
     }
 
+    createSlot( level ){
+        const stack = this.stack;
+        const data = {};
+        const name = stack.openingElement.name.value();
+        const children = stack.children.length > 0 ? this.makeChildren(stack.children, data, level) : null;
+        if( stack.isSlotDeclared ){
+            const args = stack.attributes.map( attr=>{
+                const key = attr.name.value();
+                const value = this.make(attr.value,level);
+                return {key, value};
+            });
+            if( args.length > 0 ){
+                const scope = args.map( item=>{
+                    return `${item.key}:${item.value}`;
+                })
+                return `(this.$scopedSlots['${name}'] ? this.$scopedSlots['${name}']({${scope.join(',')}}) : ${children})`;
+            }else if(children){
+                return `(this.$slots['${name}'] || ${children})`;
+            }else{
+                return `this.$slots['${name}']`;
+            }
+
+        }else{
+            let refSlot = stack.getSlotDescription(name);
+            if( refSlot ){
+                if( refSlot.attributes.length > 0 ){
+                    const scope = stack.attributes.find( attr=>attr.name.value()==='scope' );
+                    const scopeName = scope && scope.value? scope.value.value() : 'scope';
+                    return `this.$scopedSlots['${name}'] || (function(${scopeName}){return ${children}}).bind(this)`;
+                }else if(children){
+                    return `this.$slots['${name}'] || ${children}`;
+                }else{
+                    return `this.$slots['${name}']`;
+                }
+            }
+        }
+    }
+
     emitter(level=0){
-        return this.createElement( level );
+        if( this.stack.isSlot ){
+            return this.createSlot( level );
+        }else{
+            return this.createElement( level );
+        }
     }
 }
 

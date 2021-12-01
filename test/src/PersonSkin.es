@@ -1,4 +1,4 @@
-<s:Skin xmlns:s="com"  xmlns:a="com.Skin" xmlns:cmd="@directive">
+<s:Skin xmlns:s="web.components"  xmlns:a="com.Skin" xmlns:cmd="@directives" xmlns:slot="@slots" >
 
     <script>
 
@@ -41,7 +41,7 @@
     <div cmd:elseif="name">2</div>
     <div cmd:else>3</div>
     
-    <div cmd:foreach="list as item" cmd:if="!name">
+    <div cmd:foreach="list as item" cmd:if="!name" slot:default="props">
         <div>sssssssssss</div>
         <div class="ssss">
              <div>
@@ -51,11 +51,17 @@
                 <span>======</span>
             </div>
         </div>
+        
     </div>
 
-    <div class="">
-       <div>item</div>
-    </div>
+    <slot:default />
+
+
+    <slot:foot props={{name:this.name}} />
+
+    <slot:body props={{name:this.name}}>
+          <div>sssssssssss</div>
+    </slot:body>
 
 
 </s:Skin>

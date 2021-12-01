@@ -126,7 +126,7 @@ class Syntax extends events.EventEmitter {
     }
 
     generatorRefName(target, name, key, callback){
-        const dataset = this.createDataByStack(stack);
+        const dataset = this.createDataByStack(target);
         if( dataset.hasOwnProperty(key) ){
             return dataset[key];
         }
@@ -148,6 +148,8 @@ class Syntax extends events.EventEmitter {
             if( polyfillModule ){
                 return PATH.join(output,(polyfillModule.namespace||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
             }
+            return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
+        }else if( module.compilation.isDescriptionType ){
             return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
         }
         const filepath = PATH.resolve(output, PATH.relative( workspace, module.file ) );
@@ -350,6 +352,9 @@ class Syntax extends events.EventEmitter {
             return module.id;
         }
         if( context ){
+            if( context.compilation.isDescriptionType ){
+                return module.id;
+            }
             return context.getReferenceNameByModule( module );
         }
         return module.namespace.getChain().concat(module.id).join("_");
@@ -493,9 +498,13 @@ class Syntax extends events.EventEmitter {
     getJsxCreateElementHandle(){
         return 'createElement';
     }
-    
-    getJsxCreateComponentHandle(){
-        return 'createComponent';
+
+    getJsxCreateElementRefs(){
+        return 'this.$createElement';
+    }
+
+    emitVueCreateElement(){
+        return this.semicolon(`var ${this.getJsxCreateElementHandle()} = ${this.getJsxCreateElementRefs()}`)
     }
 
     isInheritWebComponent(classModule){

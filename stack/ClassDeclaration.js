@@ -50,10 +50,14 @@ class ClassDeclaration extends Syntax{
         const props = [];
         const data = [];
         const isWeb = this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent( module );
+        const reserved = isWeb ? this.getConfig('reserved') : [];
         const emitter=(target,proto,content,isStatic,descriptive)=>{
             for( var name in target ){
                 const item = target[ name ];
                 const modifier = item.modifier ? item.modifier.value() : 'public';
+                if( isWeb && Array.isArray(reserved) && reserved.includes(name) ){
+                    item.error(1124,name);
+                }
                 if( item.isPropertyDefinition ){
                     const value = this.emitStack(item,name,isStatic,properties,modifier);
                     const kind = item.kind ==="var" ?  Constant.DECLARE_PROPERTY_VAR : Constant.DECLARE_PROPERTY_CONST;

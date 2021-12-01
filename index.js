@@ -15,6 +15,7 @@ const loadStack=()=>{
 const defaultConfig ={
     "target":"es6",
     "webComponent":"vue",
+    "reserved":['_data','_props','$data','$props','$forceUpdate','$mount'],
     "useDefineProperty":false,
     "module":'es', //ES CommonJS
     "emitFile":false,

@@ -174,6 +174,7 @@ function $dispatchEvent(e, currentTarget){
     if( !e || !e.currentTarget )throw new Error('Invalid event target');
     var target = e.currentTarget;
     var events = target[ __KEY__ ] && target[ __KEY__ ].events[ e.type ];
+    console.log('==================dispatchEvent================' , e , events)
     if( !events || events.length < 1 )return true;
     events = events.slice(0);
     var length= 0,listener,thisArg,count=events.length;

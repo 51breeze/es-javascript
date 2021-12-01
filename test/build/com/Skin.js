@@ -1,5 +1,6 @@
 import Component from "./../web/components/Component.js";
 import State from "./State.js";
+import PersonSkin from "./../PersonSkin.js";
 import Class from "./../core/Class.js";
 var _private=Symbol("private");
 function Skin(){
@@ -19,7 +20,16 @@ members.stateGroup={m:3,d:4,configurable:true,enumerable:true,get:function state
 members.states={m:3,d:4,configurable:true,enumerable:true,set:function states(vlaue){
 
 }};
-Class.creator(7,Skin,{
+members.render={m:3,d:3,value:function render(c){
+		var createElement = this.$createElement;
+	return createElement(PersonSkin,{
+			"scopedSlots":{
+			"foot":this.$scopedSlots['foot'] || (function(scope){return ['ssssssssssssssss',scope.props
+			]}).bind(this)
+			}
+			}, this.$slots['default'] || ['=========default===========']);
+}};
+Class.creator(6,Skin,{
 	'id':1,
 	'ns':'com',
 	'name':'Skin',

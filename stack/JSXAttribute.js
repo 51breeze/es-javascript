@@ -4,7 +4,7 @@ class JSXAttribute extends Syntax{
         const name = this.make( this.stack.name );
         const value = this.make( this.stack.value );
         if( this.stack.isMemberProperty ){
-            return [`this.${name}`, value];
+            return [`${name}`, value];
         }
         return [name, value];
     }

@@ -3,7 +3,7 @@ import EventDispatcher from "./core/EventDispatcher.js";
 import Event from "./core/Event.js";
 import Types from "./Types.js";
 import TestInterface from "./com/TestInterface.js";
-import PersonSkin from "./PersonSkin.js";
+import Skin from "./com/Skin.js";
 import Class from "./core/Class.js";
 import System from "./core/System.js";
 import Reflect from "./core/Reflect.js";
@@ -145,7 +145,13 @@ members.onClick={m:1,d:3,value:function onClick(){
 
 }};
 members.jsx={m:1,d:3,value:function jsx(){
-	var b = new PersonSkin();
+		var createElement = this.$createElement;
+	return createElement(Skin,{
+			"scopedSlots":{
+			"foot":this.$scopedSlots['foot'] || (function(scope){return ['ssssssssssssssss']}).bind(this)
+			}
+			}, ['sdfff'
+		]);
 }};
 members.render={m:3,d:3,value:function render(){
 

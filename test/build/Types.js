@@ -9,7 +9,6 @@ Class.creator(5,Types,{
 	'id':3,
 	'ns':'',
 	'name':'Types',
-	'inherit':Object,
 	'methods':methods
 });
 export default Types;
