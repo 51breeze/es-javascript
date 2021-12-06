@@ -110,11 +110,41 @@ declare System{
 }
 
 package web{
-    @require(Vue = "vue/dist/vue.js")
+    @require(Vue="vue/dist/vue.js")
     declare class Vue{
         constructor(props?:object);
         static extend( options:object );
     }
+}
+
+package web.ui{
+
+    @require("element-ui", Select );
+    @WebComponent
+    declare class Select{
+
+    }
+
+    @Require(SelectOption = "element-ui/packages/option")
+    @Embed("element-ui/lib/theme-chalk/select.css")
+    declare class SelectOption extends web.components.Component{
+        set name(value:string)
+        get name():string
+    }
+
+    class MySelectOption extends SelectOption{
+        get value():string{
+            return this.data('value');
+        }
+        set value(value:string){
+            this.data('value',value);
+        }
+
+        render(){
+            return <SelectOption {...this.data()} name="ssss" />
+        }
+    }
+    
 }
 
 package web.components{

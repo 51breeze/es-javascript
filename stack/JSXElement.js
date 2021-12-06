@@ -1,5 +1,6 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
+const VueClass = require("../core/VueClass");
 class JSXElement extends Syntax{
     
     makeProperty(attrs, level=0){
@@ -217,50 +218,6 @@ class JSXElement extends Syntax{
         }
     }
 
-    emitDefaultClass(render){
-        const module = this.module;
-        const inherit = this.getInherit( module );
-        const refs = [];
-        const description = [
-            `'id':${Constant.DECLARE_CLASS}`,
-            `'ns':'${module.namespace.toString()}'`,
-            `'name':'${module.id}'`,
-            `'members':members`,
-            `'private':${Constant.REFS_DECLARE_PRIVATE_NAME}`,
-        ];
-        if( inherit ){
-            this.addDepend( inherit );
-            description.push(`'inherit':${this.getModuleReferenceName( inherit )}`);
-        }
-
-        this.addDepend( this.getGlobalModuleById('Class') );
-        this.createDependencies(module,refs);
-        refs.push(`var ${Constant.REFS_DECLARE_PRIVATE_NAME}=Symbol("private");`);
-
-        const callSuper = this.semicolon(`${this.getModuleReferenceName( inherit )}.call(this, options)`);
-        const content = [`function ${module.id}(options){${callSuper}}`];
-        content.push(`var members = {};`);
-        content.push(this.definePropertyDescription(
-            `members`,
-            'render',
-            render( this ),
-            false,
-            'public',
-            Constant.DECLARE_PROPERTY_FUN,
-            false
-        ));
-
-        const parts = refs.concat(content);
-        parts.push( this.emitCreateClassDescription( module, description) );
-        if( inherit && this.isInheritWebComponent(module) ){
-            if( this.getConfig('webComponent') ==="vue" ){
-                parts.push( this.emitVueCreateClass(module, inherit, [], []) );
-            }
-        }
-        parts.push( this.emitExportClass(module) );
-        return parts.join("\r\n");
-    }
-
     makeClass(script, children, data, level){
         const module = this.module;
         let element = children && children.length > 0 ?  this.makeChildren(children,data,level) : null;
@@ -293,7 +250,8 @@ class JSXElement extends Syntax{
         if( script ){
             classContent = this.make( script, render , properties );
         }else {
-            classContent = this.emitDefaultClass( render );
+            const vueClass = new VueClass( this.stack );
+            classContent = vueClass.emitter(render);
         }
 
         if( module.isFragment ){
@@ -302,10 +260,13 @@ class JSXElement extends Syntax{
         return classContent;
     }
 
-    createAttributes( data ){
+    createAttributes( data, spreadAttributes ){
         this.stack.openingElement.attributes.forEach(item=>{
             if( item.isAttributeXmlns || item.hasNamespaced ){
-                return null;
+                return;
+            }else if( item.isJSXSpreadAttribute ){
+                spreadAttributes && spreadAttributes.push( this.make( item ) );
+                return;
             }
             const [name,value] = this.make( item );
             if(name){
@@ -360,6 +321,7 @@ class JSXElement extends Syntax{
         const script = this.stack.children.find( child=>child.isJSXScript );
         const style  = this.stack.children.find( child=>child.isJSXStyle );
         const isRoot = this.stack.jsxRootElement === this.stack;
+        const spreadAttributes = [];
         const data={
             props:{},
             attrs:{},
@@ -386,8 +348,25 @@ class JSXElement extends Syntax{
             data.slot = `'${name}'`;
         }
 
-        this.createAttributes(data);
+        this.createAttributes(data, spreadAttributes);
         this.createProperties(children,data,level);
+
+        if( spreadAttributes.length > 0 ){
+            const props = Object.entries(data.props);
+            if( props.length > 0 ){
+                const objectProps = props.map( item=>{
+                    return `'${item[0]}':${item[1]}`;
+                });
+                data.props = `Object.assign({},${spreadAttributes.join(',')}, {${objectProps.join(',')}})`;
+            }else{
+                if( spreadAttributes.length > 1 ){
+                    data.props = `Object.assign({},${spreadAttributes.join(',')})`
+                }else{
+                    data.props = spreadAttributes[0];
+                } 
+            }
+        }
+
         if(isRoot && this.compilation.JSX && this.stack.isComponent){
             return this.makeClass(script, children, data, level);
         }else{
@@ -419,7 +398,7 @@ class JSXElement extends Syntax{
             }else if(children){
                 return `(this.$slots['${name}'] || ${children})`;
             }else{
-                return `this.$slots['${name}']`;
+                return `(this.$slots['${name}']||[])`;
             }
 
         }else{

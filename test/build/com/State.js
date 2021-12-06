@@ -3,7 +3,7 @@ var _private=Symbol("private");
 function State(name){
 
 }
-Class.creator(9,State,{
+Class.creator(8,State,{
 	'id':1,
 	'ns':'com',
 	'name':'State',

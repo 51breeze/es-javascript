@@ -51,7 +51,6 @@ Class.creator(1,Person,{
 	'name':'Person',
 	'private':_private,
 	'imps':[TestInterface],
-	'inherit':Object,
 	'members':members
 });
 export default Person;

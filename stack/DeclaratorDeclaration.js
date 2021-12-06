@@ -7,7 +7,7 @@ class DeclaratorDeclaration extends Syntax{
         const module = this.module;
         const polyfillModule = Polyfill.modules.get(module.id);
         if( module.require ){
-            return fs.readFileSync(module.file);
+            return null;
         }
         if( !polyfillModule ){
             return null;

@@ -1,9 +1,12 @@
+import "assets/style.css";
 import Person from "./Person.js";
 import EventDispatcher from "./core/EventDispatcher.js";
 import Event from "./core/Event.js";
 import Types from "./Types.js";
 import TestInterface from "./com/TestInterface.js";
 import Skin from "./com/Skin.js";
+import {Select} from "element-ui";
+import MySelectOption from "./web/ui/MySelectOption.js";
 import Class from "./core/Class.js";
 import System from "./core/System.js";
 import Reflect from "./core/Reflect.js";
@@ -150,7 +153,10 @@ members.jsx={m:1,d:3,value:function jsx(){
 			"scopedSlots":{
 			"foot":this.$scopedSlots['foot'] || (function(scope){return ['ssssssssssssssss']}).bind(this)
 			}
-			}, ['sdfff'
+			}, [
+			createElement(Select,null, [
+				createElement(MySelectOption)
+			]),'sdfff'
 		]);
 }};
 members.render={m:3,d:3,value:function render(){

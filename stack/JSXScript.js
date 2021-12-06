@@ -1,5 +1,6 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
+const VueClass = require("../core/VueClass");
 class JSXScript extends Syntax{
 
     emitStack(item,name,isStatic,properties,modifier){
@@ -202,7 +203,8 @@ class JSXScript extends Syntax{
 
     emitter(render , initProperties){
         if( this.getConfig('webComponent') === 'vue' ){
-            return this.createVueClass(render , initProperties)
+            const vueClass = new VueClass( this.stack );
+            return vueClass.emitter(render, initProperties);
         }
         return null;
     }

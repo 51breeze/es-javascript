@@ -20,30 +20,14 @@ class Builder extends Syntax{
                     } 
                 }
             };
-            const buildRequireAnnotation=(module,stack)=>{
-                const name = stack.name.toLowerCase();
-                if( name === "require" ){
-                    const args = stack.getArguments();
-                    args.forEach( item=>{
-                        const name = item.assigned ? item.key : item.value;
-                        const requireModule = module.namespace.get(name);
-                        if( requireModule ){
-                            makeContent( requireModule, fs.readFileSync(requireModule.file), requireModule.file);
-                        }
-                    });
-                }
-            };
+
             const builder = ( module )=>{
                 if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
                     const stack = compilation.getStackByModule(module);
                     if(stack){
-                        if( stack.isAnnotationDeclaration ){
-                            buildRequireAnnotation(module,stack);
-                        }else{
-                            const file = this.getModuleFile(module);
-                            const content = this.make(stack);
-                            makeContent(module, content, file);
-                        }
+                        const file = this.getModuleFile(module);
+                        const content = this.make(stack);
+                        makeContent(module, content, file);
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -81,17 +65,20 @@ class Builder extends Syntax{
         compilation.completed(this.name,false);
         try{
             compilation.modules.forEach( module =>{
-                if( this.isNeedBuild(module) ){
+                if( !module.require && this.isNeedBuild(module) ){
                     const stack = compilation.getStackByModule(module);
                     if( stack ){
-                        const filesystem  = compiler.getOutputFileSystem( this.name );
-                        const file = this.getModuleFile(module);
-                        filesystem.mkdirpSync( path.dirname(file) );
-                        filesystem.writeFileSync(file, this.make(stack) );
-                        const config = this.getConfig();
-                        if( config.emitFile ){
-                            this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                        } 
+                        const content = this.make(stack);
+                        if( content ){
+                            const filesystem  = compiler.getOutputFileSystem( this.name );
+                            const file = this.getModuleFile(module);
+                            filesystem.mkdirpSync( path.dirname(file) );
+                            filesystem.writeFileSync(file, content );
+                            const config = this.getConfig();
+                            if( config.emitFile ){
+                                this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
+                            } 
+                        }
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -100,6 +87,7 @@ class Builder extends Syntax{
             compilation.completed(this.name,true);
             done();
         }catch(e){
+            console.log(e)
             done(e);
         }
     }
@@ -160,10 +148,13 @@ class Builder extends Syntax{
         if( module.compilation.isPolicy(2,module) ){
             return false;
         }
-        if( module.require ){
-            return module;
-        }
         const isDeclaratorModule = module.isDeclaratorModule;
+        if( isDeclaratorModule ){
+            const stack = module.compilation.getStackByModule(module);
+            if( stack && stack.hasRequireAnnotation ){
+                return true;
+            }
+        }
         const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
         return !isDeclaratorModule || isPolyfill;
     }

@@ -1,26 +1,22 @@
-import Class from "./core/Class.js";
 var _private=Symbol("private");
-function PersonSkin(options){
-	Object.defineProperty(this,_private,{value:{'test':'sss','_name':'Yejun','_list':null}});
-	web_components_Skin.call(this, options);
-}
+import "./assets/style.css";
+import web_components_Component from "./web/components/Component.js";
+import Vue from "vue/dist/vue.js";
+import Class from "./core/Class.js";
+var PersonSkin = Vue.extend({
+	name:'PersonSkin',
+	extends:web_components_Component,
+	props:{
+		name:{type:String},
+		list:{type:Array}
+	},
+	data:{
+		test:'sss',
+		_name:'Yejun',
+		_list:null
+	}
+});
 var members = {};
-members.test={m:1,d:1,configurable:true,writable:true,value:'sss'};
-members.mounted={m:3,d:3,value:function mounted(){
-
-}};
-members._name={m:1,d:1,configurable:true,writable:true,value:'Yejun'};
-members.name={m:3,d:4,configurable:true,enumerable:true,get:function name(){
-	return this[_private]._name;
-},set:function name(value){
-	this[_private]._name=value;
-}};
-members.list={m:3,d:4,configurable:true,enumerable:true,get:function list(){
-	return this[_private]._list || ['ssss','sssss'];
-},set:function list(value){
-	this[_private]._list=value;
-}};
-members._list={m:1,d:1,configurable:true,writable:true,value:null};
 members.render={m:3,d:3,value:function render(createElement){
 	var name = this.name;
 	var list = this.list;
@@ -60,7 +56,7 @@ members.render={m:3,d:3,value:function render(createElement){
 					])
 				]) : null;
 		}).bind(this)),
-		this.$slots['default'],
+		(this.$slots['default']||[]),
 		(this.$scopedSlots['foot'] ? this.$scopedSlots['foot']({props:{"name":this.name}}) : null),
 		(this.$scopedSlots['body'] ? this.$scopedSlots['body']({props:{"name":this.name}}) : [
 			createElement('div',{
@@ -68,23 +64,34 @@ members.render={m:3,d:3,value:function render(createElement){
 				}, ['sssssssssss'])
 		])));
 }};
-Class.creator(10,PersonSkin,{
+members.test={m:1,d:1,configurable:true,writable:true,value:'sss'};
+members.mounted={m:3,d:3,value:function mounted(){
+
+}};
+members._name={m:1,d:1,configurable:true,writable:true,value:'Yejun'};
+members.name={m:3,d:4,configurable:true,enumerable:true,get:function name(){
+	return this[_private]._name;
+},set:function name(value){
+	this[_private]._name=value;
+}};
+members.list={m:3,d:4,configurable:true,enumerable:true,get:function list(){
+	return this[_private]._list || ['ssss','sssss'];
+},set:function list(value){
+	this[_private]._list=value;
+}};
+members._list={m:1,d:1,configurable:true,writable:true,value:null};
+members._init={value:function _init(options){
+(function PersonSkin(){
+	Object.defineProperty(this,_private,{value:{'test':'sss','_name':'Yejun','_list':null}});
+web_components_Component.prototype._init.call(this);
+}).call(this,options);
+}}
+Class.creator(9,PersonSkin,{
 	'id':1,
 	'ns':'',
 	'name':'PersonSkin',
 	'private':_private,
-	'inherit':web_components_Skin,
+	'inherit':web_components_Component,
 	'members':members
-});
-web_components_Skin.makeComponent('PersonSkin', PersonSkin, {
-	props:{
-		name:{type:String},
-		list:{type:Array}
-	},
-	data:{
-		test:'sss',
-		_name:'Yejun',
-		_list:null
-	}
 });
 export default PersonSkin;

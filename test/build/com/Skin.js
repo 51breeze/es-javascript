@@ -1,11 +1,18 @@
+var _private=Symbol("private");
 import Component from "./../web/components/Component.js";
 import State from "./State.js";
 import PersonSkin from "./../PersonSkin.js";
+import Vue from "vue/dist/vue.js";
 import Class from "./../core/Class.js";
-var _private=Symbol("private");
-function Skin(){
-Component.call(this);;
-}
+var Skin = Vue.extend({
+	name:'Skin',
+	extends:Component,
+	props:{
+		state:{type:null},
+		stateGroup:{type:Array},
+		states:{type:Array}
+	}
+});
 var members = {};
 members.state={m:3,d:4,configurable:true,enumerable:true,get:function state(){
 	return new State('name');
@@ -29,6 +36,11 @@ members.render={m:3,d:3,value:function render(c){
 			}
 			}, this.$slots['default'] || ['=========default===========']);
 }};
+members._init={value:function _init(options){
+(function Skin(){
+Component.prototype._init.call(this);
+}).call(this,options);
+}}
 Class.creator(6,Skin,{
 	'id':1,
 	'ns':'com',
@@ -36,12 +48,5 @@ Class.creator(6,Skin,{
 	'private':_private,
 	'inherit':Component,
 	'members':members
-});
-Component.makeComponent('Skin', Skin, {
-	props:{
-		state:{type:null},
-		stateGroup:{type:Array},
-		states:{type:Array}
-	}
 });
 export default Skin;

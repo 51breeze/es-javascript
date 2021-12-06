@@ -3,7 +3,7 @@ const path = require("path");
 module.exports={
     content: null,
     export:'Component',
-    require:['Class','web.Vue','EventDispatcher','web.components.ComponentEvent'],
+    require:['Class','web.Vue','EventDispatcher'],
     getContent(syntax){
         const component = syntax.getConfig('webComponent');
         if( component === 'vue'){

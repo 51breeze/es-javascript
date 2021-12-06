@@ -1,10 +1,19 @@
 var __MODULES__=[];
 var key=Symbol("CLASS_KEY");
+var _private=Symbol("private");
 var Class={
     'key':key,
     'modules':__MODULES__,
     'require':function(id){
         return __MODULES__[id];
+    },
+    'property':function(moduleClass, name, value){
+        var obj = moduleClass[ _private ] = moduleClass[ _private ] || {};
+        if( value === void 0 ){
+            return obj[name];
+        }else{
+            obj[name] = value;
+        }
     },
     'creator':function(id,moduleClass,description){
         if( description ){

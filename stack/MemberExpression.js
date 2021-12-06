@@ -57,7 +57,7 @@ class MemberExpression extends Syntax{
       
       if( this.compiler.callUtils("isClassType", description) ){
          this.addDepend( description );
-         return module.getReferenceNameByModule( description );
+         return this.getModuleReferenceName(description,module);
       }
       
       if( this.stack.object.isSuperExpression ){

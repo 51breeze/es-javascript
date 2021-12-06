@@ -9,6 +9,8 @@ import Person;
 import Types;
 import PersonSkin;
 import com.Skin;
+import web.ui.Select;
+import web.ui.MySelectOption;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
@@ -226,6 +228,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
 
 
         return <Skin xmlns:slot="@slots">
+
+                <Select>
+                  <MySelectOption />
+                </Select>
 
                 <slot:foot>
 
