@@ -120,13 +120,13 @@ package web{
 package web.ui{
 
     @require("element-ui", Select );
+    @Embed("element-ui/lib/theme-chalk/select.css")
     @WebComponent
     declare class Select{
 
     }
 
     @Require(SelectOption = "element-ui/packages/option")
-    @Embed("element-ui/lib/theme-chalk/select.css")
     declare class SelectOption extends web.components.Component{
         set name(value:string)
         get name():string
@@ -141,7 +141,7 @@ package web.ui{
         }
 
         render(){
-            return <SelectOption {...this.data()} name="ssss" />
+            return <div><SelectOption {...this.data()} name="ssss" /></div>
         }
     }
     

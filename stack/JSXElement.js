@@ -39,32 +39,35 @@ class JSXElement extends Syntax{
             return {cmd,child,content:[element]};
         }
         const directives = child.directives.slice(0).sort( (a,b)=>{
-            return b.name.value() === 'foreach' ? -1 : 0;
+            return b.name.value() === 'each' ? -1 : 0;
         });
        
         while( directives.length > 0){
             const directive = directives.shift();
             const name = directive.name.value();
-            const condition = directive.value && directive.value.value();
-            if( name ==="foreach" || name ==="for" ){
-                let [refs, item] = condition.split('as').map( value=>value.trim() );
+            const valueArgument = directive.valueArgument;
+            if( name ==="each" || name ==="for" ){
+                let refs = this.make(valueArgument.expression);
+                let item = valueArgument.declare.item;
                 if( cmd.includes('if') ){
                     cmd.pop();
                     content.push('null');
                     element = content.splice(0,content.length).join(' : ');
                 }
+
                 element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
-                if( name ==="foreach"){
-                    content.push(`\r\n${indent}${refs.trim()}.map((function(${item.trim()}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`);
+                if( name ==="each"){
+                    content.push(`\r\n${indent}${refs}.map((function(${item}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`);
                 }else{
-                    let [_item, key, index] =  item.split(',').map( val=>val.trim() );
+                    item = valueArgument.declare.item;
+                    let key = valueArgument.declare.key;
+                    let index = valueArgument.declare.index;
                     let dec = index ? `${indent}\t\t${index}++;` : '';
                     let code = [`${indent}(function(${refs}){`];
                     if( !key ){
                         key = `_${_item}Key`;
                     }
 
-                    item = _item;
                     code.push(`${indent}\tvar _${refs} = [];`);
                     code.push(`${indent}\tif( typeof ${refs} ==='number' ){`);
                     code.push(`${indent}\t\t${refs} = Array.from({length:${refs}}, function(v,i){return i;});`);
@@ -85,7 +88,7 @@ class JSXElement extends Syntax{
                 }
                 cmd.push(name);
             }else if( name ==="if" ){
-                content.push( `\r\n${indent}${condition} ? ${this.cleanWhitespace(element)}` )
+                content.push( `\r\n${indent}${this.make(valueArgument.expression)} ? ${this.cleanWhitespace(element)}` )
                 cmd.push(name);
             }else if( name ==="elseif" ){
                 if( !prevResult || !(prevResult.cmd.includes('if') || prevResult.cmd.includes('elseif')) ){
@@ -93,7 +96,7 @@ class JSXElement extends Syntax{
                 }else{
                     cmd.push(name);
                 }
-                content.push( `\r\n${indent}${condition} ? ${this.cleanWhitespace(element)}` );
+                content.push( `\r\n${indent}${this.make(valueArgument.expression)} ? ${this.cleanWhitespace(element)}` );
             }else if( name ==="else"){
                 if( !prevResult || !(prevResult.cmd.includes('if') || prevResult.cmd.includes('elseif')) ){
                     directive.name.error(1114, name);
@@ -144,17 +147,18 @@ class JSXElement extends Syntax{
                         result.content = last.content.concat( result.content );
                     }else if(result && result.cmd.includes('else') ){
                         value = last.content.concat( result.content ).join(' : ');
-                        last.end = true;
+                        result.ifEnd = true;
                     }else if( result && result.cmd.includes('if') ){
                         value = last.content.join('');
                     }else {
                         last.content.push('null');
-                        last.end = true;
+                        if(result)result.ifEnd = true;
                         value = last.content.join(' : ');
                     }
-                }else if( !last.end ){
-                    value = last.content.join(''); 
+                }else if( !last.ifEnd ){
+                    value = last.content.join('');
                 }
+
                 if( last.cmd.includes('foreach') || last.cmd.includes('for') || last.child.isSlot ){
                     if( part.length > 0 ){
                         content.push( part.splice(0, part.length) );
@@ -171,6 +175,8 @@ class JSXElement extends Syntax{
             last = result;
             if( !result )break;
         }
+
+       
 
         if( part.length > 0 ){
             content.push( part.splice(0, part.length) );
@@ -234,9 +240,6 @@ class JSXElement extends Syntax{
         }
 
         const references = [];
-        this.stack.jsxReferences.forEach(name=>{
-            references.push( this.semicolon(`var ${name} = this.${name}`) );
-        });
         references.push( this.emitVueCreateElement() );
 
         let classContent = ``;
@@ -262,43 +265,39 @@ class JSXElement extends Syntax{
 
     createAttributes( data, spreadAttributes ){
         this.stack.openingElement.attributes.forEach(item=>{
-            if( item.isAttributeXmlns || item.hasNamespaced ){
+            if( item.isAttributeXmlns || item.isAttributeDirective ){
                 return;
             }else if( item.isJSXSpreadAttribute ){
                 spreadAttributes && spreadAttributes.push( this.make( item ) );
                 return;
             }
-            const [name,value] = this.make( item );
-            if(name){
-                if(name ==="class"){
-                    data['class'] = value;
-                }else if(name ==="staticClass"){
-                    data['staticClass'] = value;
-                }else if(name ==="staticStyle"){
-                    data['staticStyle'] = value;
-                }else if(name ==="style"){
-                    data['style'] = value;
-                }else if(name ==="innerHTML"){
+            const [name,value,ns] = this.make( item );
+            if( !value )return;
+            if( item.isMemberProperty ){
+                data.props[name] = value;
+                return;
+            }else if( ns ==="@events" ){
+                data['on'][name] = value;
+                return;
+            }else if( ns ==="@binding" ){
+                data['on']['input'] = `(function(event){${value}=event && event.target && event.target.value || event;}).bind(this)`;
+            }
+            switch(name){
+                case "class" :
+                case "style" :
+                case "key" :
+                case "ref" :
+                case "refInFor" :
+                case "tag" :
+                case "hook" :
+                case "staticClass" :
+                    data[name] = value;
+                    break;
+                case "innerHTML" :
+                case "value" :   
                     data['domProps'][name] = value;
-                }else if(name ==="key"){
-                    data[name] = value;
-                }else if(name ==="ref"){
-                    data[name] = value;
-                }else if(name ==="refInFor"){
-                    data[name] = value;
-                }else if(name ==="tag"){
-                    data[name] = value;
-                }else if(name ==="transition"){
-                    data[name] = value;
-                }else if(name ==="hook"){
-                    data[name] = value;
-                }else if( /^on/i.test(name) ){
-                    data['on'][name.substr(2)] = value;
-                }else if( item.isMemberProperty ){
-                    data.props[name] = value;
-                }else{
+                default:
                     data.attrs[name] = value;
-                }
             }
         });
     }

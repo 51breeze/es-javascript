@@ -87,7 +87,6 @@ class Builder extends Syntax{
             compilation.completed(this.name,true);
             done();
         }catch(e){
-            console.log(e)
             done(e);
         }
     }
@@ -149,11 +148,8 @@ class Builder extends Syntax{
             return false;
         }
         const isDeclaratorModule = module.isDeclaratorModule;
-        if( isDeclaratorModule ){
-            const stack = module.compilation.getStackByModule(module);
-            if( stack && stack.hasRequireAnnotation ){
-                return true;
-            }
+        if( isDeclaratorModule && module.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(module) ){
+            return true;
         }
         const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
         return !isDeclaratorModule || isPolyfill;

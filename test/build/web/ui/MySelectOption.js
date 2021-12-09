@@ -1,12 +1,10 @@
 var _private=Symbol("private");
-import "element-ui/lib/theme-chalk/select.css";
-import SelectOption from "element-ui/packages/option";
-import Vue from "vue/dist/vue.js";
-import Class from "./../../core/Class.js";
+import SelectOption from "./SelectOption.js";
 import Component from "./../components/Component.js";
-var MySelectOption = Vue.extend({
+import Class from "./../../core/Class.js";
+var MySelectOption = Component.createComponent({
 	name:'MySelectOption',
-	extends:Class.property(Component,'inherit').call(null,SelectOption),
+	extends:SelectOption,
 	props:{
 		value:{type:String}
 	}
@@ -19,13 +17,15 @@ members.value={m:3,d:4,configurable:true,enumerable:true,get:function value(){
 }};
 members.render={m:3,d:3,value:function render(){
 		var createElement = this.$createElement;
-	return createElement(SelectOption,{
-			"props":Object.assign({},this.data(), {'name':"ssss"})
-			});
+	return createElement('div',null, [
+			createElement(SelectOption,{
+				"props":Object.assign({},this.data(), {'name':"ssss"})
+				})
+		]);
 }};
 members._init={value:function _init(options){
-(function MySelectOption(){
-SelectOption.prototype._init.call(this);
+(function (options){
+SelectOption.prototype._init.call(this,options);
 }).call(this,options);
 }}
 Class.creator(10,MySelectOption,{
@@ -33,7 +33,7 @@ Class.creator(10,MySelectOption,{
 	'ns':'web.ui',
 	'name':'MySelectOption',
 	'private':_private,
-	'inherit':MySelectOption.options.extends,
+	'inherit':SelectOption,
 	'members':members
 });
 export default MySelectOption;

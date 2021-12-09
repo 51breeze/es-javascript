@@ -1,4 +1,8 @@
-<s:Skin xmlns:s="web.components"  xmlns:a="com.Skin" xmlns:cmd="@directives" xmlns:slot="@slots" >
+<s:Skin xmlns:s="web.components"  xmlns:a="com.Skin" xmlns:cmd="@directives" 
+xmlns:slot="@slots" 
+xmlns:bind="@binding"
+xmlns:on="@events"
+>
 
 
     <script>
@@ -31,6 +35,18 @@
            this._list = value; 
         }
 
+        onChange(){
+
+        }
+
+        set value(val:string){
+            this.data('value', val)
+        }
+
+        get value():string{
+            return this.data<string>('value') || '9999';
+        }
+
     
     </script>
 
@@ -42,11 +58,11 @@
     <div cmd:elseif="name">2</div>
     <div cmd:else>3</div>
     
-    <div cmd:foreach="list as item" cmd:if="!name" slot:default="props">
+    <div cmd:each="item of [].concat(list)" cmd:if="!name" slot:default="props">
         <div>sssssssssss</div>
         <div class="ssss">
              <div>
-                <div class="" cmd:for="item as itemValue,,Index">
+                <div class="" cmd:for="(itemValue,name,Index) in item ">
                     <div>{itemValue}</div>
                 </div>
                 <span>======</span>
@@ -56,7 +72,8 @@
     </div>
 
     <slot:default />
-
+    
+    <input bind:value={this.value} on:change={onChange} />
 
     <slot:foot props={{name:this.name}} />
 

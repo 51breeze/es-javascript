@@ -5,7 +5,7 @@ import Event from "./core/Event.js";
 import Types from "./Types.js";
 import TestInterface from "./com/TestInterface.js";
 import Skin from "./com/Skin.js";
-import {Select} from "element-ui";
+import Select from "./web/ui/Select.js";
 import MySelectOption from "./web/ui/MySelectOption.js";
 import Class from "./core/Class.js";
 import System from "./core/System.js";

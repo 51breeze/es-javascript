@@ -2,9 +2,8 @@ var _private=Symbol("private");
 import Component from "./../web/components/Component.js";
 import State from "./State.js";
 import PersonSkin from "./../PersonSkin.js";
-import Vue from "vue/dist/vue.js";
 import Class from "./../core/Class.js";
-var Skin = Vue.extend({
+var Skin = Component.createComponent({
 	name:'Skin',
 	extends:Component,
 	props:{
@@ -37,8 +36,8 @@ members.render={m:3,d:3,value:function render(c){
 			}, this.$slots['default'] || ['=========default===========']);
 }};
 members._init={value:function _init(options){
-(function Skin(){
-Component.prototype._init.call(this);
+(function (options){
+Component.prototype._init.call(this,options);
 }).call(this,options);
 }}
 Class.creator(6,Skin,{

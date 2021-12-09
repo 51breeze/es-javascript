@@ -1,34 +1,33 @@
 var _private=Symbol("private");
 import "./assets/style.css";
 import web_components_Component from "./web/components/Component.js";
-import Vue from "vue/dist/vue.js";
 import Class from "./core/Class.js";
-var PersonSkin = Vue.extend({
+var PersonSkin = web_components_Component.createComponent({
 	name:'PersonSkin',
-	extends:web_components_Component,
 	props:{
 		name:{type:String},
-		list:{type:Array}
+		list:{type:Array},
+		value:{type:String}
 	},
-	data:{
+	data:function data(){return {
 		test:'sss',
 		_name:'Yejun',
 		_list:null
-	}
+	};}
 });
 var members = {};
 members.render={m:3,d:3,value:function render(createElement){
-	var name = this.name;
-	var list = this.list;
 	var createElement = this.$createElement;
 	return createElement('div',null, [
-		name ? createElement('div',null, ['1']) : 
-		name ? createElement('div',null, ['2']) : 
+		this.name ? createElement('div',null, ['1']) : 
+		this.name ? createElement('div',null, ['2']) : 
 		createElement('div',null, ['3']),
-		createElement('div',null, ['3'])
-	].concat(
-		list.map((function(item){
-			return !name ? createElement('div',null, [
+		[].concat(this.list).map((function(item){
+			return !this.name ? createElement('div',{
+					"attrs":{
+					"default":"props"
+					}
+					}, [
 					createElement('div',null, ['sssssssssss']),
 					createElement('div',{
 						"class":"ssss"
@@ -40,8 +39,8 @@ members.render={m:3,d:3,value:function render(createElement){
 									item = Array.from({length:item}, function(v,i){return i;});
 								}
 								var Index=0;
-								for(var _itemValueKey in item){
-									var itemValue = item[_itemValueKey];
+								for(var name in item){
+									var itemValue = item[name];
 									_item.push(createElement('div',{
 										"class":""
 										}, [
@@ -55,8 +54,22 @@ members.render={m:3,d:3,value:function render(createElement){
 						]))
 					])
 				]) : null;
-		}).bind(this)),
-		(this.$slots['default']||[]),
+		}).bind(this))
+	].concat((this.$slots['default']||[]),
+		[
+		createElement('input',{
+			"attrs":{
+			"value":this.value
+			},
+			"on":{
+			"input":(function(event){this.value=event && event.target && event.target.value || event;}).bind(this),
+			"change":this.onChange
+			},
+			"domProps":{
+			"value":this.value
+			}
+			})
+	],
 		(this.$scopedSlots['foot'] ? this.$scopedSlots['foot']({props:{"name":this.name}}) : null),
 		(this.$scopedSlots['body'] ? this.$scopedSlots['body']({props:{"name":this.name}}) : [
 			createElement('div',{
@@ -80,10 +93,17 @@ members.list={m:3,d:4,configurable:true,enumerable:true,get:function list(){
 	this[_private]._list=value;
 }};
 members._list={m:1,d:1,configurable:true,writable:true,value:null};
+members.onChange={m:3,d:3,value:function onChange(){
+
+}};
+members.value={m:3,d:4,configurable:true,enumerable:true,get:function value(){
+	return this.data('value') || '9999';
+},set:function value(val){
+	this.data('value',val);
+}};
 members._init={value:function _init(options){
-(function PersonSkin(){
+(function (options){
 	Object.defineProperty(this,_private,{value:{'test':'sss','_name':'Yejun','_list':null}});
-web_components_Component.prototype._init.call(this);
 }).call(this,options);
 }}
 Class.creator(9,PersonSkin,{
@@ -91,7 +111,6 @@ Class.creator(9,PersonSkin,{
 	'ns':'',
 	'name':'PersonSkin',
 	'private':_private,
-	'inherit':web_components_Component,
 	'members':members
 });
 export default PersonSkin;

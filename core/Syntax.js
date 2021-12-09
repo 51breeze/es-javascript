@@ -5,6 +5,7 @@ const events = require('events');
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
+const webComponents = new Map();
 class Syntax extends events.EventEmitter {
 
     constructor(stack){
@@ -328,6 +329,9 @@ class Syntax extends events.EventEmitter {
             return false;
         }
         const isUsed = this.isUsed(depModule);
+        if( isUsed && depModule.isDeclaratorModule && depModule.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(depModule) ){
+            return true;
+        }
         const isRequire = !depModule.isDeclaratorModule && 
                             isUsed &&
                             this.compiler.callUtils("isLocalModule", depModule) && 
@@ -359,24 +363,6 @@ class Syntax extends events.EventEmitter {
         return module.namespace.getChain().concat(module.id).join("_");
     }
 
-    getRequireAnnotationDependencies( stack , depModule){
-        const requires = stack.annotations.filter( item=>item.name.toLowerCase() ==="require" );
-        const refs = new Set();
-        requires.forEach( annotation=>{
-            const args = annotation.getArguments();
-            const item = args[0];
-            const file = item.value;
-            if( args.length > 1 ){
-                args.slice(1).forEach( extract=>{
-                    refs.add( this.createImport( `{${extract.value}}`, file.replace(/\\/g,'/') ) );
-                });
-            }else{
-                refs.add( this.createImport( item.assigned ? item.key : null, file.replace(/\\/g,'/') ) );
-            }
-        });
-        return Array.from( refs.values() );
-    }
-
     createDependencies(module, refs){
         const config = this.getConfig();
         const push = (value)=>{
@@ -397,10 +383,27 @@ class Syntax extends events.EventEmitter {
             }
         }
 
-        createAssets( module );
-        
-        this.getDependencies(module).forEach( depModule=>{
+        const createRequire =(depModule)=>{
+            if( depModule.required ){
+                const file = depModule.required.file.replace(/\\/g,'/');
+                if( depModule.required.extract ){
+                    const from = depModule.required.from;
+                    const name = depModule.required.name;
+                    if( depModule.required.hasAs ){
+                        push( this.createImport( `{${from} as ${name}}`, file ) )
+                    }else{
+                        push( this.createImport( `{${name}}`, file ) )
+                    }
+                }else{
+                    push( this.createImport( `${depModule.required.name}`, file ) )
+                }
+            }
+        }
 
+        createAssets( module );
+        createRequire( module );
+
+        this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
                 if( config.pack ){
@@ -411,24 +414,10 @@ class Syntax extends events.EventEmitter {
                 }else{
                     push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
                 }
-            }else{
+            }else if( this.isUsed(depModule) ){
                 createAssets( depModule );
-                if( depModule.required ){
-                    const file = depModule.required.file.replace(/\\/g,'/');
-                    if( depModule.required.extract ){
-                        const from = depModule.required.from;
-                        const name = depModule.required.name;
-                        if( depModule.required.hasAs ){
-                            push( this.createImport( `{${from} as ${name}}`, file ) )
-                        }else{
-                            push( this.createImport( `{${name}}`, file ) )
-                        }
-                    }else{
-                        push( this.createImport( `${depModule.required.name}`, file ) )
-                    }
-                }
+                createRequire( depModule );
             }
-
         });
     }
 
@@ -572,15 +561,20 @@ class Syntax extends events.EventEmitter {
     }
 
     isInheritWebComponent(classModule){
+        if( webComponents.has(classModule) ){
+            return webComponents.get(classModule);
+        }
         while( classModule ){
             const stack = this.compilation.getStackByModule( classModule );
             if( stack && stack.annotations  && Array.isArray(stack.annotations) ){
                 if( stack.annotations.some( item=>item.name.toLowerCase() === 'webcomponent' ) ){
+                    webComponents.set(classModule, true);
                     return true;
                 }
             }
             classModule=classModule.inherit;
         }
+        webComponents.set(classModule, false);
         return false;
     }
 

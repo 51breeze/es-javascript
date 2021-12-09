@@ -43,15 +43,20 @@ class VueClass extends Syntax{
         const methods = module.methods;
         const members = module.members;
         const properties = [];
-        const initialProps = [];
+        const initialProps = initProperties && initProperties.length > 0 ? initProperties.map( item=>this.semicolon(`\t${item}`) ).join('\r\n') : [];
         const content = [];
         const imps    = this.getImps(module);
-        let inherit = this.getInherit(module);
+        const inherit = this.getInherit(module);
         const refs = [];
         const props = [];
         const data = [];
-        const isWeb = this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent( module );
-        const reserved = isWeb ? this.getConfig('reserved') : [];
+        const isWeb = this.isInheritWebComponent( module );
+        const reserved = isWeb ? this.getConfig('reserved.vue') : [];
+        const _private = Constant.REFS_DECLARE_PRIVATE_NAME;
+        const classScope = this.stack.scope.getScopeByType("class");
+        const topRefs = new Map();
+        const methodContent = [];
+        const memberContent = [];
         const emitter=(target,proto,content,isStatic,descriptive)=>{
             for( var name in target ){
                 const item = target[ name ];
@@ -123,24 +128,11 @@ class VueClass extends Syntax{
             }
         }
 
-        if( !inherit && isWeb ){
-            inherit = this.getGlobalModuleById('web.components.Component');
-            this.addDepend( inherit );
-        }
-
-        const methodContent = [];
-        const memberContent = [];
-
-        const classScope = this.stack.scope.getScopeByType("class");
-        const topRefs = new Map();
+        refs.push(`var ${_private}=Symbol("private");`);
         classScope.removeAllListeners("insertTopRefsToClassBefore");
         classScope.addListener("insertTopRefsToClassBefore",(object)=>{
             topRefs.set(object.name,object.value);
         });
-
-        const Vue = this.getGlobalModuleById('web.Vue');
-        this.addDepend( Vue );
-        this.addDepend( this.getGlobalModuleById('Class') );
 
         if( render ){
             memberContent.push(this.definePropertyDescription(
@@ -158,32 +150,13 @@ class VueClass extends Syntax{
         emitter( members , `members`, memberContent , false);
 
         const iteratorType = this.getGlobalModuleById("Iterator")
+        const Component = this.getGlobalModuleById('web.components.Component');
+        this.addDepend( Component );
+        this.addDepend( this.getGlobalModuleById('Class') );
+        
         if( module.implements.includes(iteratorType) ){
             memberContent.push(`members[Symbol.iterator]={value:function(){return this;}}`)
         }
-
-        const parentClassName = inherit ? this.getModuleReferenceName( inherit ) : 'Object';
-        
-        const callSuper = inherit ? `${module.id}.options.extends.prototype._init.call(this,options)` : '';
-       
-        const defaultConstructor=[`function (options){`];
-        if( properties.length > 0 ){
-            defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:{${properties.join(",")}}})`) )
-        }
-
-        if( callSuper ){
-            defaultConstructor.push( this.semicolon( callSuper) );
-        }
-
-        if( initProperties && initProperties.length > 0){
-            initialProps.unshift( initProperties.map( item=>this.semicolon(`\t${item}`) ).join('\r\n') );
-        }
-
-        if( initialProps.length > 0 ){
-            defaultConstructor.push( initialProps.join("\r\n") );
-        }
-
-        defaultConstructor.push('}');
 
         if( module.methodConstructor ){
             module.methodConstructor.once("fetchClassProperty",(event)=>{
@@ -192,36 +165,29 @@ class VueClass extends Syntax{
             });
         }
 
-        const construct = module.methodConstructor ? this.make(module.methodConstructor) : `${defaultConstructor.join("\r\n")}`;
-       
+        const construct = module.methodConstructor ? this.make(module.methodConstructor) : this.createDefaultConstructor(module, inherit, properties, initialProps);
         const callConstructor = [
             this.semicolon(`(${construct}).call(this,options)`),
-            //this.semicolon(`${this.getModuleReferenceName(Vue, module)}.prototype._init.call(this,options)`)
         ]
         memberContent.push(`members._init={value:function _init(options){\r\n${callConstructor.join('\r\n')}\r\n}}`)
 
-        const description = [
-            `'id':${Constant.DECLARE_CLASS}`,
-            `'ns':'${module.namespace.toString()}'`,
-            `'name':'${module.id}'`,
-            `'private':${Constant.REFS_DECLARE_PRIVATE_NAME}`,
-        ];
-
-        if( imps.length > 0 ){
-            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
+        let _methods = null;
+        let _members = null;
+        if( methodContent.length > 0 ){
+            content.push(`var methods = {};`);
+            content.push.apply(content, methodContent);
+             _methods='methods';
         }
 
-        if( inherit ){
-            if( inherit.isDeclaratorModule && this.isInheritWebComponent( inherit ) ){
-                description.push(`'inherit':${module.id}.options.extends`);
-            }else{
-                description.push(`'inherit':${this.getModuleReferenceName(inherit)}`);
-            }
+        if( memberContent.length > 0 ){
+            content.push(`var members = {};`);
+            content.push.apply( content, memberContent )
+            _members = 'members';
         }
 
-        const createConstructor = this.semicolon(`var ${module.id} = ${this.getModuleReferenceName(Vue, module)}.extend(${this.createVueOptions(module.id,inherit,props,data)})`);
-        refs.push(`var ${Constant.REFS_DECLARE_PRIVATE_NAME}=Symbol("private");`);
-       
+        const description = this.createClassDescription(module, inherit, imps, _methods, _members, _private);
+        const createConstructor = this.semicolon(`var ${module.id} = ${this.getModuleReferenceName(Component, module)}.createComponent(${this.createOptions(module.id,inherit,props,data)})`);
+        
         this.createDependencies(module,refs);
         
         //alias refs
@@ -229,18 +195,6 @@ class VueClass extends Syntax{
             topRefs.forEach( (value,name)=>{
                 refs.push( `var ${value} = ${name};` );
             });
-        }
-
-        if( methodContent.length > 0 ){
-            content.push(`var methods = {};`);
-            description.push(`'methods':methods`);
-            content.push( methodContent.join("\r\n") )
-        }
-
-        if( memberContent.length > 0 ){
-            content.push(`var members = {};`);
-            description.push(`'members':members`);
-            content.push( memberContent.join("\r\n") )
         }
 
         const parts = refs.concat(createConstructor,content);
@@ -255,18 +209,50 @@ class VueClass extends Syntax{
         return parts.join("\r\n");
     }
 
-    createVueOptions(name,inherit,props,data){
+    createClassDescription(module, inherit, imps, methods, members, _private){
+        const description = [
+            `'id':${Constant.DECLARE_CLASS}`,
+            `'ns':'${module.namespace.toString()}'`,
+            `'name':'${module.id}'`,
+        ];
+        if( _private ){
+            description.push(`'private':${_private}`);
+        }
+        if( imps.length > 0 ){
+            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
+        }
+        if( inherit ){
+            description.push(`'inherit':${this.getModuleReferenceName( inherit, module)}`);
+        }
+        if( methods ){
+            description.push(`'methods':${methods}`);
+        }
+        if( members ){
+            description.push(`'members':${members}`);
+        }
+        return description;
+    }
+
+    createDefaultConstructor(module, inherit, properties, initialProps){
+        const defaultConstructor=[`function (options){`];
+        if( properties.length > 0 ){
+            defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:{${properties.join(",")}}})`) )
+        }
+        if( inherit ){
+            defaultConstructor.push( this.semicolon(`${this.getModuleReferenceName(inherit)}.prototype._init.call(this,options)`) );
+        }
+        if( initialProps.length > 0 ){
+            defaultConstructor.push.apply(defaultConstructor, initialProps);
+        }
+        defaultConstructor.push('}');
+        return defaultConstructor.join("\r\n");
+    }
+
+    createOptions(name,inherit,props,data){
         const properties = [`name:'${name}'`];
         const indent = this.getIndent();
         if( inherit ){
-            if( inherit.isDeclaratorModule && this.isInheritWebComponent( inherit ) ){
-                const Component = this.getGlobalModuleById('web.components.Component');
-                this.addDepend( Component );
-                const _inherit = `Class.property(${this.getModuleReferenceName(Component)},'inherit').call(null,${this.getModuleReferenceName(inherit)})`;
-                properties.push( `extends:${_inherit}` )
-            }else{
-                properties.push( `extends:${this.getModuleReferenceName(inherit)}` );
-            }
+            properties.push( `extends:${this.getModuleReferenceName(inherit)}` );
         }
         if( props.length > 0 ){
             properties.push( `props:{\r\n\t\t${indent}${props.join(`,\r\n\t\t${indent}`)}\r\n\t${indent}}` );

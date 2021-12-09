@@ -6,9 +6,20 @@ class DeclaratorDeclaration extends Syntax{
     emitter(){
         const module = this.module;
         const polyfillModule = Polyfill.modules.get(module.id);
-        if( module.require ){
-            return null;
+        if( module.isDeclaratorModule && module.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(module) ){
+            const content = [];
+            const refs = [];
+            const component = this.getGlobalModuleById('web.components.Component');
+            this.addDepend( component );
+            this.createDependencies(module,refs);
+            if( refs.length > 0 ){
+                content.unshift( refs.join("\r\n") );
+            }
+            const exports = `${this.getModuleReferenceName(component,module)}.createComponent(null,${module.id})`;
+            content.push( this.emitExportClass(module, exports ) );
+            return content.join("\r\n");
         }
+
         if( !polyfillModule ){
             return null;
         }

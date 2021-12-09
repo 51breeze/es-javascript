@@ -15,7 +15,36 @@ const loadStack=()=>{
 const defaultConfig ={
     "target":"es6",
     "webComponent":"vue",
-    "reserved":['_data','_props','$data','$props','$forceUpdate','$mount'],
+    "reserved":{
+        'vue':[
+            '_data',
+            '_props',
+            '$data',
+            '$props',
+            '$forceUpdate',
+            '$mount',
+            '$parent',
+            '$children',
+            '$attrs',
+            '$options',
+            '$el',
+            '$root',
+            '$slots',
+            '$scopedSlots',
+            '$refs',
+            '$isServer',
+            '$listeners',
+            '$watch',
+            '$set',
+            '$delete',
+            '$on',
+            '$once',
+            '$off',
+            '$emit',
+            '$nextTick',
+            '$destroy',
+        ]
+    },
     "useDefineProperty":false,
     "module":'es', //ES CommonJS
     "emitFile":false,
@@ -69,9 +98,17 @@ const properties ={
     }
 }
 
+function registerError(define, cn, en){
+    define(10000,'BINDING_PROPERTY_CAN_ONLY_ACCESSOR',[
+        '绑定的属性(%s)必须是一个可赋值的成员属性',
+        "Binding the '%s' property must be an assignable member property"
+    ]);
+}
+
 function plugin(complier){
     if( modules.size === 0 ){
         loadStack();
+        registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     }
     this.complier = complier;
     //const types = complier.options.types || (complier.options.types=[]);
