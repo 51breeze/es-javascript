@@ -1,5 +1,16 @@
-import Class from "./Class.js";
-import EventDispatcher from "./EventDispatcher.js";
+var Class = require("./Class.js");
+var EventDispatcher = require("./EventDispatcher.js");
+/*
+ * EaseScript
+ * Copyright © 2017 EaseScript All rights reserved.
+ * Released under the MIT license
+ * https://github.com/51breeze/EaseScript
+ * @author Jun Ye <664371281@qq.com>
+ */
+
+
+
+
 function System(){
     throw new SyntaxError('System is not constructor.');
 };
@@ -196,10 +207,10 @@ System.getEventDispatcher=function getEventDispatcher(){
      }
      return null;
  };
-Class.creator(11,System,{
+Class.creator(7,System,{
 	'id':1,
 	'global':true,
 	'dynamic':false,
 	'name':'System'
 });
-export default System;
+module.exports=System;

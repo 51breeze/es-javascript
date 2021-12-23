@@ -1,15 +1,11 @@
-import "assets/style.css";
-import Person from "./Person.js";
-import EventDispatcher from "./core/EventDispatcher.js";
-import Event from "./core/Event.js";
-import Types from "./Types.js";
-import TestInterface from "./com/TestInterface.js";
-import Skin from "./com/Skin.js";
-import Select from "./web/ui/Select.js";
-import MySelectOption from "./web/ui/MySelectOption.js";
-import Class from "./core/Class.js";
-import System from "./core/System.js";
-import Reflect from "./core/Reflect.js";
+var Person = require("./Person.js");
+var TestInterface = require("./com/TestInterface.js");
+var EventDispatcher = require("./core/EventDispatcher.js");
+var Event = require("./core/Event.js");
+var Types = require("./Types.js");
+var Class = require("./core/Class.js");
+var Reflect = require("./core/Reflect.js");
+var System = require("./core/System.js");
 var _private=Symbol("private");
 function Test(name,age){
 	Object.defineProperty(this,_private,{value:{'bbss':'bbss','age':40,'len':5,'currentIndex':0}});
@@ -24,7 +20,9 @@ methods.getClass={m:3,d:3,value:function getClass(){
 	buname.test=a;
 	buname.person=Person;
 	var test=buname.test;
-	test.getClassObject();
+	expect(Test).toBe(test);
+	expect(Test).toBe(test.getClassObject());
+	expect(Test).toBe(Reflect.call(Test,test,'getClassObject'));
 	return buname;
 }};
 methods.getClassObject={m:3,d:3,value:function getClassObject(){
@@ -40,6 +38,9 @@ methods.uuName={m:3,d:4,enumerable:true,get:function uuName(){
 	return 'uuName';
 }};
 methods.iiu={m:1,d:1,writable:true,value:Test};
+methods.main={m:3,d:3,value:function main(){
+	(new Test('Test')).start();
+}};
 var members = {};
 members.bbss={m:1,d:1,writable:true,value:'bbss'};
 members.age={m:1,d:2,value:40};
@@ -70,10 +71,10 @@ members.start={m:3,d:3,value:function start(){
 		expect(Test.getClass().test).toBe(Test);
 	});
 	it("'Test.getClass().person' should is Person",function(){
-		expect(Test.getClass().person).toBe(Person);
+		expect(Person).toBe(Person);
 	});
 	it("'new (Test.getClass().person)('')' should is true",function(){
-		const o = new (Test.getClass().person)('name');
+		const o = new (Person)('name');
 		expect(o instanceof Person).toBeTrue();
 	});
 	it("'this.bbss=\"666666\"' should is '666666' ",function(){
@@ -107,7 +108,7 @@ members.start={m:3,d:3,value:function start(){
 		var obds = 1;
 		const three = bsp(false);
 		var once = {"two":{"three":three,"four":bsp}};
-		expect(once.two.three).toBe(_this);
+		expect(Reflect.get(Test,once.two,"three")).toBe(_this);
 		expect(once.two.four(true)).toBe(obj);
 		once[obds];
 	});
@@ -144,24 +145,6 @@ members.start={m:3,d:3,value:function start(){
 	this.testTuple();
 	this.next();
 }};
-members.onClick={m:1,d:3,value:function onClick(){
-
-}};
-members.jsx={m:1,d:3,value:function jsx(){
-		var createElement = this.$createElement;
-	return createElement(Skin,{
-			"scopedSlots":{
-			"foot":this.$scopedSlots['foot'] || (function(scope){return ['ssssssssssssssss']}).bind(this)
-			}
-			}, [
-			createElement(Select,null, [
-				createElement(MySelectOption)
-			]),'sdfff'
-		]);
-}};
-members.render={m:3,d:3,value:function render(){
-
-}};
 members.testEnumerableProperty={m:1,d:3,value:function testEnumerableProperty(){
 	var _this = this;
 	it("for( var name in this) should is this or object ",function(){
@@ -176,7 +159,7 @@ members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
 	var bname = "123";
 	var _c1,_c,o = (_c={},
 		_c[bname]=1,
-		_c[sssss]=2,
+		_c['sssss']=2,
 		_c.uuu=(_c1={},
 			_c1[bname]=3,
 			_c1),
@@ -185,8 +168,8 @@ members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
 		expect(o[bname]).toBe(1);
 		expect(o.uuu[bname]).toBe(3);
 		expect(o.uuu["123"]).toBe(3);
-		Reflect.set(Test,o["uuu"],bname,true);
-		expect(Reflect.get(Test,o["uuu"],bname)).toBe(true);
+		o["uuu"][bname]=true;
+		expect(o["uuu"][bname]).toBe(true);
 	});
 }};
 members.testLabel={m:1,d:3,value:function testLabel(){
@@ -241,7 +224,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 		_c2.name=123,
 		_c2[types]=1,
 		_c2);
-	Reflect.set(Test,bds,types,99);
+	bds[types]=99;
 	it("Generics should is true",function(){
 		expect(typeof _this.avg("test")).toBe('string');
 		expect(ccc.name.toFixed(2)).toBe("1.00");
@@ -259,6 +242,56 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 	let obj = this.getTestObject(true);
 	var bsddd = obj.getNamess(1);
 	var sss = obj.getClassTestGenerics(1,1);
+	var type = this;
+	type instanceof Number;
+	type instanceof Number;
+	type;
+	var bb = {"a":'',"b":1};
+	var bc = 'label';
+	var bj = 3;
+	var bt = {"a":'sss',"b":99};
+	var be = 'a';
+	var bf = 'b';
+	var bg = [];
+	bg.push('b');
+	var v12 = {};
+	var v13 = v12[1];
+	var v14 = [1];
+	var v15 = v14[0];
+	it('keyof',function(){
+		_this['dynamic']=[1];
+		var v16 = _this['dynamic'];
+		expect([1]).toEqual(v16);
+		var bh = _this.testKeyof(bt,'a');
+		var fs = _this.testKeyof(bt,'b');
+		expect('sss').toEqual(bh);
+		expect(99).toEqual(fs);
+		var bfd = {"name":'6699'};
+		var fdb = _this.testKeyof(bfd,'name');
+		expect('6699').toEqual(fdb);
+		var getNamessFun = _this.testKeyof(_this,'getNamess');
+		expect(_this.getNamess).toEqual(getNamessFun);
+		var bdfs4 = getNamessFun('sssss');
+	});
+	var b9 = function(name,callback){
+		var b = callback;
+		var n = b(1);
+		var v = callback(1);
+		return '';
+	};
+	it('keyof',function(){
+		function tNames(){
+			return 1;
+		}
+		var b10 = tNames;
+		var b11 = b10();
+		expect(1).toEqual(1);
+		var bst9 = new Test('111','11111');
+		expect('111').toEqual(bst9.getNamess('111'));
+	});
+}};
+members.testKeyof={m:1,d:3,value:function testKeyof(t,k){
+	return Reflect.get(Test,t,k);
 }};
 members.getClassTestGenerics={m:1,d:3,value:function getClassTestGenerics(name,age){
 	var a = [age,name];
@@ -485,7 +518,7 @@ members.avg={m:3,d:3,value:function avg(yy,bbc){
 	var bb = ['1'];
 	function name(i){
 		var b = i;
-		i.avg();
+		i.avg('');
 		i.method('',1);
 		return b;
 	}
@@ -494,8 +527,16 @@ members.avg={m:3,d:3,value:function avg(yy,bbc){
 	const bbb = name(person);
 	name(person);
 	var dd = [1,1,"2222","66666","8888"];
+	var a1=dd[0],a2=dd[1],a3=dd[2];
+	expect(1).toEqual(a1);
+	expect(1).toEqual(a2);
+	expect("2222").toEqual(a3);
+	expect([1,1,"2222","66666","8888"]).toEqual(dd);
+	expect(['1']).toEqual(bb);
 	bb.push();
+	expect(['1']).toEqual(bb);
 	dd.push(1);
+	expect([1,1,"2222","66666","8888",1]).toEqual(dd);
 	return yy;
 }};
 members.map={m:3,d:3,value:function map(){
@@ -517,14 +558,10 @@ Class.creator(0,Test,{
 	'ns':'',
 	'name':'Test',
 	'private':_private,
+	'imps':[TestInterface],
 	'inherit':Person,
 	'methods':methods,
 	'members':members
 });
-export default Test;
-/*externals code*/;
-(function(){
-	var Test = Class.require(0);
-	const test = new Test('Test');
-	test.start();
-}());
+module.exports=Test;
+Test.main();

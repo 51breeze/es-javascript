@@ -51,7 +51,11 @@ class Property extends Syntax{
                if( this.stack.key.isIdentifier && !this.stack.computed ){
                     return `${refs}.${key}=${value}`
                }else{
-                    return `${refs}[${key}]=${value}`
+                    if( this.stack.key.isLiteral && this.stack.key.value() !== this.stack.key.raw()  ){
+                        return `${refs}['${key}']=${value}`
+                    }else{
+                        return `${refs}[${key}]=${value}`
+                    }
                }
             }
             return `"${key}":${value}`;

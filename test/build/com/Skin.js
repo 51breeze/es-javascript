@@ -1,46 +1,29 @@
-var _private=Symbol("private");
 import Component from "./../web/components/Component.js";
 import State from "./State.js";
-import PersonSkin from "./../PersonSkin.js";
 import Class from "./../core/Class.js";
-var Skin = Component.createComponent({
-	name:'Skin',
-	extends:Component,
-	props:{
-		state:{type:null},
-		stateGroup:{type:Array},
-		states:{type:Array}
-	}
-});
+var _private=Symbol("private");
+function Skin(){
+Component.apply(this,Array.prototype.slice.call(arguments));
+}
 var members = {};
-members.state={m:3,d:4,configurable:true,enumerable:true,get:function state(){
+members.state={m:3,d:4,enumerable:true,get:function state(){
 	return new State('name');
 },set:function state(vlaue){
 
 }};
-members.stateGroup={m:3,d:4,configurable:true,enumerable:true,get:function stateGroup(){
+members.stateGroup={m:3,d:4,enumerable:true,get:function stateGroup(){
 	return [this.state];
 },set:function stateGroup(value){
 
 }};
-members.states={m:3,d:4,configurable:true,enumerable:true,set:function states(vlaue){
+members.states={m:3,d:4,enumerable:true,set:function states(vlaue){
 
 }};
-members.render={m:3,d:3,value:function render(c){
-		var createElement = this.$createElement;
-	return createElement(PersonSkin,{
-			"scopedSlots":{
-			"foot":this.$scopedSlots['foot'] || (function(scope){return ['ssssssssssssssss',scope.props
-			]}).bind(this)
-			}
-			}, this.$slots['default'] || ['=========default===========']);
+members.render={m:2,d:3,value:function render(){
+		var createElement = this.createElement.bind(this);
+	return createElement('div',null, (this.slot('foot') || []).concat((this.slot('default') || [])));
 }};
-members._init={value:function _init(options){
-(function (options){
-Component.prototype._init.call(this,options);
-}).call(this,options);
-}}
-Class.creator(6,Skin,{
+Class.creator(12,Skin,{
 	'id':1,
 	'ns':'com',
 	'name':'Skin',

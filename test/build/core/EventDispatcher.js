@@ -1,5 +1,5 @@
-import Class from "./Class.js";
-import Event from "./Event.js";
+var Class = require("./Class.js");
+var Event = require("./Event.js");
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -7,13 +7,15 @@ import Event from "./Event.js";
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
  */
+
+
+
+
 var __KEY__ = Symbol('EventDispatcher');
 function EventDispatcher( target ){
-
     if( !(this instanceof EventDispatcher) ){
         return new EventDispatcher( target );
     }
-
     var init = {
         proxy:target,
         isEvent:false,
@@ -23,17 +25,14 @@ function EventDispatcher( target ){
         if( typeof target !== 'object'){
             throw new Error('target is not object');
         }
-        init.isEvent = target instanceof EventDispatcher;
-        this[ __KEY__ ] = target[ __KEY__ ] || (target[ __KEY__ ]=init);
-    }else{
-        this[ __KEY__ ] = init;
+        init.isEvent = target instanceof EventDispatcher;  
     }
+    Object.defineProperty(this,__KEY__,{value:init});
 }
 
 EventDispatcher.prototype=Object.create( Object.prototype,{
     "constructor":{value:EventDispatcher}
 });
-
 
 /**
  * 判断是否有指定类型的侦听器
@@ -223,4 +222,4 @@ Class.creator(3,EventDispatcher,{
 	'dynamic':false,
 	'name':'EventDispatcher'
 });
-export default EventDispatcher;
+module.exports=EventDispatcher;

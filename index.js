@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const Syntax = require("./core/Syntax");
+const Plugins = require("./core/Plugins");
 const Builder = require("./core/Builder");
 const {merge} = require("lodash");
 const modules = new Map();
@@ -15,36 +15,9 @@ const loadStack=()=>{
 const defaultConfig ={
     "target":"es6",
     "webComponent":"vue",
-    "reserved":{
-        'vue':[
-            '_data',
-            '_props',
-            '$data',
-            '$props',
-            '$forceUpdate',
-            '$mount',
-            '$parent',
-            '$children',
-            '$attrs',
-            '$options',
-            '$el',
-            '$root',
-            '$slots',
-            '$scopedSlots',
-            '$refs',
-            '$isServer',
-            '$listeners',
-            '$watch',
-            '$set',
-            '$delete',
-            '$on',
-            '$once',
-            '$off',
-            '$emit',
-            '$nextTick',
-            '$destroy',
-        ]
-    },
+    "webpack":false,
+    "styleLoader":null,
+    "reserved":{},
     "useDefineProperty":false,
     "module":'es', //ES CommonJS
     "emitFile":false,
@@ -55,45 +28,33 @@ const defaultConfig ={
     "ns":'core',
     'useAbsolutePathImport':false,
 }
-
-const profile={
+const configData = Object.assign({},defaultConfig);
+const properties ={
     name:'javascript',
     platform:'client',
-    configuration:defaultConfig,
-    make(stack, ...args){
-        const stackModule = modules.get( stack.toString() );
-        if( stackModule ){
-            const obj = new stackModule(stack);
-            if( args.length > 0 ){
-                return obj.emitter.apply(obj, args);
-            }else{
-                return obj.emitter();
-            }
-        }
-        throw new Error(`Stack '${stack.toString()}' is not found.`);
-    }
-}
-
-const properties ={
-    name:profile.name,
-    platform:profile.platform,
     version:require("./package.json").version,
-    modules,
     config(options){
-        const target = Syntax.prototype.configuration;
         if(options){
-            merge(target, options);
+            merge(configData, options);
         }
-        return target;
+        return configData;
+    },
+    getPolyfill(name){},
+    getStack(name){
+        return modules.get(name);
     },
     start(compilation, done, options){
         if(options)this.config(options);
         const builder = new Builder( compilation.stack );
+        builder.name = this.name;
+        builder.platform = this.platform;
         builder.start(done);
     },
     build(compilation, done, options){
         if(options)this.config(options);
         const builder = new Builder( compilation.stack );
+        builder.name = this.name;
+        builder.platform = this.platform;
         builder.build(done);
     }
 }
@@ -111,22 +72,27 @@ function plugin(complier){
         registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     }
     this.complier = complier;
-    //const types = complier.options.types || (complier.options.types=[]);
-    //types.push( require.resolve('./types/web.es') );
+    complier.loadTypes([require.resolve('./types/web.d.es')],true);
 };
-
-Object.defineProperty(plugin.prototype, 'constructor', {
-    value:plugin,
-    enumerable:false,
-    configurable:false
-});
-
-for(var name in profile){
-    Object.defineProperty(Syntax.prototype, name, {
-        value:profile[name],
-        enumerable:false,
-        configurable:false
-    });
+plugin.loadStack = loadStack;
+plugin.extend=function extend(plugin){
+    var checker = [
+        {name:'name', type:['string']},
+        {name:'platform', type:['string']},
+        {name:'version', type:['string','number']},
+        {name:'config', type:['function']},
+        {name:'getStack', type:['function']},
+        {name:'getPolyfill', type:['function']},
+        {name:'start', type:['function']},
+        {name:'build', type:['function']},
+    ];
+    if( checker.every(item=>{
+        return item.type.includes( typeof plugin[ item.name ] );
+    })){
+        Plugins.register(plugin.name, plugin);
+    }else{
+        throw new Error('Plugin invalid');
+    }
 }
 
 for(var name in properties){
@@ -135,10 +101,10 @@ for(var name in properties){
         enumerable:false,
         configurable:false
     });
-    if( ['name','platform','version'].includes( name ) ){
+    if( ['name','platform','version'].includes(name) ){
         Object.defineProperty(plugin,name,{
             value:properties[name],
-            enumerable:true,
+            enumerable:false,
             configurable:false
         });
     }
@@ -150,4 +116,13 @@ Object.defineProperty(plugin,'modules',{
     configurable:false
 });
 
+Object.defineProperty(plugin,'defaultConfig',{
+    get:function(){
+        return Object.assign({},defaultConfig);
+    },
+    enumerable:true,
+    configurable:false
+});
+
+plugin.extend(properties);
 module.exports = plugin;

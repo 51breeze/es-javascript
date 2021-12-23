@@ -1,6 +1,4 @@
 const Syntax = require("../core/Syntax");
-const Constant = require("../core/Constant");
-const VueClass = require("../core/VueClass");
 class JSXElement extends Syntax{
     
     makeProperty(attrs, level=0){
@@ -176,8 +174,6 @@ class JSXElement extends Syntax{
             if( !result )break;
         }
 
-       
-
         if( part.length > 0 ){
             content.push( part.splice(0, part.length) );
         }
@@ -224,13 +220,13 @@ class JSXElement extends Syntax{
         }
     }
 
-    makeClass(script, children, data, level){
-        const module = this.module;
-        let element = children && children.length > 0 ?  this.makeChildren(children,data,level) : null;
-        if( children.length > 0 ){
+    getRenderMethod(children, data, level){
+       
+        let element = children && children.length > 0 ?  this.makeChildren(children, children.length > 1 ? {} : data,level) : null;
+        if( children.length > 1 ){
+            const _data = this.makeProperty(data,level);
             const handle = this.getJsxCreateElementHandle();
-            const inline = this.getIndent(level);
-            element =  `${handle}('div',null, ${element})`
+            element =  `${handle}('div', ${_data}, ${element})`
         }
 
         const properties = [];
@@ -240,27 +236,17 @@ class JSXElement extends Syntax{
         }
 
         const references = [];
-        references.push( this.emitVueCreateElement() );
+        references.push( this.emitCreateElement() );
 
-        let classContent = ``;
-        const render = (context)=>{
+        return (context)=>{
             const indent = this.getIndent(level-1);
-            const hand = this.getJsxCreateElementHandle();
             references.push( `${indent}\treturn ${element};` );
-            return `function render(${hand}){\r\n${references.join('\r\n')}\r\n${indent}}`;
+            return `function render(){\r\n${references.join('\r\n')}\r\n${indent}}`;
         };
+    }
 
-        if( script ){
-            classContent = this.make( script, render , properties );
-        }else {
-            const vueClass = new VueClass( this.stack );
-            classContent = vueClass.emitter(render);
-        }
-
-        if( module.isFragment ){
-            return `(function(){\r\n\t\t${classContent.replace(/([\r\n\t]+)/g,'$1\t\t')}\r\n\t}())`;
-        }
-        return classContent;
+    makeClass(children, data, level){
+        return null;
     }
 
     createAttributes( data, spreadAttributes ){
@@ -280,7 +266,10 @@ class JSXElement extends Syntax{
                 data['on'][name] = value;
                 return;
             }else if( ns ==="@binding" ){
-                data['on']['input'] = `(function(event){${value}=event && event.target && event.target.value || event;}).bind(this)`;
+                data['on']['input'] = `(function(event){${value}=event && event.target && event.target.nodeType===1 ? event.target.value : event;}).bind(this)`;
+            }else if( ns ==="@natives" ){
+                data['nativeOn'][name] = value;
+                return;
             }
             switch(name){
                 case "class" :
@@ -315,33 +304,15 @@ class JSXElement extends Syntax{
         });
     }
 
+    getElementConfig(){
+        return {};
+    }
+
     createElement(level){
-        const children = this.stack.children.filter(child=>!(child.isJSXScript || child.isJSXStyle));
-        const script = this.stack.children.find( child=>child.isJSXScript );
-        const style  = this.stack.children.find( child=>child.isJSXStyle );
+        const children = this.stack.children.filter(child=>!(child.isJSXScript || child.isJSXStyle) );
         const isRoot = this.stack.jsxRootElement === this.stack;
         const spreadAttributes = [];
-        const data={
-            props:{},
-            attrs:{},
-            on:{},
-            nativeOn:{},
-            slot:void 0,
-            scopedSlots:{},
-            domProps:{},
-            key:void 0,
-            ref:void 0,
-            refInFor:void 0,
-            tag:void 0,
-            staticClass:void 0,
-            class:void 0,
-            staticStyle:{},
-            style:{},
-            staticStyle:{},
-            hook:{},
-            transition:{}
-        };
-
+        let data=this.getElementConfig();
         if( this.stack.parentStack.isSlot ){
             const name = this.stack.parentStack.openingElement.name.value();
             data.slot = `'${name}'`;
@@ -365,9 +336,8 @@ class JSXElement extends Syntax{
                 } 
             }
         }
-
-        if(isRoot && this.compilation.JSX && this.stack.isComponent){
-            return this.makeClass(script, children, data, level);
+        if(isRoot && this.compilation.JSX){
+            return this.makeClass(children, data, level);
         }else{
             return this.makeElement(
                 this.make(this.stack.openingElement),
@@ -393,11 +363,11 @@ class JSXElement extends Syntax{
                 const scope = args.map( item=>{
                     return `${item.key}:${item.value}`;
                 })
-                return `(this.$scopedSlots['${name}'] ? this.$scopedSlots['${name}']({${scope.join(',')}}) : ${children})`;
+                return `(this.slot('${name}',true,true,{${scope.join(',')}}) || ${children})`;
             }else if(children){
-                return `(this.$slots['${name}'] || ${children})`;
+                return `(this.slot('${name}') || ${children})`;
             }else{
-                return `(this.$slots['${name}']||[])`;
+                return `(this.slot('${name}') || [])`;
             }
 
         }else{
@@ -406,11 +376,11 @@ class JSXElement extends Syntax{
                 if( refSlot.attributes.length > 0 ){
                     const scope = stack.attributes.find( attr=>attr.name.value()==='scope' );
                     const scopeName = scope && scope.value? scope.value.value() : 'scope';
-                    return `this.$scopedSlots['${name}'] || (function(${scopeName}){return ${children}}).bind(this)`;
+                    return `this.slot('${name}',true) || (function(${scopeName}){return ${children}}).bind(this)`;
                 }else if(children){
-                    return `this.$slots['${name}'] || ${children}`;
+                    return `this.slot('${name}') || ${children}`;
                 }else{
-                    return `this.$slots['${name}']`;
+                    return `this.slot('${name}')`;
                 }
             }
         }

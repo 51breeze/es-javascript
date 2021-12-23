@@ -92,78 +92,10 @@ declare interface Matchers {
 
 
 declare function it(title:string,callback:(done?:()=>void)=>void):int;
+declare function describe(title:string,callback:(done?:()=>void)=>void):void;
 
 declare function expect(result:any):Matchers;
 
 declare class jasmine {
    public static var DEFAULT_TIMEOUT_INTERVAL:int
-}
-
-
-declare System{
-    static getEventDispatcher():EventDispatcher;
-    static getDefinitionByName(name:string):Class;
-    static hasClass(name:string):boolean;
-    static getQualifiedClassName( target:Class ):string;
-    static getQualifiedObjectName( target:object ):string;
-    static getQualifiedSuperclassName(target:object):string;
-}
-
-package web{
-    @require(Vue="vue/dist/vue.js")
-    declare class Vue{
-        constructor(props?:object);
-        static extend( options:object );
-    }
-}
-
-package web.ui{
-
-    @require("element-ui", Select );
-    @Embed("element-ui/lib/theme-chalk/select.css")
-    @WebComponent
-    declare class Select{
-
-    }
-
-    @Require(SelectOption = "element-ui/packages/option")
-    declare class SelectOption extends web.components.Component{
-        set name(value:string)
-        get name():string
-    }
-
-    class MySelectOption extends SelectOption{
-        get value():string{
-            return this.data('value');
-        }
-        set value(value:string){
-            this.data('value',value);
-        }
-
-        render(){
-            return <div><SelectOption {...this.data()} name="ssss" /></div>
-        }
-    }
-    
-}
-
-package web.components{
-
-    @WebComponent
-    declare class Component{
-        public constructor(props?:object);
-        public getReceiveValue<T>(name?:string, defaultValue?:any):T | null;
-        public created();
-        public updated();
-        public render(createElement:(name:string|Component,data:{},children:Node[])=>Node);
-        public mounted();
-        public activated();
-        public deactivated();
-        public destroyed();
-        public beforeCreate();
-        public beforeMount();
-        public beforeUpdate();
-        public beforeDestroy();
-    }
-
 }

@@ -7,7 +7,7 @@ class Creator {
     constructor(options){
         const compiler = new Compiler(Object.assign({
             debug:true,
-            diagnose:false,
+            diagnose:true,
             autoLoadDescribeFile:true,
             output:path.join(__dirname,"./build"),
             workspace:path.join(__dirname,"./src"),
@@ -18,7 +18,7 @@ class Creator {
         compiler.initialize();
         this._compiler = compiler;
         this.plugin = new plugin(compiler);
-        this.plugin.config({pack:false,emitFile:true});
+        this.plugin.config({pack:false,emitFile:true,module:"commonjs"});
     }
 
     get compiler(){

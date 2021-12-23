@@ -1,5 +1,6 @@
 const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
+const Plugins = require("./Plugins");
 const PATH = require("path");
 const events = require('events');
 const moduleIdMap=new Map();
@@ -137,23 +138,25 @@ class Syntax extends events.EventEmitter {
         return dataset[key] = refName;
     }
 
-    getOutputAbsolutePath(module){
+    getOutputAbsolutePath(module, flag){
         const options = this.getOptions();
         const config = this.getConfig();
         const suffix = config.suffix||".js";
         const workspace = config.workspace || this.compiler.workspace;
         const output = config.output || options.output;
-        if( module.isDeclaratorModule ){
-            const polyfillModule = Polyfill.modules.get( module.id );
-            const filename = module.id+suffix;
-            if( polyfillModule ){
-                return PATH.join(output,(polyfillModule.namespace||'').replace(/\./g,'/'),filename).replace(/\\/g,'/');
+        if( !flag && module && module.isModule ){
+            if( module.isDeclaratorModule ){
+                const polyfillModule = Polyfill.modules.get( module.getName() );
+                const filename = module.id+suffix;
+                if( polyfillModule ){
+                    return PATH.join(output,(polyfillModule.namespace||config.ns).replace(/\./g,'/'),filename).replace(/\\/g,'/');
+                }
+                return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
+            }else if( module.compilation.isDescriptionType ){
+                return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
             }
-            return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
-        }else if( module.compilation.isDescriptionType ){
-            return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
         }
-        const filepath = PATH.resolve(output, PATH.relative( workspace, module.file ) );
+        const filepath = flag && typeof module === "string" ? module : PATH.resolve(output, PATH.relative( workspace, module.file ) );
         const info = PATH.parse(filepath);
         if( info.ext !== suffix ){
            return PATH.join(info.dir,info.name+suffix).replace(/\\/g,'/');
@@ -172,7 +175,7 @@ class Syntax extends events.EventEmitter {
     }
     
     getConfig( name ){
-        const config = this.configuration || {};
+        const config = Plugins.getPlugin( this.name ).config();
         if( name ){
             if( name.lastIndexOf(".") > 0 ){
                 const keys = name.split('.');
@@ -324,35 +327,27 @@ class Syntax extends events.EventEmitter {
         return this.compilation.getDependencies(module) || [];
     }
 
-    isDependModule(depModule){
+    isDependModule(depModule,context){
         if( this.compilation.isPolicy(2,depModule) ){
             return false;
         }
         const isUsed = this.isUsed(depModule);
-        if( isUsed && depModule.isDeclaratorModule && depModule.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(depModule) ){
-            return true;
-        }
         const isRequire = !depModule.isDeclaratorModule && 
                             isUsed &&
                             this.compiler.callUtils("isLocalModule", depModule) && 
-                            !this.compiler.callUtils("checkDepend",module, depModule);         
-        const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has(depModule.id);
-        return isRequire || isPolyfill;
+                            !this.compiler.callUtils("checkDepend",this.module, depModule);         
+        const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has( depModule.getName() );
+        return isRequire || isPolyfill || (context && (context.requires.has( depModule.id ) || depModule.requires.has(depModule.id) ) );
     }
 
-    getModuleFile(module){
-        if(module.require){
-            return module.file;
-        }
-        return module.compilation.modules.size > 1 ? `${module.file}?id=${module.id}` : module.file;
+    getModuleFile(module, uniKey, type){
+        return this.compiler.normalizeModuleFile(module, uniKey, type);
     }
 
     getModuleReferenceName(module,context){
         context = context || this.module;
         if( module.required ){
-            if( module.id === module.required.name ){
-               return module.id;
-            }
+            return module.id;
         }
         if( context ){
             if( context.compilation.isDescriptionType ){
@@ -363,6 +358,61 @@ class Syntax extends events.EventEmitter {
         return module.namespace.getChain().concat(module.id).join("_");
     }
 
+    createModuleAssets(module,refs){
+        refs = refs || [];
+        const push = (value)=>{
+            if( refs.indexOf(value) < 0 ){
+                refs.push( value );
+            }
+        }
+        const target = module || this.compilation;
+        const assets = target.assets;
+        const config = this.getConfig();
+        const isWebpack = config.webpack;
+        if( assets && assets.size > 0 && isWebpack ){
+            assets.forEach( asset=>{
+                if( asset.file ){
+                    if( asset.assign ){
+                        push( this.createImport( `${asset.assign}`, asset.file ) )
+                    }else{
+                        push( this.createImport( null, asset.file ) );
+                    } 
+                }else if( asset.type ==="style" && config.styleLoader && module ){
+                    const filename = config.styleLoader.concat( this.getModuleFile(module, asset.resolve, asset.type) ).join('!');
+                    push( this.createImport( null, filename ) );
+                }
+            });
+        }
+        return refs;
+    }
+
+    createModuleRequires(module,refs){
+        refs = refs || [];
+        const push = (value)=>{
+            if( refs.indexOf(value) < 0 ){
+                refs.push( value );
+            }
+        }
+        const target = module || this.compilation;
+        if( target.requires && target.requires.size > 0 ){
+            target.requires.forEach( item=>{
+                const file = this.compiler.normalizePath( item.from );
+                if( item.extract ){
+                    const key = item.key;
+                    const name = item.name;
+                    if( name !== key ){
+                        push( this.createImport( `{${key} as ${name}}`, file ) )
+                    }else{
+                        push( this.createImport( `{${name}}`, file ) )
+                    }
+                }else{
+                    push( this.createImport( `${item.key}`, file ) )
+                }
+            });
+        }
+        return refs;
+    }
+
     createDependencies(module, refs){
         const config = this.getConfig();
         const push = (value)=>{
@@ -370,39 +420,10 @@ class Syntax extends events.EventEmitter {
                 refs.push( value );
             }
         }
-        const createAssets = (module)=>{
-            const assets = module.assets;
-            if( assets && assets.size > 0 ){
-                assets.forEach( asset=>{
-                    if( asset.assign ){
-                        push( this.createImport( `${asset.assign}`, asset.file ) )
-                    }else{
-                        push( this.createImport( null, asset.file ) );
-                    }
-                });
-            }
-        }
-
-        const createRequire =(depModule)=>{
-            if( depModule.required ){
-                const file = depModule.required.file.replace(/\\/g,'/');
-                if( depModule.required.extract ){
-                    const from = depModule.required.from;
-                    const name = depModule.required.name;
-                    if( depModule.required.hasAs ){
-                        push( this.createImport( `{${from} as ${name}}`, file ) )
-                    }else{
-                        push( this.createImport( `{${name}}`, file ) )
-                    }
-                }else{
-                    push( this.createImport( `${depModule.required.name}`, file ) )
-                }
-            }
-        }
-
-        createAssets( module );
-        createRequire( module );
-
+        
+        this.createModuleAssets( module, refs );
+        this.createModuleRequires( module, refs );
+        
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
@@ -415,22 +436,10 @@ class Syntax extends events.EventEmitter {
                     push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }else if( this.isUsed(depModule) ){
-                createAssets( depModule );
-                createRequire( depModule );
+                this.createModuleAssets( depModule, refs );
+                this.createModuleRequires( depModule, refs );
             }
         });
-    }
-
-    getCoreFileOutputPath( file, context ){
-        const config = this.getConfig();
-        const options = this.getOptions();
-        const output = config.output || options.output;
-        const filename = PATH.join(output,(config.ns||'').replace(/\./g,'/'),PATH.basename(file)).replace(/\\/g,'/');
-        if( config.useAbsolutePathImport ){
-            return filename;
-        }else{
-            return './'+PATH.relative(PATH.dirname(this.getOutputAbsolutePath(context)),filename).replace(/\\/g,'/');
-        }
     }
 
     createImport(name, file){
@@ -508,7 +517,7 @@ class Syntax extends events.EventEmitter {
     getInherit(module){
         const inherit = module && module.inherit;
         if( inherit ){
-            if( !(this.isDependModule(inherit) || inherit.required) ){
+            if( !this.isDependModule(inherit,module) ){
                 return null;
             }
             this.addDepend( inherit );
@@ -534,35 +543,21 @@ class Syntax extends events.EventEmitter {
         return null;
     }
 
-    emitVueCreateClass(module, inherit, props, data){
-        const refs = this.getModuleReferenceName(inherit, module);
-        const handle = `${refs}.makeComponent`;
-        const properties = [];
-        const indent = this.getIndent();
-        if( props.length > 0 ){
-            properties.push( `props:{\r\n\t\t${indent}${props.join(`,\r\n\t\t${indent}`)}\r\n\t${indent}}` );
-        }
-        if( data.length > 0 ){
-            properties.push( `data:{\r\n\t\t${indent}${data.join(`,\r\n\t\t${indent}`)}\r\n\t${indent}}` );
-        }
-        return this.semicolon(`${handle}('${module.id}', ${module.id}, {\r\n\t${indent}${properties.join(`,\r\n\t${indent}`)}\r\n})`);
-    }
-
     getJsxCreateElementHandle(){
         return 'createElement';
     }
 
     getJsxCreateElementRefs(){
-        return 'this.$createElement';
+        return 'this.createElement.bind(this)';
     }
 
-    emitVueCreateElement(){
+    emitCreateElement(){
         return this.semicolon(`var ${this.getJsxCreateElementHandle()} = ${this.getJsxCreateElementRefs()}`)
     }
 
     isInheritWebComponent(classModule){
         if( webComponents.has(classModule) ){
-            return webComponents.get(classModule);
+            return true;
         }
         while( classModule ){
             const stack = this.compilation.getStackByModule( classModule );
@@ -578,7 +573,32 @@ class Syntax extends events.EventEmitter {
         return false;
     }
 
-    emitter(){}
+    make(stack, ...args){
+        const plugin = Plugins.getPlugin( this.name );
+        const stackClass = plugin.getStack( stack.toString() );
+        if( stackClass ){
+            const obj = new stackClass( stack );
+            obj.name = this.name;
+            obj.platform = this.platform;
+            if( args.length > 0 ){
+                return obj.emitter.apply(obj, args);
+            }else{
+                return obj.emitter();
+            }
+        }
+        throw new Error(`Stack '${stack.toString()}' is not found.`);
+    }
+
+    factory(syntaxClass,stack){
+        const obj = new syntaxClass( stack );
+        obj.name = this.name;
+        obj.platform = this.platform;
+        return obj;
+    }
+
+    emitter(){
+        return null;
+    }
 
     error(message , stack=null){
         if( stack===null ){

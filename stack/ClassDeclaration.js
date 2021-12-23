@@ -1,6 +1,5 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
-const VueClass = require("../core/VueClass");
 class ClassDeclaration extends Syntax{
 
     emitStack(item,name,isStatic,properties,modifier){
@@ -40,30 +39,20 @@ class ClassDeclaration extends Syntax{
     }
 
     emitter(){
-
         const module = this.module;
-        const isWeb = this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent( module );
-        if( isWeb ){
-            return (new VueClass( this.stack )).emitter();
-        }
-       
         const methods = module.methods;
         const members = module.members;
+        const _private = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
         const properties = [];
         const content = [];
         const imps    = this.getImps(module);
         const inherit = this.getInherit(module);
         const refs = [];
-        const props = [];
-        const data = [];
-        const reserved = isWeb ? this.getConfig('reserved') : [];
+        const mainEnterMethods=[];
         const emitter=(target,proto,content,isStatic,descriptive)=>{
             for( var name in target ){
                 const item = target[ name ];
                 const modifier = item.modifier ? item.modifier.value() : 'public';
-                if( isWeb && Array.isArray(reserved) && reserved.includes(name) ){
-                    item.error(1124,name);
-                }
                 if( item.isPropertyDefinition ){
                     const value = this.emitStack(item,name,isStatic,properties,modifier);
                     const kind = item.kind ==="var" ?  Constant.DECLARE_PROPERTY_VAR : Constant.DECLARE_PROPERTY_CONST;
@@ -74,23 +63,8 @@ class ClassDeclaration extends Syntax{
                         false,
                         modifier,
                         kind,
-                        descriptive,
-                        isWeb
+                        descriptive
                     ));
-
-                    if( !isStatic ){
-                        if( modifier ==="public" ){
-                            const type = this.getAvailableOriginType( item.type() );
-                            if( value ){
-                                props.push( `${name}:{type:${type},default:${value}}` );
-                            }else{
-                                props.push( `${name}:{type:${type}}` );
-                            }
-                        }else{
-                            data.push( `${name}:${value || null}` );
-                        }
-                    }
-                    
                 }else if( item.isAccessor ){
                     content.push(this.definePropertyDescription(
                         proto,
@@ -102,18 +76,14 @@ class ClassDeclaration extends Syntax{
                         true,
                         modifier,
                         Constant.DECLARE_PROPERTY_ACCESSOR,
-                        descriptive,
-                        isWeb
+                        descriptive
                     ));
-                    if( !isStatic && item.set ){
-                        if( modifier === "public" ){
-                            const type = this.getAvailableOriginType( item.set.params[0] && item.set.params[0].type() );
-                            props.push( `${name}:{type:${type}}` );
-                        }else{
-                            data.push( `${name}:${null}` );
-                        }
-                    }
                 }else{
+
+                    if(isStatic && modifier ==="public" && item.isEnterMethod && !mainEnterMethods.length ){
+                        mainEnterMethods.push( this.semicolon(`${module.id}.${name}()`) )
+                    }
+
                     let kind = Constant.DECLARE_PROPERTY_FUN;
                     content.push(this.definePropertyDescription(
                         proto,
@@ -127,6 +97,7 @@ class ClassDeclaration extends Syntax{
                 }
             }
         }
+
         const methodContent = [];
         const memberContent = [];
 
@@ -138,6 +109,7 @@ class ClassDeclaration extends Syntax{
         });
 
         this.addDepend( this.getGlobalModuleById('Class') );
+
         emitter( methods , 'methods', methodContent , true);
         emitter( members , `members`, memberContent , false);
 
@@ -146,38 +118,16 @@ class ClassDeclaration extends Syntax{
             memberContent.push(`members[Symbol.iterator]={value:function(){return this;}}`)
         }
 
-        const parentClassName = inherit ? this.getModuleReferenceName( inherit ) : 'Object';
-        const callSuper = inherit ? `${parentClassName}.call(this);` : '';
-        const defaultConstructor=[`function ${module.id}(){`];
-
-        if( properties.length > 0 ){
+        if( module.methodConstructor && properties.length > 0 ){
             module.methodConstructor.once("fetchClassProperty",(event)=>{
                 event.properties = `{${properties.join(",")}}`;
             });
-            defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:{${properties.join(",")}}})`) )
         }
-        if( callSuper ){
-            defaultConstructor.push( this.semicolon( callSuper) );
-        }
-        defaultConstructor.push('}');
-
-        const construct = module.methodConstructor ? this.make(module.methodConstructor) : `${defaultConstructor.join("\r\n")}`;
-        const description = [
-            `'id':${Constant.DECLARE_CLASS}`,
-            `'ns':'${module.namespace.toString()}'`,
-            `'name':'${module.id}'`,
-            `'private':${Constant.REFS_DECLARE_PRIVATE_NAME}`,
-        ];
-
-        if( imps.length > 0 ){
-            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
-        }
-        if( inherit ){
-            description.push(`'inherit':${this.getModuleReferenceName( inherit )}`);
-        }
-
+       
+        const construct = module.methodConstructor ? this.make(module.methodConstructor) : this.createDefaultConstructor(module,inherit,_private,properties);
+        
         this.createDependencies(module,refs);
-        refs.push(`var ${Constant.REFS_DECLARE_PRIVATE_NAME}=Symbol("private");`);
+        refs.push(`var ${_private}=Symbol("private");`);
         
         //alias refs
         if( topRefs.size > 0 ){
@@ -186,34 +136,72 @@ class ClassDeclaration extends Syntax{
             });
         }
 
+        let _methods = null;
+        let _members = null;
+
         if( methodContent.length > 0 ){
             content.push(`var methods = {};`);
-            description.push(`'methods':methods`);
             content.push( methodContent.join("\r\n") )
+            _methods='methods';
         }
 
         if( memberContent.length > 0 ){
             content.push(`var members = {};`);
-            description.push(`'members':members`);
             content.push( memberContent.join("\r\n") )
+            _members='members';
         }
 
+        const description = this.createClassDescription(module, inherit, imps, _methods, _members, _private );
         const parts = refs.concat(construct,content);
         const external = this.buildExternal();
         parts.push( this.emitCreateClassDescription( module, description) );
-
-        if( inherit && this.isInheritWebComponent(module) ){
-            if( this.getConfig('webComponent') ==="vue" ){
-                parts.push( this.emitVueCreateClass(module, inherit, props, data) );
-            }
-        }
-
         parts.push( this.emitExportClass(module) );
         if( external ){
             parts.push( external );
         }
-
+        if( mainEnterMethods.length > 0 ){
+            parts.push( mainEnterMethods.join('\r\n') );
+        }
         return parts.join("\r\n");
+    }
+
+    createClassDescription(module, inherit, imps, methods, members, _private){
+        const description = [
+            `'id':${Constant.DECLARE_CLASS}`,
+            `'ns':'${module.namespace.toString()}'`,
+            `'name':'${module.id}'`,
+        ];
+        if( _private ){
+            description.push(`'private':${_private}`);
+        }
+        if( imps.length > 0 ){
+            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
+        }
+        if( inherit ){
+            description.push(`'inherit':${this.getModuleReferenceName( inherit, module)}`);
+        }
+        if( methods ){
+            description.push(`'methods':${methods}`);
+        }
+        if( members ){
+            description.push(`'members':${members}`);
+        }
+        return description;
+    }
+
+    createDefaultConstructor(module, inherit, _private, properties, initialProps){
+        const defaultConstructor=[`function ${module.id}(){`];
+        if( properties.length > 0 ){
+            defaultConstructor.push( this.semicolon(`\tObject.defineProperty(this,${_private},{value:{${properties.join(",")}}})`) )
+        }
+        if( inherit ){
+            defaultConstructor.push( this.semicolon(`${this.getModuleReferenceName(inherit)}.apply(this,Array.prototype.slice.call(arguments))`) );
+        }
+        if(initialProps && initialProps.length > 0 ){
+            defaultConstructor.push.apply(defaultConstructor, initialProps);
+        }
+        defaultConstructor.push('}');
+        return defaultConstructor.join("\r\n");
     }
 }
 

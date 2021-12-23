@@ -7,10 +7,6 @@ package;
 import com.TestInterface;
 import Person;
 import Types;
-import PersonSkin;
-import com.Skin;
-import web.ui.Select;
-import web.ui.MySelectOption;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
@@ -18,7 +14,7 @@ import web.ui.MySelectOption;
 /**
 * Test a class
 */
-public class Test<U,B=string> extends Person<string> implements Iterator{
+public class Test<U,B=string> extends Person<string> implements Iterator, TestInterface {
 
     /**
     *  返回一个类的引用
@@ -29,7 +25,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         buname.test = a;
         buname.person = Person;
         var {test} = buname;
-        test.getClassObject();
+
+        expect( Test ).toBe( test );
+        expect( Test ).toBe( test.getClassObject() );
+        expect( Test ).toBe( Reflect.call(Test, test, 'getClassObject' ) )
+           
         return buname
     }
 
@@ -81,6 +81,14 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         this.target;
     }
 
+     @Main
+    static main(){
+
+        (new Test('Test')).start()
+
+    }
+
+   
     start(){
         it(`static get uuName accessor`, ()=>{
         
@@ -217,49 +225,6 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
        this.next();
     }
 
-
-    private onClick(){
-
-        
-    }
-
-    private jsx(){
-        //var b = new PersonSkin();
-
-
-        return <Skin xmlns:slot="@slots">
-
-                <Select>
-                  <MySelectOption />
-                </Select>
-
-                <slot:foot>
-
-                    ssssssssssssssss 
-                     
-                </slot:foot>
-
-                sdfff
-        
-        
-        </Skin>
-
-/*
-        var com = <s:Person xmlns:s="com">
-                        <span>ssssssssss</span>
-                </s:Person>
-
-        return <div onclick={this.onClick} class="my" style={{'color':'red'}} xmlns:s="com">
-               <div>child</div>
-               {com}
-              
-        </div>*/
-    }
-
-    render(){
-        //return Skin;
-    }
-
     private testEnumerableProperty(){
         it(`for( var name in this) should is this or object `, ()=>{
             var labels:string[] = ["name","data","target","addressName","iuuu"];
@@ -380,6 +345,96 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         var bsddd = obj.getNamess(1);
         var sss:(int|string)[] = obj.getClassTestGenerics(1, 1)
 
+        var type = this;
+
+
+
+         type B1 = {a:string};
+        type B2 = {b:number};
+
+        type T2 = B1 & B2 
+        type T3 = T2 | 'label';
+        type T4 = T3 | 1 | 2 | 3
+
+        type instanceof Number;
+        type is Number;
+        type as Test<string,number>;
+
+        var bb:T2 =  {a:'',b:1};
+        var bc:T3 = 'label';
+
+        type T5 = typeof bb
+        type T6 = keyof T5
+        type T7 = keyof typeof bb;
+
+        var bj:T4 = 3
+        var bt:T5 = {a:'sss',b:99}
+        var be:T6 = 'a'
+        var bf:T6 = 'b'
+        var bg:T6[] = [];
+        bg.push('b');
+
+        type T8 = {
+            [number|string]:string
+        }
+
+        var v12:T8 = {};
+
+        var v13 = v12[1]
+
+        var v14 = [1];
+
+        var v15 = v14[0]
+
+        it('keyof', ()=>{
+
+            this['dynamic'] = [1];
+            var v16 = this['dynamic']
+            expect([1]).toEqual( v16 );
+
+            var bh = this.testKeyof(bt,'a');
+            var fs:number = this.testKeyof(bt,'b');
+
+            expect('sss').toEqual( bh );
+            expect(99).toEqual( fs );
+
+            var bfd = {
+                name:'6699'
+            }
+
+            var fdb:string =  this.testKeyof(bfd,'name');
+            expect('6699').toEqual( fdb );
+
+            var getNamessFun =  this.testKeyof(this,'getNamess')
+            expect(this.getNamess).toEqual( getNamessFun );
+            var bdfs4:U = getNamessFun('sssss' as U );
+
+        });
+        
+        var b9 = function(name:string, callback:(b:U)=>U ):string{
+            var b = callback;
+            var n = b(1 as U);
+            var v = callback(1 as U );
+            return '';
+        }
+
+        it('keyof', ()=>{
+
+            function tNames():number{
+                return 1
+            }
+
+            var b10 = tNames
+            var b11 = b10();
+            expect(1).toEqual( 1 )
+
+            var bst9 = new Test('111', '11111' );
+            expect('111').toEqual( bst9.getNamess('111') )
+        })
+    }
+
+    private testKeyof<T9, K extends keyof T9>(t:T9,k:K){
+        return t[k]
     }
 
 
@@ -602,7 +657,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         return super.name;
     }
 
-    // @override
+    @override
     public set name( value:string ){
         super.name = value;
     }
@@ -615,7 +670,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
 
         function name<T extends TestInterface>( i:T ):T{
             var b:T = i;
-            i.avg();
+            i.avg('');
             i.method('',1);
             return b;
         }
@@ -628,12 +683,18 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
         name<Person>( person ); 
 
         var dd:[int, uint, ...string ] = [1,1,"2222","66666","8888"];
+        var [a1,a2,a3] = dd;
+        expect(1).toEqual( a1 );
+        expect(1).toEqual( a2 );
+        expect("2222").toEqual( a3 );
+        expect([1,1,"2222","66666","8888" ]).toEqual( dd );
 
+        expect(['1']).toEqual( bb );
         bb.push()
-
-        //T[]   (int | string)[]
+        expect(['1']).toEqual( bb );
 
         dd.push(1)
+        expect([1,1,"2222","66666","8888",1]).toEqual( dd );
 
         return yy;
 
@@ -657,10 +718,6 @@ public class Test<U,B=string> extends Person<string> implements Iterator{
     }
 
 }
-  
-import Test;
-const test = new Test('Test');
-test.start();
 
 
 

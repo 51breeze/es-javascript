@@ -1,4 +1,4 @@
-import Class from "./core/Class.js";
+var Class = require("./core/Class.js");
 function Types(){}
 const methods = {};
 methods.ADDRESS={m:3,d:6,value:0};
@@ -11,4 +11,4 @@ Class.creator(5,Types,{
 	'name':'Types',
 	'methods':methods
 });
-export default Types;
+module.exports=Types;

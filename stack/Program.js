@@ -1,9 +1,18 @@
 const Syntax = require("../core/Syntax");
 class Program extends Syntax{
-    buildExternal(syntax){
+    buildExternal(){
         const stack = this.stack;
-        if( stack.externals.length > 0 ){
-            return `/*externals code*/\r\n(function(){\r\n\t${stack.externals.map( item=>this.make(item) ).join("\r\n\t")}\r\n}());`;
+        if( stack && stack.externals.length > 0 ){
+            const externals = stack.externals.map( item=>this.make(item) ).filter(item=>!!item);
+            if( externals.length > 0 ){
+                const refs = [];
+                this.addDepend( this.getGlobalModuleById('Class') );
+                this.createDependencies(null,refs)
+                return refs.concat([ 
+                    this.semicolon('/*externals code*/'),
+                    this.semicolon(`(function(){\r\n\t${externals.join("\r\n\t")}\r\n}())`)
+                ]).join("\r\n");
+            }
         }
         return null;
     }
@@ -15,9 +24,7 @@ class Program extends Syntax{
         if( this.compilation.JSX ){
             return this.buildJsx();
         }else{
-            return this.stack.body.map(item =>{
-                    return this.make(item);
-            }).join("\n");
+            return this.buildExternal();
         }
     }
 }

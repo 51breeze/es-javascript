@@ -1,5 +1,17 @@
-import Class from "./Class.js";
-import System from "./System.js";
+var Class = require("./Class.js");
+var System = require("./System.js");
+/*
+ * EaseScript
+ * Copyright © 2017 EaseScript All rights reserved.
+ * Released under the MIT license
+ * https://github.com/51breeze/EaseScript
+ * @author Jun Ye <664371281@qq.com>
+ */
+
+
+
+
+
 var _Reflect = (function(_Reflect){
     var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
         if( !System.isFunction( theClass ) ){
@@ -138,7 +150,7 @@ var _Reflect = (function(_Reflect){
     };
 
     var DECLARE_PROPERTY_ACCESSOR = 4;
-    Reflect.get=function(scope,target,propertyKey,receiver){
+    Reflect.get=function get(scope,target,propertyKey,receiver){
         if( propertyKey==null )return target;
         if( propertyKey === '__proto__' )return null;
         if( target == null )throw new ReferenceError('target is null or undefined');
@@ -152,7 +164,7 @@ var _Reflect = (function(_Reflect){
         if( !desc ){
             throw new ReferenceError(`target.${propertyKey} is not exists`);
         }
-        receiver = receiver || target;
+        receiver = !receiver && typeof target ==="object" ? target : null;
         if(typeof receiver !=="object" ){
             throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
@@ -182,7 +194,7 @@ var _Reflect = (function(_Reflect){
         if( !desc ){
             throw new ReferenceError(`target.${propertyKey} is not exists.`);
         }
-        receiver = receiver || target;
+        receiver = !receiver && typeof target ==="object" ? target : null;
         if(typeof receiver !=="object" ){
             throw new ReferenceError(`Assignment receiver can only is an object.`);
         }
@@ -221,10 +233,10 @@ var _Reflect = (function(_Reflect){
     return Reflect;
 
 }(Reflect));
-Class.creator(12,_Reflect,{
+Class.creator(6,_Reflect,{
 	'id':1,
 	'global':true,
 	'dynamic':false,
 	'name':'Reflect'
 });
-export default _Reflect;
+module.exports=_Reflect;

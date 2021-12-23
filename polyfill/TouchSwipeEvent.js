@@ -5,6 +5,11 @@
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
 */
+
+///<references from='Class' />
+///<references from='Event' />
+///<references from='TouchEvent' />
+
 function TouchSwipeEvent(type, bubbles, cancelable)
 {
     if( !(this instanceof TouchSwipeEvent) )return new TouchSwipeEvent(type, bubbles,cancelable);

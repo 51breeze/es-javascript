@@ -6,7 +6,7 @@
   "scripts": {
     "es": "es -V",
     "dev-test": "jasmine ./test/index.js",
-    "dev-run": "jasmine ./test/build/main.js",
+    "dev-run": "jasmine ./test/build/Test.js",
     "dev-test-run": "npm run dev-test & npm run dev-run"
   },
   "repository": {
@@ -26,7 +26,8 @@
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
     "element-ui": "^2.15.6",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "vue-router": "^3.5.3"
   },
   "devDependencies": {
     "easescript": "0.0.59",

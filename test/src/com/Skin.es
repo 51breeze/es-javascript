@@ -26,14 +26,10 @@ class Skin extends Component{
     }
 
     @override
-    public render(c){
-        return <PersonSkin xmlns:slot="@slots">
-                    <slot:foot scope>
-                            ssssssssssssssss {scope.props}
-                    </slot:foot>
-                     <slot:default>
-                            =========default===========
-                    </slot:default>
-            </PersonSkin>
+    protected render(){
+        return <div>
+             <slot:foot />
+             <slot:default />
+        </div>;
     }
 }

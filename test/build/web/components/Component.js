@@ -1,50 +1,104 @@
 import Event from "./../../core/Event.js";
 import Class from "./../../core/Class.js";
-import Vue from "vue/dist/vue.js";
 import EventDispatcher from "./../../core/EventDispatcher.js";
+import ComponentEvent from "./ComponentEvent.js";
+import Vue from "vue";
+
+/*
+ * Copyright © 2017 EaseScript All rights reserved.
+ * Released under the MIT license
+ * https://github.com/51breeze/EaseScript
+ * @author Jun Ye <664371281@qq.com>
+ */
+
+
+
+
+
+
+
 var key = Symbol('private');
-var baseOptions = {
-    name:"web.components.Component",
+var baseOptions = {};
+var mixins = [{
     render(){
-        return this.render();
+        return this.render.apply(this, Array.prototype.slice.call(arguments));
     },
     beforeCreate(){
         this.beforeCreate();
     },
     beforeMount(){
+        if( this.hasEventListener(ComponentEvent.BEFORE_MOUNT) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.BEFORE_MOUNT ) );
+        }
         this.beforeMount();
     },
     beforeUpdate(){
+        if( this.hasEventListener(ComponentEvent.BEFORE_UPDATE) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.BEFORE_UPDATE ) );
+        }
         this.beforeUpdate();
     },
     beforeDestroy(){
+        if( this.hasEventListener(ComponentEvent.BEFORE_DESTROY) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.BEFORE_DESTROY ) );
+        }
         this.beforeDestroy();
     },
     errorCaptured(){
+        if( this.hasEventListener(ComponentEvent.ERROR_CAPTURED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.ERROR_CAPTURED ) );
+        }
         this.errorCaptured();
     },
     created(){
+        if( this.hasEventListener(ComponentEvent.CREATED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.CREATED ) );
+        }
         this.created();
     },
     mounted(){
+        if( this.hasEventListener(ComponentEvent.MOUNTED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.MOUNTED ) );
+        }
         this.mounted();
     },
     updated(){
+        if( this.hasEventListener(ComponentEvent.UPDATED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.UPDATED ) );
+        }
         this.updated();
     },
     destroyed(){
+        if( this.hasEventListener(ComponentEvent.DESTROYED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.DESTROYED ) );
+        }
         this.destroyed();
     },
     activated(){
+        if( this.hasEventListener(ComponentEvent.ACTIVATED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.ACTIVATED ) );
+        }
         this.activated();
     },
     deactivated(){
+        if( this.hasEventListener(ComponentEvent.DEACTIVATED) ){
+            this.dispatchEvent( new ComponentEvent( ComponentEvent.DEACTIVATED ) );
+        }
         this.activated();
     }
-};
+}];
 
-var Component = Vue.extend( Object.assign({}, baseOptions) );
-Object.defineProperty( Component, 'name', {value:'web.components.Component'})
+//var Component = Vue.extend( Object.assign({name:"web.components.Component"}, baseOptions) );
+//Object.defineProperty( Component, 'name', {value:'web.components.Component'})
+
+function Component(options){
+    Component.options = Vue.options;
+    Vue.call(this,options);
+}
+
+Component.prototype = Object.create(Vue.prototype);
+Component.prototype.constructor = Component;
+Component.options = Vue.options;
 
 function createProperties( classConstructor , superClass ){
     var proto = classConstructor.prototype;
@@ -131,8 +185,15 @@ function createProperties( classConstructor , superClass ){
         this.$mount( element );
     }});
 
-    Object.defineProperty( proto, 'slot', {value:function slot(name){
+    Object.defineProperty( proto, 'slot', {value:function slot(name,scoped,called,params){
         name = name || 'default';
+        if( scoped ){
+           var value = this.$scopedSlots[name];
+           if( called ){
+               return value && typeof value === "function" ? value(params) : null;
+           }
+           return value;
+        }
         return this.$slots[name];
     }});
 
@@ -144,23 +205,40 @@ function createProperties( classConstructor , superClass ){
         return this.$children;
     }});
 
-    Object.defineProperty( proto, 'addEventListener', {value:function addEventListener(type, listener){
-        this[key].event.addEventListener(type, listener);
+    Object.defineProperty( proto, 'config', {get:function config(){
+        return this.$vnode && this.$vnode.data ? this.$vnode.data : {};
     }});
+
+    Object.defineProperty( proto, 'createElement', {value:function createElement(name,config,children){
+        return this.$createElement(name, config, children);
+    }});
+
+    Object.defineProperty( proto, 'getElementByRefName', {value:function getElementByRefName(name){
+        return this.$refs[name];
+    }});
+
+    Object.defineProperty( proto, 'addEventListener', {value:function addEventListener(type, listener){
+        return this[key].event.addEventListener(type, listener);
+    }});
+
     Object.defineProperty( proto, 'dispatchEvent', {value:function dispatchEvent(event){
         return this[key].event.dispatchEvent(event);
     }});
+
     Object.defineProperty( proto, 'removeEventListener', {value:function removeEventListener(type, listener){
-        this[key].event.addEventListener(type, listener);
+        return this[key].event.addEventListener(type, listener);
     }});
+
     Object.defineProperty( proto, 'hasEventListener', {value:function hasEventListener(type, listener){
-        this[key].event.hasEventListener(type, listener);
+        return this[key].event.hasEventListener(type, listener);
     }});
+
     return classConstructor;
 }
 
 createProperties(Component);
 Object.defineProperty( Component, 'createComponent', {value:function createComponent(options, inheritComponent){
+    options = options || {};
     if( inheritComponent ){
         var superClass = inheritComponent;
         if(typeof superClass === 'function'){
@@ -174,15 +252,16 @@ Object.defineProperty( Component, 'createComponent', {value:function createCompo
         }else{
             return superClass;
         }
-        options = Object.assign({}, baseOptions, options || {});
         options.extends = superClass;
+        options.mixins = mixins;
         var inheritClass = Vue.extend(options);
-        createProperties( inheritClass, superClass.options);
+        createProperties(inheritClass, superClass.options);
         return inheritClass;
     }
+    options.mixins = mixins;
     return Vue.extend( Object.assign({}, baseOptions, options || {}) );
 }});
-Class.creator(7,Component,{
+Class.creator(3,Component,{
 	'id':1,
 	'global':true,
 	'dynamic':false,

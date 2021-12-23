@@ -1,5 +1,5 @@
-import TestInterface from "./com/TestInterface.js";
-import Class from "./core/Class.js";
+var TestInterface = require("./com/TestInterface.js");
+var Class = require("./core/Class.js");
 var _private=Symbol("private");
 function Person(name){
 	Object.defineProperty(this,_private,{value:{'_name':'','_type':null}});
@@ -37,7 +37,7 @@ members.name={m:3,d:4,enumerable:true,get:function name(){
 	this[_private]._name=val;
 }};
 members.avg={m:3,d:3,value:function avg(a,b){
-
+	return a;
 }};
 members.address={m:1,d:3,value:function address(){
 
@@ -53,4 +53,4 @@ Class.creator(1,Person,{
 	'imps':[TestInterface],
 	'members':members
 });
-export default Person;
+module.exports=Person;

@@ -5,6 +5,11 @@
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
 */
+
+///<references from='Class' />
+///<references from='Event' />
+///<references from='TouchEvent' />
+
 function TouchPinchEvent(type, bubbles, cancelable)
 {
     if( !(this instanceof TouchPinchEvent) )return new TouchPinchEvent(type, bubbles,cancelable);

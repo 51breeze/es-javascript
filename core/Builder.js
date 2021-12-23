@@ -1,8 +1,26 @@
 const fs = require("fs");
 const path = require("path");
 const Syntax = require("./Syntax");
-const Polyfill = require("./Polyfill");
 class Builder extends Syntax{
+
+    emitContent(filesystem, module, content, file, emitFile, flag){
+        if( content ){
+            filesystem.mkdirpSync( path.dirname(file) );
+            filesystem.writeFileSync(file, content );
+            if( emitFile ){
+                this.emitFile( this.getOutputAbsolutePath(module, flag), filesystem.readFileSync(file) );
+            } 
+        }
+    }
+
+    emitStyleAssets(filesystem,module){
+        module && module.assets.forEach( asset=>{
+            if( !asset.file && asset.type ==="style" ){
+                const file = this.getModuleFile( module, asset.resolve, asset.type);
+                this.emitContent(filesystem, module, asset.content, file);
+            }
+        });
+    }
 
     start( done ){
         try{
@@ -11,23 +29,14 @@ class Builder extends Syntax{
             const buildModules = new Set();
             const filesystem  = compiler.getOutputFileSystem( this.name );
             const config      = this.getConfig();
-            const makeContent = (module, content, file)=>{
-                if( content ){
-                    filesystem.mkdirpSync( path.dirname(file) );
-                    filesystem.writeFileSync(file, content );
-                    if( config.emitFile ){
-                        this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                    } 
-                }
-            };
-
             const builder = ( module )=>{
                 if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
                     const stack = compilation.getStackByModule(module);
                     if(stack){
                         const file = this.getModuleFile(module);
                         const content = this.make(stack);
-                        makeContent(module, content, file);
+                        this.emitContent(filesystem, module, content, file, config.emitFile);
+                        this.emitStyleAssets(filesystem,module);
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -45,7 +54,12 @@ class Builder extends Syntax{
             }
 
             compilation.completed(this.name,false);
-            compilation.modules.forEach( module =>builderAll(module) );
+            if( compilation.modules.size >0 ){
+                compilation.modules.forEach( module =>builderAll(module) );
+            }else{
+                this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true);
+            }
+
             if( config.pack ){
                 this.doPack();
             }
@@ -62,31 +76,31 @@ class Builder extends Syntax{
     build(done){
         const compilation = this.compilation;
         const compiler    = this.compiler;
+        const config      = this.getConfig();
+        const filesystem  = compiler.getOutputFileSystem( this.name );
         compilation.completed(this.name,false);
         try{
-            compilation.modules.forEach( module =>{
-                if( !module.require && this.isNeedBuild(module) ){
-                    const stack = compilation.getStackByModule(module);
-                    if( stack ){
-                        const content = this.make(stack);
-                        if( content ){
-                            const filesystem  = compiler.getOutputFileSystem( this.name );
-                            const file = this.getModuleFile(module);
-                            filesystem.mkdirpSync( path.dirname(file) );
-                            filesystem.writeFileSync(file, content );
-                            const config = this.getConfig();
-                            if( config.emitFile ){
-                                this.emitFile( this.getOutputAbsolutePath(module), filesystem.readFileSync(file) );
-                            } 
+            if( compilation.modules.size >0 ){
+                compilation.modules.forEach( module =>{
+                    if( this.isNeedBuild(module) ){
+                        const stack = compilation.getStackByModule(module);
+                        if( stack ){
+                            const content = this.make(stack);
+                            const file    = this.getModuleFile(module);
+                            this.emitContent(filesystem, module, content, file, config.emitFile);
+                            this.emitStyleAssets(filesystem,module);
+                        }else{
+                            throw new Error(`Not found stack by '${module.getName()}'`);
                         }
-                    }else{
-                        throw new Error(`Not found stack by '${module.getName()}'`);
                     }
-                }
-            });
+                });
+            }else{
+                this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true); 
+            }
             compilation.completed(this.name,true);
             done();
         }catch(e){
+            console.log(e)
             done(e);
         }
     }
@@ -147,12 +161,7 @@ class Builder extends Syntax{
         if( module.compilation.isPolicy(2,module) ){
             return false;
         }
-        const isDeclaratorModule = module.isDeclaratorModule;
-        if( isDeclaratorModule && module.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(module) ){
-            return true;
-        }
-        const isPolyfill = isDeclaratorModule && Polyfill.modules.has( module.id );
-        return !isDeclaratorModule || isPolyfill;
+        return true;
     }
 
     bootstrap(entrances, modules){

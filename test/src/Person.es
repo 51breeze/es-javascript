@@ -1,6 +1,7 @@
 package;
 
 import com.TestInterface;
+
 public class Person<T> extends Object implements TestInterface
 {
 
@@ -52,8 +53,8 @@ public class Person<T> extends Object implements TestInterface
         this._name = val;
     }
 
-    avg<T extends string,B>(a?,b?):void{
-
+    avg<T extends string,B>(a:T,b?:B):T{
+        return a;
     }
 
     private address(){

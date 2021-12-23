@@ -1,32 +1,18 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
 const Polyfill = require("../core/Polyfill");
-const fs = require("fs");
+const Plugins = require("../core/Plugins");
 class DeclaratorDeclaration extends Syntax{
     emitter(){
         const module = this.module;
-        const polyfillModule = Polyfill.modules.get(module.id);
-        if( module.isDeclaratorModule && module.required && this.getConfig('webComponent') ==='vue' && this.isInheritWebComponent(module) ){
-            const content = [];
-            const refs = [];
-            const component = this.getGlobalModuleById('web.components.Component');
-            this.addDepend( component );
-            this.createDependencies(module,refs);
-            if( refs.length > 0 ){
-                content.unshift( refs.join("\r\n") );
-            }
-            const exports = `${this.getModuleReferenceName(component,module)}.createComponent(null,${module.id})`;
-            content.push( this.emitExportClass(module, exports ) );
-            return content.join("\r\n");
-        }
-
+        const polyfillModule = Polyfill.modules.get( module.getName() ) || Plugins.getPlugin(this.name).getPolyfill( module.getName() );
         if( !polyfillModule ){
             return null;
         }
 
-        const content = [ polyfillModule.getContent(this) ];
+        const content = [ polyfillModule.content ];
         const refs = [];
-        
+
         polyfillModule.require.forEach( name=>{
             const module = this.stack.getModuleById(name);
             if( module ){
@@ -41,18 +27,22 @@ class DeclaratorDeclaration extends Syntax{
                 this.addDepend( dep );
             } 
         });
-
         this.createDependencies(module,refs);
+        this.createModuleRequires(polyfillModule,refs);
         if( refs.length > 0 ){
             content.unshift( refs.join("\r\n") );
         }
-        if( !polyfillModule.notCreateDesc ){
+        if( polyfillModule.id !== 'Class' ){
             const description = [
                 `'id':${Constant.DECLARE_CLASS}`,
                 `'global':true`,
                 `'dynamic':${!!module.dynamic}`,
                 `'name':'${module.id}'`,
             ];
+            const inherit = this.getInherit( module )
+            if( inherit ){
+                description.push( `'inherit':${this.getModuleReferenceName( inherit, module)}` );
+            }
             content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
         }
         content.push( this.emitExportClass(module,polyfillModule.export) );

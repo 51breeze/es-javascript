@@ -1,10 +1,13 @@
-import Class from "./Class.js";
+var Class = require("./Class.js");
 /*
  * Copyright © 2017 EaseScript All rights reserved.
  * Released under the MIT license
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
  */
+
+
+
 function Event( type, bubbles, cancelable ){
     if( !type || typeof type !=="string" )throw new TypeError('event type is not string');
     this.type = type;
@@ -241,4 +244,4 @@ Class.creator(4,Event,{
 	'dynamic':true,
 	'name':'Event'
 });
-export default Event;
+module.exports=Event;
