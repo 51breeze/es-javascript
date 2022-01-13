@@ -71,10 +71,10 @@ members.start={m:3,d:3,value:function start(){
 		expect(Test.getClass().test).toBe(Test);
 	});
 	it("'Test.getClass().person' should is Person",function(){
-		expect(Person).toBe(Person);
+		expect(Test.getClass().person).toBe(Person);
 	});
 	it("'new (Test.getClass().person)('')' should is true",function(){
-		const o = new (Person)('name');
+		const o = new (Test.getClass().person)('name');
 		expect(o instanceof Person).toBeTrue();
 	});
 	it("'this.bbss=\"666666\"' should is '666666' ",function(){
@@ -108,7 +108,7 @@ members.start={m:3,d:3,value:function start(){
 		var obds = 1;
 		const three = bsp(false);
 		var once = {"two":{"three":three,"four":bsp}};
-		expect(Reflect.get(Test,once.two,"three")).toBe(_this);
+		expect(once.two.three).toBe(_this);
 		expect(once.two.four(true)).toBe(obj);
 		once[obds];
 	});
@@ -168,8 +168,8 @@ members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
 		expect(o[bname]).toBe(1);
 		expect(o.uuu[bname]).toBe(3);
 		expect(o.uuu["123"]).toBe(3);
-		o["uuu"][bname]=true;
-		expect(o["uuu"][bname]).toBe(true);
+		Reflect.get(Test,o["uuu"],bname)=true;
+		expect(Reflect.get(Test,o["uuu"],bname)).toBe(true);
 	});
 }};
 members.testLabel={m:1,d:3,value:function testLabel(){
@@ -244,7 +244,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 	var sss = obj.getClassTestGenerics(1,1);
 	var type = this;
 	type instanceof Number;
-	type instanceof Number;
+	System.is(type,Number);
 	type;
 	var bb = {"a":'',"b":1};
 	var bc = 'label';
@@ -562,6 +562,6 @@ Class.creator(0,Test,{
 	'inherit':Person,
 	'methods':methods,
 	'members':members
-});
+}, false);
 module.exports=Test;
 Test.main();

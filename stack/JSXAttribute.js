@@ -1,8 +1,4 @@
 const Syntax = require("../core/Syntax");
-const map = {
-    'on':'@events',
-    'bind':'@binding',
-}
 class JSXAttribute extends Syntax{
     emitter(){
         let ns = null;
@@ -11,7 +7,9 @@ class JSXAttribute extends Syntax{
             if( xmlns ){
                 ns = xmlns.value.value();
             }else {
-                ns = map[ this.stack.name.namespace.value() ] || ns;
+                const nsStack = this.stack.getNamespaceStack();
+                const ops = this.getOptions();
+                ns = ops.jsx.xmlns.default[ nsStack.namespace.value() ] || ns;
             }
         }
 

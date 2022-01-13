@@ -221,5 +221,5 @@ Class.creator(3,EventDispatcher,{
 	'global':true,
 	'dynamic':false,
 	'name':'EventDispatcher'
-});
+}, false);
 module.exports=EventDispatcher;

@@ -52,5 +52,5 @@ Class.creator(1,Person,{
 	'private':_private,
 	'imps':[TestInterface],
 	'members':members
-});
+}, false);
 module.exports=Person;

@@ -238,5 +238,5 @@ Class.creator(6,_Reflect,{
 	'global':true,
 	'dynamic':false,
 	'name':'Reflect'
-});
+}, false);
 module.exports=_Reflect;

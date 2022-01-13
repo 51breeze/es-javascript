@@ -243,5 +243,5 @@ Class.creator(4,Event,{
 	'global':true,
 	'dynamic':true,
 	'name':'Event'
-});
+}, false);
 module.exports=Event;

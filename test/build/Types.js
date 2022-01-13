@@ -10,5 +10,5 @@ Class.creator(5,Types,{
 	'ns':'',
 	'name':'Types',
 	'methods':methods
-});
+}, false);
 module.exports=Types;

@@ -20,8 +20,6 @@ class ObjectExpression extends Syntax{
             if( statementStack ){
                 if( statementStack.isVariableDeclaration ){
                     statementStack.dispatcher("insertDeclareBeforeEmit",{name:refs});
-                }else if( statementStack.isVariableDeclaration ){
-                    statementStack.dispatcher("insert", this.semicolon(`var ${refs}=null`) );
                 }
             }
             properties = properties.slice(0);

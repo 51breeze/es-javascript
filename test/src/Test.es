@@ -347,9 +347,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
 
         var type = this;
 
-
-
-         type B1 = {a:string};
+        type B1 = {a:string};
         type B2 = {b:number};
 
         type T2 = B1 & B2 

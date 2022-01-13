@@ -212,5 +212,5 @@ Class.creator(7,System,{
 	'global':true,
 	'dynamic':false,
 	'name':'System'
-});
+}, false);
 module.exports=System;

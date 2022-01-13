@@ -83,12 +83,12 @@ class Syntax extends events.EventEmitter {
         return `${refs}.key`;
     }
 
-    emitCreateClassDescription(module, description, name){
+    emitCreateClassDescription(module, description, name , flag){
         const refs = this.checkRefsName(this.getClassHelper());
         if( module && module.isFragment ){
-            return `${refs}.creator(null,${name || module.id},${this.getDescription(description)});`;
+            return `${refs}.creator(null,${name || module.id},${this.getDescription(description)}, ${!!flag});`;
         }else{
-            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)});`;
+            return `${refs}.creator(${this.getIdByModule(module)},${name || module.id},${this.getDescription(description)}, ${!!flag});`;
         }
     }
 
@@ -420,10 +420,8 @@ class Syntax extends events.EventEmitter {
                 refs.push( value );
             }
         }
-        
         this.createModuleAssets( module, refs );
         this.createModuleRequires( module, refs );
-        
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
@@ -465,7 +463,7 @@ class Syntax extends events.EventEmitter {
         } 
     }
 
-    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute, configurable){
+    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute, configurable, writable){
         const map={
             "public":Constant.MODIFIER_PUBLIC,
             "protected":Constant.MODIFIER_PROTECTED,
@@ -475,7 +473,7 @@ class Syntax extends events.EventEmitter {
         if( configurable ){
             items.push( `configurable:true` );
         }
-        if( id === Constant.DECLARE_PROPERTY_VAR ){
+        if( id === Constant.DECLARE_PROPERTY_VAR || writable ){
             items.push(`writable:true`);
         }
         if( (isAccessor || id === Constant.DECLARE_PROPERTY_VAR || id === Constant.DECLARE_PROPERTY_CONST) && modifier==="public"){
