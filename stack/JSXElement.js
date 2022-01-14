@@ -69,6 +69,38 @@ class JSXElement extends Syntax{
         return element.replace(/^[\s\r\n\t]+/g,'');
     }
 
+    makeIterationFun(name, refs, refName, element, indent,  item, key, index){
+        element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
+        if( name ==="each"){
+            const args = [item];
+            if(key)args.push(key);
+            return `${refs}.map((function(${args.join(',')}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`;
+        }else{
+            let dec = index ? `${indent}\t\t${index}++;` : '';
+            let code = [`(function(${refName}){`];
+            if( !key ){
+                key = `_${item}Key`;
+            }
+            code.push(`${indent}\tvar _${refName} = [];`);
+            code.push(`${indent}\tif( typeof ${refName} ==='number' ){`);
+            code.push(`${indent}\t\t${refName} = Array.from({length:${refName}}, function(v,i){return i;});`);
+            code.push(`${indent}\t}`);
+            if( dec ){
+                code.push( `${indent}\tvar ${index}=0;` );
+            }
+            code.push(`${indent}\tfor(var ${key} in ${refName}){`);
+            code.push(`${indent}\t\tvar ${item} = ${refName}[${key}];`);
+            code.push(`${indent}\t\t_${refName}.push(${element});`);
+            if( dec ){
+                code.push(dec);
+            }
+            code.push(`${indent}\t}`);
+            code.push(`${indent}\treturn _${refName};`);
+            code.push(`${indent}}).call(this,${refs})`);
+            return code.join("\r\n");
+        }
+    }
+
     makeDirectives(child, element, prevResult, level){
         const cmd=[];
         const indent = this.getIndent( level );
@@ -87,42 +119,18 @@ class JSXElement extends Syntax{
             if( name ==="each" || name ==="for" ){
                 let refs = this.make(valueArgument.expression);
                 let item = valueArgument.declare.item;
+                let key = valueArgument.declare.key;
+                let index = valueArgument.declare.index;
                 if( cmd.includes('if') ){
                     cmd.pop();
                     content.push('null');
                     element = content.splice(0,content.length).join(' : ');
                 }
-
                 element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
                 if( name ==="each"){
-                    content.push(`\r\n${indent}${refs}.map((function(${item}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`);
+                    content.push(`\r\n${indent}${this.makeIterationFun( name, refs , this.generatorVarName(child,'_refs'), element, indent, item, key)}`);
                 }else{
-                    item = valueArgument.declare.item;
-                    let key = valueArgument.declare.key;
-                    let index = valueArgument.declare.index;
-                    let dec = index ? `${indent}\t\t${index}++;` : '';
-                    let code = [`${indent}(function(${refs}){`];
-                    if( !key ){
-                        key = `_${_item}Key`;
-                    }
-
-                    code.push(`${indent}\tvar _${refs} = [];`);
-                    code.push(`${indent}\tif( typeof ${refs} ==='number' ){`);
-                    code.push(`${indent}\t\t${refs} = Array.from({length:${refs}}, function(v,i){return i;});`);
-                    code.push(`${indent}\t}`);
-                    if( dec ){
-                        code.push( `${indent}\tvar ${index}=0;` );
-                    }
-                    code.push(`${indent}\tfor(var ${key} in ${refs}){`);
-                    code.push(`${indent}\t\tvar ${item} = ${refs}[${key}];`);
-                    code.push(`${indent}\t\t_${refs}.push(${element});`);
-                    if( dec ){
-                        code.push(dec);
-                    }
-                    code.push(`${indent}\t}`);
-                    code.push(`${indent}\treturn _${refs};`);
-                    code.push(`${indent}}).call(this,${refs})`);
-                    content.push(`\r\n${code.join("\r\n")}`);
+                    content.push(`\r\n${this.makeIterationFun( name, refs , this.generatorVarName(child,'_refs'), element, indent, item, key, index )}`);
                 }
                 cmd.push(name);
             }else if( name ==="if" ){
@@ -161,7 +169,7 @@ class JSXElement extends Syntax{
             if( index<len ){
                 const child = children[index++];
                 const elem = this.makeDirectives(child, this.make(child, level+1) , last, level+1);
-                if( child.isSlot ){
+                if( child.isSlot && !child.isSlotDeclared ){
                     const name = child.openingElement.name.value();
                     if( child.attributes.length > 0 ){
                         data.scopedSlots[ name ] = elem.content.join('');
@@ -229,9 +237,9 @@ class JSXElement extends Syntax{
                         value = last.content.join(' : ');
                     }
                 }else if( !last.ifEnd ){
-                    value = last.content.join('');
+                    value = last.content.join( last.child.isDirective ? `,\r\n\t${inline}` : '');
                 }
-                if( last.cmd.includes('foreach') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective){
+                if( last.cmd.includes('each') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective){
                     if( part.length > 0 ){
                         content.push( part.splice(0, part.length) );
                     }
@@ -267,7 +275,7 @@ class JSXElement extends Syntax{
 
         if( segments.length > 1 ){
             const base = segments.shift();
-            return `${base}.concat(${segments.join(`,\r\n\t${inline}`)})`;
+            return `${base}.concat(${segments.join(`).concat(\r\n\t${inline}`)})`;
         }
         return segments[0];
     }
@@ -441,6 +449,12 @@ class JSXElement extends Syntax{
         if( this.stack.parentStack.isSlot ){
             const name = this.stack.parentStack.openingElement.name.value();
             data.slot = `'${name}'`;
+        }else if(this.stack.parentStack && this.stack.parentStack.isDirective ){
+            let dName = this.stack.parentStack.openingElement.name.value();
+            if( dName === 'show' ){
+                const condition= this.stack.parentStack.openingElement.attributes[0];
+                data.directives.push({name:`'show'`, value:this.make( condition.parserAttributeValueStack() )});
+            }
         }
 
         this.createAttributes(data, spreadAttributes);
@@ -514,6 +528,7 @@ class JSXElement extends Syntax{
         const name = this.stack.openingElement.name.value();
         switch( name ){
             case 'show' :
+                return childItems;
             case 'if' :
             case 'elseif' :
                 const condition = this.make( this.stack.attributes[0].parserAttributeValueStack() )
@@ -522,8 +537,26 @@ class JSXElement extends Syntax{
                 return childItems;
             case 'for' :
             case 'each' :
-            case 'show' :
-        } 
+                const attrs = this.stack.openingElement.attributes;
+                const argument = {};
+                attrs.forEach( attr=>{
+                    if( attr.name.value()==='name'){
+                        argument[ 'refs' ] = this.make( attr.parserAttributeValueStack() );
+                    }else{
+                        argument[attr.name.value()] = attr.value.value();
+                    }
+                });
+                const fun = this.makeIterationFun( name, 
+                    argument.refs, 
+                    this.generatorVarName(this.stack,'_refs'),
+                    childItems, 
+                    this.getIndent( level ), 
+                    argument.item || 'item', 
+                    argument.key || 'key', 
+                    argument.index
+                );
+                return `${fun}.reduce(function(acc, val){return acc.concat(val)}, [])`
+            } 
         return null;
     }
 

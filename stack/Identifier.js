@@ -13,7 +13,6 @@ class Identifier extends Syntax{
                     }
                }
           }
-
           if( module && this.compiler.callUtils("isClassType", desc) ){
                this.addDepend( desc );
                return this.getModuleReferenceName(desc, module);
