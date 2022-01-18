@@ -171,6 +171,9 @@ class ClassDeclaration extends Syntax{
             `'ns':'${module.namespace.toString()}'`,
             `'name':'${module.id}'`,
         ];
+        if( module.dynamic ){
+            description.push(`'dynamic':true`);
+        }
         if( _private ){
             description.push(`'private':${_private}`);
         }

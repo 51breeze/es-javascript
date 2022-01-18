@@ -8,9 +8,6 @@ var Event = require("./Event.js");
  * @author Jun Ye <664371281@qq.com>
  */
 
-
-
-
 var __KEY__ = Symbol('EventDispatcher');
 function EventDispatcher( target ){
     if( !(this instanceof EventDispatcher) ){

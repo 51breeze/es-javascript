@@ -227,7 +227,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
 
     private testEnumerableProperty(){
         it(`for( var name in this) should is this or object `, ()=>{
-            var labels:string[] = ["name","data","target","addressName","iuuu"];
+            var labels:string[] = ["name","data","target","addressName","iuuu", 'dynamic','dynamicName'];
             for( var key in this){
                 expect( key ).toBe( labels[ labels.indexOf( key ) ] );
                 expect( this[key] ).toBe( this[ key ] );
@@ -244,10 +244,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
                 [bname]:3
             }
         };
-        
-        
+        this['dynamicName'] = 'name';
         it(`compute property should is true `, ()=>{
             expect( o[bname] ).toBe( 1 );
+            expect( this['dynamicName'] ).toBe( 'name' );
             expect( o.uuu[bname] ).toBe( 3 );
             expect( o.uuu["123"] ).toBe( 3 );
             o["uuu"][bname] = true;
@@ -373,7 +373,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
         bg.push('b');
 
         type T8 = {
-            [number|string]:string
+            [index:number|string]:string
         }
 
         var v12:T8 = {};
@@ -386,9 +386,9 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
 
         it('keyof', ()=>{
 
-            this['dynamic'] = [1];
+            this['dynamic'] = '[1]';
             var v16 = this['dynamic']
-            expect([1]).toEqual( v16 );
+            expect('[1]').toEqual( v16 );
 
             var bh = this.testKeyof(bt,'a');
             var fs:number = this.testKeyof(bt,'b');

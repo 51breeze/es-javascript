@@ -8,10 +8,6 @@ var System = require("./System.js");
  * @author Jun Ye <664371281@qq.com>
  */
 
-
-
-
-
 var _Reflect = (function(_Reflect){
     var _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
         if( !System.isFunction( theClass ) ){

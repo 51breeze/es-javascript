@@ -332,12 +332,10 @@ class Syntax extends events.EventEmitter {
             return false;
         }
         const isUsed = this.isUsed(depModule);
-        const isRequire = !depModule.isDeclaratorModule && 
-                            isUsed &&
-                            this.compiler.callUtils("isLocalModule", depModule) && 
-                            !this.compiler.callUtils("checkDepend",this.module, depModule);         
+        if( !isUsed )return false;
+        const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",this.module, depModule);         
         const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has( depModule.getName() );
-        return isRequire || isPolyfill || (context && (context.requires.has( depModule.id ) || depModule.requires.has(depModule.id) ) );
+        return isRequire || isPolyfill
     }
 
     getModuleFile(module, uniKey, type){

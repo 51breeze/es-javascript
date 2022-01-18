@@ -10,7 +10,7 @@ const parseModule=(modules,file,name)=>{
     let require  = [];
     let namespace = null;
     let requires = new Map();
-    content = content.replace( /\/\/\/[\s+]?<(references|namespaces|export|import)\s+(.*?)\/>/gm, function(a,b,c){
+    content = content.replace( /[\r\n\s]+?\/\/\/[\s+]?<(references|namespaces|export|import)\s+(.*?)\/>\s+?/g, function(a,b,c){
         const items = c.trim().replace(/[\s+]?=[\s+]?/g,'=').split(/\s+/g);
         const attr = {};
         items.forEach(item=>{

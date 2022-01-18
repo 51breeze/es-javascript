@@ -123,7 +123,7 @@ members.start={m:3,d:3,value:function start(){
 	it("test Event Dispatcher",function(){
 		const d = new EventDispatcher();
 		d.addEventListener('eee',function(e){
-			e.data={"name":'event'};
+			Reflect.set(Test,e,'data',{"name":'event'});
 		});
 		const event = new Event('eee');
 		d.dispatchEvent(event);
@@ -148,14 +148,15 @@ members.start={m:3,d:3,value:function start(){
 members.testEnumerableProperty={m:1,d:3,value:function testEnumerableProperty(){
 	var _this = this;
 	it("for( var name in this) should is this or object ",function(){
-		var labels = ["name","data","target","addressName","iuuu"];
+		var labels = ["name","data","target","addressName","iuuu",'dynamic','dynamicName'];
 		for(var key in _this){
 			expect(key).toBe(labels[labels.indexOf(key)]);
-			expect(Reflect.get(Test,_this,key)).toBe(Reflect.get(Test,_this,key));
+			expect(_this[key]).toBe(_this[key]);
 		}
 	});
 }};
 members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
+	var _this = this;
 	var bname = "123";
 	var _c1,_c,o = (_c={},
 		_c[bname]=1,
@@ -164,12 +165,14 @@ members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
 			_c1[bname]=3,
 			_c1),
 		_c);
+	this['dynamicName']='name';
 	it("compute property should is true ",function(){
 		expect(o[bname]).toBe(1);
+		expect(_this['dynamicName']).toBe('name');
 		expect(o.uuu[bname]).toBe(3);
 		expect(o.uuu["123"]).toBe(3);
-		Reflect.get(Test,o["uuu"],bname)=true;
-		expect(Reflect.get(Test,o["uuu"],bname)).toBe(true);
+		Reflect.set(Test,o["uuu"],bname,true);
+		expect(o["uuu"][bname]).toBe(true);
 	});
 }};
 members.testLabel={m:1,d:3,value:function testLabel(){
@@ -224,7 +227,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 		_c2.name=123,
 		_c2[types]=1,
 		_c2);
-	bds[types]=99;
+	Reflect.set(Test,bds,types,99);
 	it("Generics should is true",function(){
 		expect(typeof _this.avg("test")).toBe('string');
 		expect(ccc.name.toFixed(2)).toBe("1.00");
@@ -259,9 +262,9 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 	var v14 = [1];
 	var v15 = v14[0];
 	it('keyof',function(){
-		_this['dynamic']=[1];
+		_this['dynamic']='[1]';
 		var v16 = _this['dynamic'];
-		expect([1]).toEqual(v16);
+		expect('[1]').toEqual(v16);
 		var bh = _this.testKeyof(bt,'a');
 		var fs = _this.testKeyof(bt,'b');
 		expect('sss').toEqual(bh);
@@ -557,6 +560,7 @@ Class.creator(0,Test,{
 	'id':1,
 	'ns':'',
 	'name':'Test',
+	'dynamic':true,
 	'private':_private,
 	'imps':[TestInterface],
 	'inherit':Person,

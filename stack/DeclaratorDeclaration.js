@@ -30,7 +30,16 @@ class DeclaratorDeclaration extends Syntax{
         this.createDependencies(module,refs);
         this.createModuleRequires(polyfillModule,refs);
         if( refs.length > 0 ){
-            content.unshift( refs.join("\r\n") );
+            let has = false;
+            if( content[0] ){
+                content[0] = content[0].replace(/\/\/\/__REFS__\s+?/, ()=>{
+                    has = true;
+                    return refs.join("\r\n");
+                });
+            }
+            if( !has ){
+                content.unshift( refs.join("\r\n") );
+            }
         }
         if( polyfillModule.id !== 'Class' ){
             const description = [

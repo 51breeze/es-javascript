@@ -6,7 +6,8 @@ class AssignmentExpression extends Syntax{
         const desc = this.stack.description();
         const module =  this.module;
         const isMember = this.stack.left.isMemberExpression;
-        if( desc && desc.isAnyType && isMember && !desc.isComputeType ){
+        const refType = this.stack.left.type();
+        if( refType && refType.isAnyType && isMember ){
             const left = this.make(this.stack.left.object);
             const property = this.stack.left.property.isIdentifier ? this.stack.left.property.value() : this.make(this.stack.left.property);
             const reflect = this.checkRefsName("Reflect");

@@ -6,8 +6,6 @@ var Class = require("./Class.js");
  * @author Jun Ye <664371281@qq.com>
  */
 
-
-
 function Event( type, bubbles, cancelable ){
     if( !type || typeof type !=="string" )throw new TypeError('event type is not string');
     this.type = type;

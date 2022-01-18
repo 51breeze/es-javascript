@@ -49,6 +49,7 @@ Class.creator(1,Person,{
 	'id':1,
 	'ns':'',
 	'name':'Person',
+	'dynamic':true,
 	'private':_private,
 	'imps':[TestInterface],
 	'members':members

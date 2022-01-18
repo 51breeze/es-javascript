@@ -8,9 +8,6 @@ var EventDispatcher = require("./EventDispatcher.js");
  * @author Jun Ye <664371281@qq.com>
  */
 
-
-
-
 function System(){
     throw new SyntaxError('System is not constructor.');
 };
