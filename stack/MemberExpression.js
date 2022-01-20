@@ -3,7 +3,7 @@ const Constant = require("../core/Constant");
 class MemberExpression extends Syntax{
     emitter(){
         const module = this.module;
-        const property = this.stack.property.isIdentifier ? this.stack.property.value() : this.make(this.stack.property);
+        let property = this.stack.property.isIdentifier ? this.stack.property.value() : this.make(this.stack.property);
         const object = this.make(this.stack.object);
         const description = this.stack.description();
         const option = this.getConfig();
@@ -14,20 +14,23 @@ class MemberExpression extends Syntax{
             this.addDepend( this.stack.object.description() );
         }
 
-        if(this.stack.computed){
-            const type = this.stack.type();
-            if( type.isAnyType ){
-                if( option.target === "es5" || !this.compiler.callUtils("isLiteralObjectType", this.stack.object.type()) ){
-                    this.addDepend( this.stack.getModuleById("Reflect") );
+        if( description && description.isType && description.isAnyType ){
+            let isReflect = false
+            const hasDynamic = description.isComputeType && description.isPropertyExists();
+            if( !hasDynamic && !this.compiler.callUtils("isLiteralObjectType", this.stack.object.type() ) ){
+                isReflect = true;
+            }
+            if( isReflect ){
+                if( this.stack.computed ){
                     return `${this.checkRefsName("Reflect")}.get(${module.id},${object},${property})`;
+                }else{
+                    return `${this.checkRefsName("Reflect")}.get(${module.id},${object},'${property}')`;
                 }
             }
-            return `${object}[${property}]`;
-        }
-
-        if( description && description.isType && description.isAnyType ){
-            this.addDepend( this.stack.getModuleById("Reflect") );
-            return `${this.checkRefsName("Reflect")}.get(${module.id},${object},"${property}")`;
+            if( this.stack.computed ){
+                return `${object}[${property}]`;
+            }
+            return `${object}.${property}`;
         }
 
         if( option.target === "es5" && description && description.isMethodGetterDefinition ){

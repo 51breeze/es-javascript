@@ -10,16 +10,19 @@ const parseModule=(modules,file,name)=>{
     let require  = [];
     let namespace = null;
     let requires = new Map();
-    content = content.replace( /[\r\n\s]+?\/\/\/[\s+]?<(references|namespaces|export|import)\s+(.*?)\/>\s+?/g, function(a,b,c){
+    let createClass = true;
+    content = content.replace( /[\r\n\s]+?\/\/\/[\s+]?<(references|namespaces|export|import|createClass)\s+(.*?)\/>\s+?/g, function(a,b,c){
         const items = c.trim().replace(/[\s+]?=[\s+]?/g,'=').split(/\s+/g);
         const attr = {};
         items.forEach(item=>{
            const [key, value] = item.replace(/[\'\"]/g,'').trim().split('=');
            attr[key] = value;
         });
-        switch( b.toLowerCase() ){
+        switch( b ){
             case 'references' :
-                attr['from'] && require.push( attr['from'] );
+                if( attr['from'] ){
+                    require.push( attr['from'] );
+                } 
                 break;
             case 'namespaces' :
                 if( attr['name'] ){
@@ -37,6 +40,11 @@ const parseModule=(modules,file,name)=>{
                     requires.set(name, {key:name, value:name, from:attr['from'], extract:!!attr['extract']})
                 }
                 break;
+            case 'createClass' :
+                if( attr['value'] ){
+                    createClass = attr['value'] !== 'false'
+                }
+                break;
         }
         return ''
     });
@@ -46,6 +54,7 @@ const parseModule=(modules,file,name)=>{
         id:info.name,
         content:content,
         export:exportName,
+        createClass,
         require,
         requires,
         namespace

@@ -24,10 +24,10 @@ members.method={m:3,d:3,value:function method(name,age){
 	var x = [1,1,'2222',{}];
 	b.push('1');
 	b.push(['1',1]);
-	var c = -1968;
+	var c = - 1968;
 	var bs = 22.366;
 	var bss = 22.366;
-	var bssd = -22.366;
+	var bssd = - 22.366;
 	Person.prototype.address.call(this.target);
 	return "sssss";
 }};

@@ -14,9 +14,26 @@ class JSXAttribute extends Syntax{
         }
 
         let name = this.make( this.stack.name );
-        let value = this.stack.value ? this.make( this.stack.value ) : null;
+        let value = this.stack.value ? this.make( this.stack.value ) : true;
 
-        if( ns ==="@binding" && value ){
+        if( this.stack.isMemberProperty ){
+            const eleClass = this.stack.jsxElement.getSubClassDescription();
+            const propsDesc = this.stack.getAttributeDescription( eleClass );
+            const annotations = propsDesc && propsDesc.annotations;
+            const annotation = annotations && annotations.find( annotation=>annotation.name.toLowerCase() ==='alias' );
+            if( annotation ){
+                const [named] = annotation.getArguments();
+                if( named ){
+                    if( named.isObjectPattern ){
+                        name = named.extract[0].value;
+                    }else{
+                        name = named.value;
+                    }
+                }
+            }
+        }
+    
+        if( ns ==="@binding" && this.stack.value ){
             const desc = this.stack.value.description();
             let has = false;
             if(desc){
@@ -28,9 +45,6 @@ class JSXAttribute extends Syntax{
             } 
         }
 
-        if( this.stack.isMemberProperty ){
-            return [`${name}`, value, ns];
-        }
         return [name, value, ns];
     }
 }

@@ -21,7 +21,7 @@ methods.getClass={m:3,d:3,value:function getClass(){
 	buname.person=Person;
 	var test=buname.test;
 	expect(Test).toBe(test);
-	expect(Test).toBe(test.getClassObject());
+	expect(Test).toBe(Reflect.call(Test,test,"getClassObject"));
 	expect(Test).toBe(Reflect.call(Test,test,'getClassObject'));
 	return buname;
 }};
@@ -123,7 +123,7 @@ members.start={m:3,d:3,value:function start(){
 	it("test Event Dispatcher",function(){
 		const d = new EventDispatcher();
 		d.addEventListener('eee',function(e){
-			Reflect.set(Test,e,'data',{"name":'event'});
+			e.data={"name":'event'};
 		});
 		const event = new Event('eee');
 		d.dispatchEvent(event);
@@ -171,7 +171,7 @@ members.testComputeProperty={m:1,d:3,value:function testComputeProperty(){
 		expect(_this['dynamicName']).toBe('name');
 		expect(o.uuu[bname]).toBe(3);
 		expect(o.uuu["123"]).toBe(3);
-		Reflect.set(Test,o["uuu"],bname,true);
+		o["uuu"][bname]=true;
 		expect(o["uuu"][bname]).toBe(true);
 	});
 }};
@@ -207,7 +207,7 @@ members.testIterator={m:1,d:3,value:function testIterator(){
 	var array = [];
 	for(var val,_v,_i=System.getIterator(this); _i && (_v=_i.next()) && !_v.done;){
 		val=_v.value;
-		array.push(val);
+		Reflect.call(Test,array,"push",[val]);
 	}
 	it("impls iterator should is [0,1,2,3,4]",function(){
 		expect(5).toBe(array.length);
@@ -227,7 +227,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 		_c2.name=123,
 		_c2[types]=1,
 		_c2);
-	Reflect.set(Test,bds,types,99);
+	bds[types]=99;
 	it("Generics should is true",function(){
 		expect(typeof _this.avg("test")).toBe('string');
 		expect(ccc.name.toFixed(2)).toBe("1.00");
@@ -236,15 +236,15 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 	it("class Generics",function(){
 		let obj = _this.getTestObject(true);
 		var bd = obj;
-		var bs = obj.getNamess(1);
-		expect(bs.toFixed(2)).toBe("1.00");
+		var bs = Reflect.call(Test,obj,"getNamess",[1]);
+		expect(Reflect.call(Test,bs,"toFixed",[2])).toBe("1.00");
 	});
 	var bsint = this.getTestGenerics('sssss');
 	var bsstring = this.getTestGenerics("ssss",'age');
 	var bd = bsstring;
 	let obj = this.getTestObject(true);
-	var bsddd = obj.getNamess(1);
-	var sss = obj.getClassTestGenerics(1,1);
+	var bsddd = Reflect.call(Test,obj,"getNamess",[1]);
+	var sss = Reflect.call(Test,obj,"getClassTestGenerics",[1,1]);
 	var type = this;
 	type instanceof Number;
 	System.is(type,Number);
@@ -353,7 +353,7 @@ members.testAwait={m:1,d:3,value:function testAwait(){
 			done();
 		});
 	});
-	Reflect.get(Test,this.getJson(),"name");
+	Reflect.get(Test,this.getJson(),'name');
 }};
 members.getJson={m:3,d:3,value:function getJson(){
 	return {"name":123};
@@ -367,7 +367,7 @@ members.testTuple={m:3,d:3,value:function testTuple(){
 members.len={m:1,d:2,value:5};
 members.currentIndex={m:1,d:1,writable:true,value:0};
 members.next={m:3,d:3,value:function next(){
-	if(!(this[_private].currentIndex < this[_private].len)){
+	if(! (this[_private].currentIndex < this[_private].len)){
 		return {"value":null,"done":true};
 	}
 	const d = {"value":this[_private].currentIndex++,"done":false};
@@ -476,7 +476,7 @@ members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type){
 					return [4,this.fetchApi("five",5,1200)];
 				case 8:
 					bb = _a.sent();
-					list.push(bb);
+					Reflect.call(Test,list,"push",[bb]);
 					return [3,9];
 				case 9:
 					i=0;
@@ -485,13 +485,13 @@ members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type){
 					if( !(i < 5) )return [3, 13];
 					return [4,this.fetchApi(i + '',i,100)];
 				case 11:
-					list.push(_a.sent());
+					Reflect.call(Test,list,"push",[_a.sent()]);
 					_a.label=12;
 				case 12:
 					i++;
 					return [3, 10];
 				case 13:
-					list.entries();
+					Reflect.call(Test,list,"entries");
 					return [2, list];
 
 			}

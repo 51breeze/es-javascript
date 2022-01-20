@@ -156,7 +156,11 @@ class Syntax extends events.EventEmitter {
                 return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
             }
         }
-        const filepath = flag && typeof module === "string" ? module : PATH.resolve(output, PATH.relative( workspace, module.file ) );
+        let filepath = flag && typeof module === "string" ? module : 
+        module && module.isModule && this.compiler.normalizePath( module.file ).includes(workspace) ?
+        PATH.resolve(output, PATH.relative( workspace, module.file ) ) :
+        PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/') ;
+
         const info = PATH.parse(filepath);
         if( info.ext !== suffix ){
            return PATH.join(info.dir,info.name+suffix).replace(/\\/g,'/');
@@ -344,6 +348,7 @@ class Syntax extends events.EventEmitter {
 
     getModuleReferenceName(module,context){
         context = context || this.module;
+        if( !module )return null;
         if( module.required ){
             return module.id;
         }
@@ -461,7 +466,7 @@ class Syntax extends events.EventEmitter {
         } 
     }
 
-    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute, configurable, writable){
+    definePropertyDescription(target,name,value,isAccessor,modifier,id,compute, configurable, writable, required){
         const map={
             "public":Constant.MODIFIER_PUBLIC,
             "protected":Constant.MODIFIER_PROTECTED,
@@ -476,6 +481,9 @@ class Syntax extends events.EventEmitter {
         }
         if( (isAccessor || id === Constant.DECLARE_PROPERTY_VAR || id === Constant.DECLARE_PROPERTY_CONST) && modifier==="public"){
             items.push(`enumerable:true`);
+        }
+        if( required ){
+            items.push(`required:true`);
         }
         if( isAccessor ){
             if( value.get ){

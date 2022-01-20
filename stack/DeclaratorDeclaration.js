@@ -3,6 +3,13 @@ const Constant = require("../core/Constant");
 const Polyfill = require("../core/Polyfill");
 const Plugins = require("../core/Plugins");
 class DeclaratorDeclaration extends Syntax{
+
+    getModuleReferenceName(module,context){
+        context = context || this.module;
+        if( !module )return null;
+        return module.id;
+    }
+
     emitter(){
         const module = this.module;
         const polyfillModule = Polyfill.modules.get( module.getName() ) || Plugins.getPlugin(this.name).getPolyfill( module.getName() );
@@ -27,8 +34,14 @@ class DeclaratorDeclaration extends Syntax{
                 this.addDepend( dep );
             } 
         });
+
+        if( polyfillModule.id !== 'Class' &&  polyfillModule.createClass !== false ){
+            this.addDepend( this.getGlobalModuleById('Class') )
+        }
+
         this.createDependencies(module,refs);
         this.createModuleRequires(polyfillModule,refs);
+
         if( refs.length > 0 ){
             let has = false;
             if( content[0] ){
@@ -41,6 +54,7 @@ class DeclaratorDeclaration extends Syntax{
                 content.unshift( refs.join("\r\n") );
             }
         }
+
         if( polyfillModule.id !== 'Class' ){
             const description = [
                 `'id':${Constant.DECLARE_CLASS}`,
@@ -50,9 +64,11 @@ class DeclaratorDeclaration extends Syntax{
             ];
             const inherit = this.getInherit( module )
             if( inherit ){
-                description.push( `'inherit':${this.getModuleReferenceName( inherit, module)}` );
+                description.push( `'inherit':${this.getModuleReferenceName(inherit, module)}` );
             }
-            content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
+            if( polyfillModule.createClass !== false ){
+                content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
+            }
         }
         content.push( this.emitExportClass(module,polyfillModule.export) );
         return content.join("\r\n");

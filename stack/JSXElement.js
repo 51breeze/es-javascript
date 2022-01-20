@@ -513,9 +513,9 @@ class JSXElement extends Syntax{
             if( stack.attributes.length > 0 ){
                 const scope = stack.attributes.find( attr=>attr.name.value()==='scope' );
                 const scopeName = scope && scope.value? scope.value.value() : 'scope';
-                return `this.slot('${name}',true) || (function(${scopeName}){return ${children}}).bind(this)`;
+                return `(this.slot('${name}',true) || (function(${scopeName}){return ${children}}).bind(this))`;
             }else if(children){
-                return `this.slot('${name}') || ${children}`;
+                return `(this.slot('${name}') || ${children})`;
             }else{
                 return `this.slot('${name}')`;
             }
