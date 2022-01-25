@@ -21,6 +21,7 @@ class MemberExpression extends Syntax{
                 isReflect = true;
             }
             if( isReflect ){
+                this.addDepend( this.stack.getModuleById("Reflect") );
                 if( this.stack.computed ){
                     return `${this.checkRefsName("Reflect")}.get(${module.id},${object},${property})`;
                 }else{

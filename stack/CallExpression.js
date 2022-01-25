@@ -58,6 +58,7 @@ class CallExpression extends Syntax{
             if( desc && desc.isType && desc.isAnyType  ){
                 this.addDepend( this.stack.getModuleById("Reflect") );
                 if( args.length > 0 ){
+                    console.log( this.stack.callee.description().toString() )
                     return `${this.checkRefsName("Reflect")}.call(${this.module.id},${this.make(this.stack.callee.object)},"${this.stack.callee.property.value()}",[${args.join(",")}])`;
                 }else{
                     return `${this.checkRefsName("Reflect")}.call(${this.module.id},${this.make(this.stack.callee.object)},"${this.stack.callee.property.value()}")`;

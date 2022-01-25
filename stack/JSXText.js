@@ -6,9 +6,9 @@ class JSXText extends Syntax{
     }
 
     emitter(level=0){
-        const value = this.stack.value().trim();
+        const value = this.stack.value();
         if( value ){  
-            return `'${value}'`;
+            return `'${value.replace(/[\r\n]+/g,'')}'`;
         }
         return null;
     }
