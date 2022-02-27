@@ -294,7 +294,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 	});
 }};
 members.testKeyof={m:1,d:3,value:function testKeyof(t,k){
-	return Reflect.get(Test,t,k);
+	return t[k];
 }};
 members.getClassTestGenerics={m:1,d:3,value:function getClassTestGenerics(name,age){
 	var a = [age,name];
@@ -322,20 +322,20 @@ members.testAwait={m:1,d:3,value:function testAwait(){
 	it("test Await",function(done){
 		const res = _this.loadRemoteData(1);
 		res.then(function(data){
-			expect(Reflect.get(Test,data,0)).toEqual(['one',1]);
-			expect(Reflect.get(Test,data,1)).toEqual({"bss":['two',2],"cc":['three',3]});
-			expect(Reflect.get(Test,data,2)).toEqual(['three',3]);
+			expect(data[0]).toEqual(['one',1]);
+			expect(data[1]).toEqual({"bss":['two',2],"cc":['three',3]});
+			expect(data[2]).toEqual(['three',3]);
 			done();
 		});
 	});
 	it("test for Await",function(done){
 		const res = _this.loadRemoteData(2);
 		res.then(function(data){
-			expect(Reflect.get(Test,data,0)).toEqual(['0',0]);
-			expect(Reflect.get(Test,data,1)).toEqual(['1',1]);
-			expect(Reflect.get(Test,data,2)).toEqual(['2',2]);
-			expect(Reflect.get(Test,data,3)).toEqual(['3',3]);
-			expect(Reflect.get(Test,data,4)).toEqual(['4',4]);
+			expect(data[0]).toEqual(['0',0]);
+			expect(data[1]).toEqual(['1',1]);
+			expect(data[2]).toEqual(['2',2]);
+			expect(data[3]).toEqual(['3',3]);
+			expect(data[4]).toEqual(['4',4]);
 			done();
 		});
 	});

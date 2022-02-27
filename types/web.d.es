@@ -209,11 +209,13 @@ declare interface HTMLCollectionBase {
     /**
      * Sets or retrieves the number of objects in a collection.
      */
-    const length: number;
+    length: number;
     /**
      * Retrieves an object from various collections.
      */
     item(index: number): Element | null;
+
+    [index:number]:Element
 }
 
 declare interface HTMLCollection extends HTMLCollectionBase {
@@ -267,23 +269,25 @@ declare interface ParentNode extends Node {
 }
 
 declare interface HTMLElement extends Element {
-    var accessKey: string;
-    const  accessKeyLabel: string;
-    var autocapitalize: string;
-    var dir: string;
-    var draggable: boolean;
-    var hidden: boolean;
-    var innerText: string;
-    var lang: string;
+   
+    const accessKeyLabel: string;
     const offsetHeight: number;
     const offsetLeft: number;
     const offsetParent: Element | null;
     const offsetTop: number;
     const offsetWidth: number;
-    var outerText: string;
-    var spellcheck: boolean;
-    var title: string;
-    var translate: boolean;
+    
+    accessKey: string;
+    autocapitalize: string;
+    dir: string;
+    draggable: boolean;
+    hidden: boolean;
+    innerText: string;
+    lang: string;
+    outerText: string;
+    spellcheck: boolean;
+    title: string;
+    translate: boolean;
     click(): void;
 }
 

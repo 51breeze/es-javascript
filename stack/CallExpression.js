@@ -82,7 +82,7 @@ class CallExpression extends Syntax{
             }
         }
         if(desc && desc.isMethodDefinition){
-            const modifier =desc.modifier.value();
+            const modifier = desc.modifier && desc.modifier.value() || 'public';
             const refModule = desc.module;
             if( modifier==="private" && refModule.children.length > 0){
                 if( this.stack.callee.isMemberExpression ){

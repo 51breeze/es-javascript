@@ -59,7 +59,6 @@ class Builder extends Syntax{
             }else{
                 this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true);
             }
-
             if( config.pack ){
                 this.doPack();
             }

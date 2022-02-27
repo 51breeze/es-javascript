@@ -1,7 +1,6 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
 const Polyfill = require("../core/Polyfill");
-const Plugins = require("../core/Plugins");
 class DeclaratorDeclaration extends Syntax{
 
     getModuleReferenceName(module,context){
@@ -12,7 +11,7 @@ class DeclaratorDeclaration extends Syntax{
 
     emitter(){
         const module = this.module;
-        const polyfillModule = Polyfill.modules.get( module.getName() ) || Plugins.getPlugin(this.name).getPolyfill( module.getName() );
+        const polyfillModule = Polyfill.modules.get( module.getName() ) || this.compiler.getPlugin( this.name ).getPolyfill( module.getName() );
         if( !polyfillModule ){
             return null;
         }

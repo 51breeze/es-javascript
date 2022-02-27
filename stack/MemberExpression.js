@@ -43,7 +43,7 @@ class MemberExpression extends Syntax{
         }
 
         if(description && description.isMethodDefinition){
-            const modifier =description.modifier.value();
+            const modifier = description.modifier && description.modifier.value() || 'public';
             const refModule = description.module;
             if(modifier==="private" && refModule.children.length > 0){
                 return `${this.module.id}.prototype.${property}`;

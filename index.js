@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const Plugins = require("./core/Plugins");
 const Builder = require("./core/Builder");
 const {merge} = require("lodash");
 const modules = new Map();
@@ -29,10 +28,11 @@ const defaultConfig ={
     'useAbsolutePathImport':false,
 }
 const configData = Object.assign({},defaultConfig);
+const package = require("./package.json");
 const properties ={
-    name:'javascript',
+    name:package.name,
+    version:package.version,
     platform:'client',
-    version:require("./package.json").version,
     config(options){
         if(options){
             merge(configData, options);
@@ -74,26 +74,6 @@ function plugin(complier){
     this.complier = complier;
     complier.loadTypes([require.resolve('./types/web.d.es')],true);
 };
-plugin.loadStack = loadStack;
-plugin.extend=function extend(plugin){
-    var checker = [
-        {name:'name', type:['string']},
-        {name:'platform', type:['string']},
-        {name:'version', type:['string','number']},
-        {name:'config', type:['function']},
-        {name:'getStack', type:['function']},
-        {name:'getPolyfill', type:['function']},
-        {name:'start', type:['function']},
-        {name:'build', type:['function']},
-    ];
-    if( checker.every(item=>{
-        return item.type.includes( typeof plugin[ item.name ] );
-    })){
-        Plugins.register(plugin.name, plugin);
-    }else{
-        throw new Error('Plugin invalid');
-    }
-}
 
 for(var name in properties){
     Object.defineProperty(plugin.prototype,name,{
@@ -116,13 +96,4 @@ Object.defineProperty(plugin,'modules',{
     configurable:false
 });
 
-Object.defineProperty(plugin,'defaultConfig',{
-    get:function(){
-        return Object.assign({},defaultConfig);
-    },
-    enumerable:true,
-    configurable:false
-});
-
-plugin.extend(properties);
 module.exports = plugin;

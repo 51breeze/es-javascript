@@ -1,6 +1,5 @@
 const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
-const Plugins = require("./Plugins");
 const PATH = require("path");
 const events = require('events');
 const moduleIdMap=new Map();
@@ -179,7 +178,7 @@ class Syntax extends events.EventEmitter {
     }
     
     getConfig( name ){
-        const config = Plugins.getPlugin( this.name ).config();
+        const config = this.compiler.getPlugin( this.name ).config();
         if( name ){
             if( name.lastIndexOf(".") > 0 ){
                 const keys = name.split('.');
@@ -196,6 +195,7 @@ class Syntax extends events.EventEmitter {
         }
         return config;
     }
+
     isBlockStatement(){
         const stack = this.stack;
         return !!(stack.isFunctionExpression || 
@@ -578,7 +578,7 @@ class Syntax extends events.EventEmitter {
     }
 
     make(stack, ...args){
-        const plugin = Plugins.getPlugin( this.name );
+        const plugin = this.compiler.getPlugin( this.name );
         const stackClass = plugin.getStack( stack.toString() );
         if( stackClass ){
             const obj = new stackClass( stack );
@@ -595,7 +595,7 @@ class Syntax extends events.EventEmitter {
 
     factory(syntaxClass,stack){
         const obj = new syntaxClass( stack );
-        obj.name = this.name;
+        obj.name = this.name
         obj.platform = this.platform;
         return obj;
     }
