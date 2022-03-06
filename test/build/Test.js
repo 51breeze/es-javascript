@@ -3,6 +3,7 @@ var TestInterface = require("./com/TestInterface.js");
 var EventDispatcher = require("./core/EventDispatcher.js");
 var Event = require("./core/Event.js");
 var Types = require("./Types.js");
+var Param = require("./unit/Param.js");
 var Class = require("./core/Class.js");
 var Reflect = require("./core/Reflect.js");
 var System = require("./core/System.js");
@@ -144,6 +145,8 @@ members.start={m:3,d:3,value:function start(){
 	this.testAwait();
 	this.testTuple();
 	this.next();
+	var param = new Param();
+	param.start();
 }};
 members.testEnumerableProperty={m:1,d:3,value:function testEnumerableProperty(){
 	var _this = this;
@@ -237,7 +240,7 @@ members.testGenerics={m:1,d:3,value:function testGenerics(){
 		let obj = _this.getTestObject(true);
 		var bd = obj;
 		var bs = obj.getNamess(1);
-		expect(bs.toFixed(2)).toBe("1.00");
+		expect(Reflect.call(Test,bs,"toFixed",[2])).toBe("1.00");
 	});
 	var bsint = this.getTestGenerics('sssss');
 	var bsstring = this.getTestGenerics("ssss",'age');

@@ -23,6 +23,34 @@ class FunctionExpression extends Syntax{
         const paramItems = rest ? this.stack.params.slice(0,-1) : this.stack.params;
         const before = [];
         const params = paramItems.map( item=>{
+            if( item.isObjectPattern ){
+                const sName = this.stack.scope.generateVarName('_s',true);
+                before.push( this.semicolon( `\t${sName} = ${sName} || {}`) );
+                item.properties.forEach( property=>{
+                    const key = property.key.value();
+                    if( property.hasInit ){
+                        const initStack = property.init.isAssignmentPattern ? property.init.right : property.init;
+                        insertBefore.push( this.semicolon( `\tvar ${key} = ${sName}.${key} || ${this.make(initStack)}`) );
+                    }else{
+                        insertBefore.push( this.semicolon( `\tvar ${key} = ${sName}.${key}`) );
+                    }
+                });
+                return sName;
+            }else if( item.isArrayPattern ){
+                const sName = this.stack.scope.generateVarName('_s',true);
+                before.push( this.semicolon( `\t${sName} = ${sName} || []`) );
+                item.elements.forEach( (property,index)=>{
+                    if( property.isAssignmentPattern ){
+                        const key = property.left.value();
+                        insertBefore.push( this.semicolon( `\tvar ${key} = ${sName}[${index}] || ${this.make(property.right)}`) );
+                    }else{
+                        const key = property.value();
+                        insertBefore.push( this.semicolon( `\tvar ${key} = ${sName}[${index}]`) );
+                    }
+                });
+                return sName;
+            }
+
             const expre = this.make(item);
             if( isSupport ){
                 return expre;

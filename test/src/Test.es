@@ -7,6 +7,7 @@ package;
 import com.TestInterface;
 import Person;
 import Types;
+import unit.Param;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
@@ -223,6 +224,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
        this.testAwait();
        this.testTuple();
        this.next();
+       var param = new Param();
+       param.start();
     }
 
     private testEnumerableProperty(){

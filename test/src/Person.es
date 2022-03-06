@@ -38,7 +38,6 @@ public class Person<T> extends Object implements TestInterface
 
        var c:int = -1968;
        var bs:float = 22.366
-       var bss:double = 22.366
        var bssd:number = -22.366
         this.target.address();
         return "sssss";
