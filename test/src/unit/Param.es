@@ -10,26 +10,30 @@ public class Param{
             age=7
         };
 
-        enum t {
-            name='A',
-            A='c',
-        }
-
         var b:en = en.age;
-        this.getList(en ,  [9,5]);
+        var result = this.getList(en ,  [9,5]);
+        it("test getList",()=>{
+             expect(6).toBe(result);
+         })
         this.ave(2.3660);
     }
 
     getList<T,B>({name1000:T,age:number=9},[index:T,id=20]){
 
-        console.log( name1000, age ,index, id )
-
-        var args = [index, id];
-
-        console.log( ...args )
+         var args = [index, id];
+         it("test call",()=>{
+            var b = this.call( ...args );
+             expect(5).toBe(b);
+         })
 
         return name1000;
        
+    }
+
+    call(index,id:number){
+
+        return id
+
     }
 
     ave<T>(age:T){
