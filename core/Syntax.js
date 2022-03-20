@@ -143,6 +143,7 @@ class Syntax extends events.EventEmitter {
         const suffix = config.suffix||".js";
         const workspace = config.workspace || this.compiler.workspace;
         const output = config.output || options.output;
+        if( !module )return output;
         if( !flag && module && module.isModule ){
             if( module.isDeclaratorModule ){
                 const polyfillModule = Polyfill.modules.get( module.getName() );
@@ -171,6 +172,10 @@ class Syntax extends events.EventEmitter {
         const contextPath = this.getOutputAbsolutePath(context);
         const modulePath  = this.getOutputAbsolutePath(module);
         return './'+PATH.relative( PATH.dirname(contextPath), modulePath ).replace(/\\/g,'/');
+    }
+
+    getFileRelativePath(currentFile, destFile){
+        return './'+PATH.relative( PATH.dirname(currentFile), destFile ).replace(/\\/g,'/');
     }
 
     getOptions(){
@@ -342,8 +347,8 @@ class Syntax extends events.EventEmitter {
         return isRequire || isPolyfill
     }
 
-    getModuleFile(module, uniKey, type){
-        return this.compiler.normalizeModuleFile(module, uniKey, type);
+    getModuleFile(module, uniKey, type, resolve){
+        return this.compiler.normalizeModuleFile(module, uniKey, type, resolve);
     }
 
     getModuleReferenceName(module,context){
@@ -380,8 +385,8 @@ class Syntax extends events.EventEmitter {
                     }else{
                         push( this.createImport( null, asset.file ) );
                     } 
-                }else if( asset.type ==="style" && config.styleLoader && module ){
-                    const filename = config.styleLoader.concat( this.getModuleFile(module, asset.resolve, asset.type) ).join('!');
+                }else if( asset.type ==="style" && module ){
+                    const filename = (config.styleLoader || []).concat( this.getModuleFile(module, module.getName(), asset.type, asset.resolve) ).join('!');
                     push( this.createImport( null, filename ) );
                 }
             });

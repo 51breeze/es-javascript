@@ -31,7 +31,6 @@ class Creator {
             try{
                 const compilation=file ? compiler.createCompilation(file) : new Compilation( compiler );
                 compilation.parser(source);
-                compilation.checker();
                 if(compilation.stack){
                     resolved(compilation);
                 }else{

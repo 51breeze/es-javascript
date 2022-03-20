@@ -13,11 +13,17 @@ class Builder extends Syntax{
         }
     }
 
-    emitStyleAssets(filesystem,module){
+    emitAssets(filesystem,module){
         module && module.assets.forEach( asset=>{
             if( !asset.file && asset.type ==="style" ){
-                const file = this.getModuleFile( module, asset.resolve, asset.type);
+                const file = this.getModuleFile( module, module.getName(), asset.type, asset.resolve);
                 this.emitContent(filesystem, module, asset.content, file);
+            }else if( asset.file && asset.resolve ){
+                if( fs.existsSync(asset.resolve) ){
+                    this.emitContent(filesystem, module, fs.readFileSync( asset.resolve ), asset.resolve);
+                }
+            }else{
+                console.warn( `Assets file the '${asset.file}' is not emit.`);
             }
         });
     }
@@ -36,7 +42,7 @@ class Builder extends Syntax{
                         const file = this.getModuleFile(module);
                         const content = this.make(stack);
                         this.emitContent(filesystem, module, content, file, config.emitFile);
-                        this.emitStyleAssets(filesystem,module);
+                        this.emitAssets(filesystem,module);
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -77,8 +83,11 @@ class Builder extends Syntax{
         const compiler    = this.compiler;
         const config      = this.getConfig();
         const filesystem  = compiler.getOutputFileSystem( this.name );
-        compilation.completed(this.name,false);
+        if( compilation.completed(this.name) ){
+            return done();
+        }
         try{
+            compilation.completed(this.name,false);
             if( compilation.modules.size >0 ){
                 compilation.modules.forEach( module =>{
                     if( this.isNeedBuild(module) ){
@@ -87,7 +96,7 @@ class Builder extends Syntax{
                             const content = this.make(stack);
                             const file    = this.getModuleFile(module);
                             this.emitContent(filesystem, module, content, file, config.emitFile);
-                            this.emitStyleAssets(filesystem,module);
+                            this.emitAssets(filesystem,module);
                         }else{
                             throw new Error(`Not found stack by '${module.getName()}'`);
                         }
@@ -99,7 +108,6 @@ class Builder extends Syntax{
             compilation.completed(this.name,true);
             done();
         }catch(e){
-            console.log(e)
             done(e);
         }
     }
