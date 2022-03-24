@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
-    "easescript": "0.0.75",
+    "easescript": "^0.0.75",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
