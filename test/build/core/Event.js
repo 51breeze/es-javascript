@@ -236,7 +236,7 @@ Event.fix.hooks[ Event.READY ]=function (listener, dispatcher){
     id = window.setInterval(handle,50);
     return true;
 }
-Class.creator(4,Event,{
+Class.creator(5,Event,{
 	'id':1,
 	'global':true,
 	'dynamic':true,

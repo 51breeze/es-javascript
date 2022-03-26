@@ -33,7 +33,7 @@ members.call={m:3,d:3,value:function call(index,id){
 members.ave={m:3,d:3,value:function ave(age){
 	return age;
 }};
-Class.creator(6,Param,{
+Class.creator(7,Param,{
 	'id':1,
 	'ns':'unit',
 	'name':'Param',

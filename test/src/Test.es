@@ -8,7 +8,7 @@ import com.TestInterface;
 import Person;
 import Types;
 import unit.Param;
-import Http;
+import Request as Http;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');

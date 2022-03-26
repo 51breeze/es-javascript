@@ -1,5 +1,6 @@
 var Person = require("./Person.js");
 var TestInterface = require("./com/TestInterface.js");
+var Http = require("./Request.js");
 var EventDispatcher = require("./core/EventDispatcher.js");
 var Event = require("./core/Event.js");
 var Types = require("./Types.js");
@@ -13,6 +14,7 @@ function Test(name,age){
 	Person.call(this,name);
 	Person.prototype.setType.call(this,'1');
 	this.target;
+	new Http();
 }
 var methods = {};
 methods.getClass={m:3,d:3,value:function getClass(){

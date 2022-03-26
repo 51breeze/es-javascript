@@ -213,7 +213,7 @@ Listener.prototype.type=null;
 Listener.prototype.proxyHandle = null;
 Listener.prototype.proxyTarget = null;
 Listener.prototype.proxyType = null;
-Class.creator(3,EventDispatcher,{
+Class.creator(4,EventDispatcher,{
 	'id':1,
 	'global':true,
 	'dynamic':false,

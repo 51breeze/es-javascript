@@ -101,8 +101,6 @@ package net{
         static isCancel(value: any): boolean;
         static all<T>(values: (T | Promise<T>)[]): Promise<T[]>;
         static spread<T, R>(callback: (...args: T[]) => R): (array: T[]) => R;
-        static const Cancel: HttpCancelStatic;
-        static const CancelToken: HttpCancelTokenStatic;
 
         constructor(url: string | HttpConfig, config?: HttpConfig): HttpPromise;
         defaults: HttpConfig;

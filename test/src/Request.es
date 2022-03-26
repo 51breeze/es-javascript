@@ -1,8 +1,11 @@
+package;
+
+
 import net.Http;
 
 class Request{
 
-    static var _init:Http=null; 
+    static private var _init:Http=null; 
 
     static init(){
 
@@ -21,7 +24,7 @@ class Request{
                 return Promise.reject(error)
             }
         );
-        return Request._init ;
+        return Request._init;
     }
 
     static post(url,data){
