@@ -29,6 +29,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "axios": "^0.26.1",
     "jasmine": "^3.10.0"
   }
 }

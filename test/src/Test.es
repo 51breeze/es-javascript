@@ -8,6 +8,7 @@ import com.TestInterface;
 import Person;
 import Types;
 import unit.Param;
+import Http;
 
 //@Embed(Types='img.png');
 @Embed('assets/style.css');
@@ -80,6 +81,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
         super(name);
         super.setType('1');
         this.target;
+
+        new Http();
     }
 
      @Main

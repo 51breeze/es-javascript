@@ -99,3 +99,5 @@ declare function expect(result:any):Matchers;
 declare class jasmine {
    public static var DEFAULT_TIMEOUT_INTERVAL:int
 }
+
+@reference('../types/http.d.es')

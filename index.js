@@ -72,7 +72,10 @@ function plugin(complier){
         registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     }
     this.complier = complier;
-    complier.loadTypes([require.resolve('./types/web.d.es')],true);
+    complier.loadTypes([
+        require.resolve('./types/web.d.es'),
+        require.resolve('./types/http.d.es'),
+    ],true);
 };
 
 for(var name in properties){
