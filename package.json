@@ -1,6 +1,6 @@
 {
   "name": "es-javascript",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "test",
   "main": "index.js",
   "typings": "./types",
@@ -26,11 +26,11 @@
   },
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
-    "easescript": "^0.0.75",
+    "easescript": "*",
+    "axios": "^0.26.1",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "axios": "^0.26.1",
     "jasmine": "^3.10.0"
   }
 }
