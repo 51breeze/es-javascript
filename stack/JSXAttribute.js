@@ -40,6 +40,12 @@ class JSXAttribute extends Syntax{
                 has =(desc.isPropertyDefinition && !desc.isReadonly) || 
                      (desc.isMethodGetterDefinition && desc.module && desc.module.getMember( desc.key.value(), 'set') );
             }
+            if( !has && this.stack.value.isJSXExpressionContainer ){
+                if( this.stack.value.expression.isMemberExpression ){
+                    const objectType = this.getGlobalModuleById('Object')
+                    has = objectType && objectType.is( this.stack.value.expression.object.type() );  
+                }
+            }
             if( !has ){
                 this.stack.value.error(10000,value);
             } 

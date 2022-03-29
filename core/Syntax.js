@@ -377,14 +377,18 @@ class Syntax extends events.EventEmitter {
         const assets = target.assets;
         const config = this.getConfig();
         const isWebpack = config.webpack;
+        let externals = config.external;
         if( assets && assets.size > 0 && isWebpack ){
             assets.forEach( asset=>{
                 if( asset.file ){
-                    if( asset.assign ){
-                        push( this.createImport( `${asset.assign}`, asset.file ) )
-                    }else{
-                        push( this.createImport( null, asset.file ) );
-                    } 
+                    const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
+                    if( !external ){
+                        if( asset.assign ){
+                            push( this.createImport( `${asset.assign}`, asset.file ) )
+                        }else{
+                            push( this.createImport( null, asset.file ) );
+                        } 
+                    }
                 }else if( asset.type ==="style" && module ){
                     const filename = (config.styleLoader || []).concat( this.getModuleFile(module, module.getName(), asset.type, asset.resolve) ).join('!');
                     push( this.createImport( null, filename ) );
@@ -402,9 +406,12 @@ class Syntax extends events.EventEmitter {
             }
         }
         const target = module || this.compilation;
+        const config = this.getConfig();
+        let externals = config.external;
         if( target.requires && target.requires.size > 0 ){
             target.requires.forEach( item=>{
-                const file = this.compiler.normalizePath( item.from );
+                const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
+                const file = external || this.compiler.normalizePath( item.from );
                 if( item.extract ){
                     const key = item.key;
                     const name = item.name;
@@ -414,8 +421,13 @@ class Syntax extends events.EventEmitter {
                         push( this.createImport( `{${name}}`, file ) )
                     }
                 }else{
-                    push( this.createImport( `${item.key}`, file ) )
+                    if( external ){
+                        push( this.createImport( `{${item.key}}`, file ) )
+                    }else{
+                        push( this.createImport( `${item.key}`, file ) )
+                    }
                 }
+                
             });
         }
         return refs;
