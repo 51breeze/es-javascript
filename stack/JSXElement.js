@@ -281,12 +281,11 @@ class JSXElement extends Syntax{
     }
 
     makeElement(name,data,children,level){
-
         const elements = children && children.length > 0 ? this.makeChildren(children,data,level) : null;
         let inline = this.getIndent(level);
         let first = this.stack.parentStack.isJSXElement ?  `\r\n${inline}` : '';
         let handle = this.getJsxCreateElementHandle();
-        if( !this.compilation.JSX ){
+        if( !this.compilation.JSX || !this.stack.jsxRootElement.isProgram ){
             handle = this.generatorRefName(this.stack.jsxRootElement,handle,handle,()=>{
                 return this.getJsxCreateElementRefs();
             });
@@ -438,11 +437,33 @@ class JSXElement extends Syntax{
     }
 
     getElementConfig(){
-        return {};
+        return {
+            props:{},
+            attrs:{},
+            on:{},
+            nativeOn:{},
+            slot:void 0,
+            scopedSlots:{},
+            domProps:{},
+            key:void 0,
+            ref:void 0,
+            refInFor:void 0,
+            tag:void 0,
+            staticClass:void 0,
+            class:void 0,
+            show:void 0,
+            staticStyle:{},
+            style:{},
+            staticStyle:{},
+            hook:{},
+            model:{},
+            transition:{},
+            directives:[]
+        };
     }
 
     createElement(level){
-        const children = this.stack.children.filter(child=>!(child.isJSXScript || child.isJSXStyle) );
+        const children = this.stack.children.filter(child=>!( (child.isJSXScript && child.isScriptProgram) || child.isJSXStyle) );
         const isRoot = this.stack.jsxRootElement === this.stack;
         const spreadAttributes = [];
         let data=this.getElementConfig();
@@ -475,7 +496,7 @@ class JSXElement extends Syntax{
                 } 
             }
         }
-        if(isRoot && this.compilation.JSX){
+        if(isRoot && this.compilation.JSX && this.stack.parentStack.isProgram ){
             return this.makeClass(children, data, level);
         }else{
             return this.makeElement(

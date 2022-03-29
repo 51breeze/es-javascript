@@ -8,7 +8,7 @@ class JSXText extends Syntax{
     emitter(level=0){
         const value = this.stack.value();
         if( value ){  
-            return `'${value.replace(/[\r\n]+/g,'')}'`;
+            return `'${value.replace(/[\r\n]+/g,'').replace(/\'/g,"\\'")}'`;
         }
         return null;
     }
