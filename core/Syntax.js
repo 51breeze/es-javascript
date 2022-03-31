@@ -131,7 +131,7 @@ class Syntax extends events.EventEmitter {
         if( dataset.hasOwnProperty(key) ){
             return dataset[key];
         }
-        const block = target.getParentStack( stack=>!!stack.isBlockStatement );
+        const block = target.getParentStack( stack=>!!(stack.isBlockStatement || stack.isFunctionExpression));
         const refName =  this.generatorVarName(target,name);
         block.dispatcher("insert",this.semicolon(`var ${refName} = ${callback()}`));
         return dataset[key] = refName;

@@ -239,7 +239,8 @@ class JSXElement extends Syntax{
                 }else if( !last.ifEnd ){
                     value = last.content.join( last.child.isDirective ? `,\r\n\t${inline}` : '');
                 }
-                if( last.cmd.includes('each') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective){
+                const complex = last.child.isJSXExpressionContainer ? !!(last.child.expression.isMemberExpression || last.child.expression.isCallExpression) : false;
+                if( last.cmd.includes('each') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective || complex ){
                     if( part.length > 0 ){
                         content.push( part.splice(0, part.length) );
                     }
@@ -286,9 +287,14 @@ class JSXElement extends Syntax{
         let first = this.stack.parentStack.isJSXElement ?  `\r\n${inline}` : '';
         let handle = this.getJsxCreateElementHandle();
         if( !this.compilation.JSX || !this.stack.jsxRootElement.isProgram ){
-            handle = this.generatorRefName(this.stack.jsxRootElement,handle,handle,()=>{
-                return this.getJsxCreateElementRefs();
+            const stackMethod = this.stack.getParentStack( stack=>{
+                return !!(stack.isMethodDefinition || stack.isJSXExpressionContainer);
             });
+            if( !(stackMethod && stackMethod.isJSXExpressionContainer) ){
+                handle = this.generatorRefName(this.stack.jsxRootElement,handle,handle,()=>{
+                    return this.getJsxCreateElementRefs();
+                });
+            }
         }
         data = this.makeProperty(data,level);
         if( elements ){
