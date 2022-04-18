@@ -3,7 +3,10 @@ class ThisExpression  extends Syntax {
     emitter(){
         let scope = this.scope.getScopeByType("function");
         if( scope && scope.isArrow ){
-            const stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression) );
+            let stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression) );
+            if( stack.isProgram && stack.isJSXProgram && stack.body.length == 1){
+                stack = stack.body[0]
+            }
             stack.dispatcher("insertThisName", this.generatorVarName(stack,"_this",true) );
             return this.generatorVarName(stack,"_this");
         }

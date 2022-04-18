@@ -317,6 +317,10 @@ class JSXElement extends Syntax{
             }
         });
 
+        root.once("insertThisName",(name)=>{
+            insertBefore.push( this.semicolon(`\tvar ${name} = this`) )
+        });
+
         let element = children && children.length > 0 ?  this.makeChildren(children, data,level) : null;
         if( children.length > 1 ){
             const _data = this.makeProperty(data,level);
