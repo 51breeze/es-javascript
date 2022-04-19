@@ -408,8 +408,24 @@ class JSXElement extends Syntax{
                 pushEvent('input',`(function(event){${value}=event && event.target && event.target.nodeType===1 ? event.target.value : event;}).bind(this)`, 'on');
             }
 
+            let propName = name;
+
             if( item.isMemberProperty ){
-                data.props[name] = value;
+
+                let isDOMAttribute = false;
+                let attrDesc = item.getAttributeDescription( this.stack.getSubClassDescription() );
+                if( attrDesc ){
+                    isDOMAttribute = attrDesc.annotations.some( item=>item.name.toLowerCase() === 'domattribute' );
+                    const alias = attrDesc.annotations.find( item=>item.name.toLowerCase() === 'alias' );
+                    if( alias ){
+                        const args = alias.getArguments();
+                        if( args.length > 0) {
+                            propName = args[0].value;
+                        }
+                    }
+                }
+
+                data.props[propName] = value;
                 return;
             }
 
@@ -420,15 +436,16 @@ class JSXElement extends Syntax{
                 case "ref" :
                 case "refInFor" :
                 case "tag" :
+                case "staticStyle" :
                 case "staticClass" :
-                    data[name] = value;
+                    data[propName] = value;
                     break;
                 case "innerHTML" :
-                    data['domProps'][name] = value;
+                    data['domProps'][propName] = value;
                     break;
                 case "value" :
                 default:
-                    data.attrs[name] = value;
+                    data.attrs[propName] = value;
             }
         });
     }
