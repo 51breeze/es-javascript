@@ -5,7 +5,7 @@ class Identifier extends Syntax{
           const module = this.module;
           if( desc && (desc.isPropertyDefinition || desc.isMethodDefinition) ){
                const pStack = this.stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isExpressionStatement));
-               if( pStack.jsxElement ){
+               if(pStack && pStack.jsxElement ){
                     if( desc.isMethodGetterDefinition || desc.isPropertyDefinition ){
                          return `this.${this.stack.value()}`;
                     }else{

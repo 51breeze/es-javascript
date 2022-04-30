@@ -60,7 +60,7 @@ class Syntax extends events.EventEmitter {
 
     checkRefsName(name){
         if( this.scope.isDefine(name) ){
-            const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration);
+            const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration, true);
             var classScope = this.scope.getScopeByType("class");
             var value = this.generatorVarName(topStack,name);
             classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
@@ -131,7 +131,7 @@ class Syntax extends events.EventEmitter {
         if( dataset.hasOwnProperty(key) ){
             return dataset[key];
         }
-        const block = target.getParentStack( stack=>!!(stack.isBlockStatement || stack.isFunctionExpression));
+        const block = target.getParentStack( stack=>!!(stack.isBlockStatement || stack.isFunctionExpression), true);
         const refName =  this.generatorVarName(target,name);
         block.dispatcher("insert",this.semicolon(`var ${refName} = ${callback()}`));
         return dataset[key] = refName;

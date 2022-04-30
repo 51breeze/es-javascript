@@ -83,6 +83,13 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
         this.target;
 
         new Http();
+
+        const map = new Map<string,[]>();
+        map.set('name', [] );
+
+        map.forEach( item=>{
+
+        })
     }
 
      @Main
@@ -684,7 +691,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
         name<TestInterface>( person ); 
         const bbb:TestInterface = name( person ); 
 
-        name<Person>( person ); 
+        name<Person<any>>( person );
 
         var dd:[int, uint, ...string ] = [1,1,"2222","66666","8888"];
         var [a1,a2,a3] = dd;

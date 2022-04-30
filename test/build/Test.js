@@ -15,6 +15,11 @@ function Test(name,age){
 	Person.prototype.setType.call(this,'1');
 	this.target;
 	new Http();
+	const map = new Map();
+	map.set('name',[]);
+	map.forEach(function(item){
+
+	});
 }
 var methods = {};
 methods.getClass={m:3,d:3,value:function getClass(){

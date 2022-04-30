@@ -71,7 +71,7 @@ class MemberExpression extends Syntax{
 
         if( description && (!description.isAccessor && description.isMethodDefinition) ){
             const pStack = this.stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isCallExpression || stack.isExpressionStatement));
-            if( pStack.jsxElement ){
+            if( pStack && pStack.jsxElement ){
                 return `${object}.${property}.bind(this)`;
             }
         }
