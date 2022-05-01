@@ -106,9 +106,6 @@ class Syntax extends events.EventEmitter {
             return `return ${name || module.id};`;
         }
         const config = this.getConfig();
-        if( config.pack ){
-            return `${this.getPackModuleRefs()}.exports=${name || module.id};`;
-        }
         const mod = config.module || 'commonjs';
         if( mod.toLowerCase() === 'es' ){
             return `export default ${name || module.id};`;
@@ -445,9 +442,7 @@ class Syntax extends events.EventEmitter {
         this.getDependencies(module).forEach( depModule=>{
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
-                if( config.pack ){
-                    push( this.emitPackImportClass(depModule, name) );
-                }else if( config.useAbsolutePathImport ){
+                if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
                     push( this.createImport(name, file.replace(/\\/g,'/') ) );
                 }else{
