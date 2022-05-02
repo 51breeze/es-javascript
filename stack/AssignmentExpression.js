@@ -22,7 +22,7 @@ class AssignmentExpression extends Syntax{
             const left = this.make(this.stack.left.object);
             const property = this.stack.left.property.isIdentifier ? this.stack.left.property.value() : this.make(this.stack.left.property);
             const reflect = this.checkRefsName("Reflect");
-            this.addDepend( this.stack.getModuleById("Reflect") );
+            this.addDepend( this.stack.getGlobalTypeById("Reflect") );
             if( this.stack.left.computed ){
                 return `${reflect}.set(${module.id},${left},${property},${right})`;
             }

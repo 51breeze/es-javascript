@@ -18,7 +18,7 @@ import Request as Http;
 * @param name string
 */
 //dsfsdfsdf
-public class Test<U,B=string> extends Person<string> implements Iterator, TestInterface {
+public class Test<U,B=string> extends Person<string> implements Iterator<number>, TestInterface {
 
     /**
     *  返回一个类的引用
@@ -311,6 +311,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator, TestIn
         for( var val of this){
             array.push( val );
         }
+        
         it(`impls iterator should is [0,1,2,3,4]`,()=>{
             expect(5).toBe( array.length );
             for(var i=0; i<5 ;i++){

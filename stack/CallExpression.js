@@ -7,7 +7,7 @@ class CallExpression extends Syntax{
         const desc = this.stack.callee.description(this);
         if( this.stack.callee.isMemberExpression ){
             if( desc.isType && desc.isAnyType  ){
-                this.addDepend( this.stack.getModuleById("Reflect") );
+                this.addDepend( this.stack.getGlobalTypeById("Reflect") );
                 if( this.stack.arguments.length > 0 ){
                     return `${this.checkRefsName("Reflect")}.call(${this.module.id},${this.make(this.stack.callee.object)},"${this.stack.callee.property.value()}",[${args.join(",")}].concat(${spread}))`;
                 }else{
@@ -56,7 +56,7 @@ class CallExpression extends Syntax{
         }
         if( this.stack.callee.isMemberExpression ){
             if( desc && desc.isType && desc.isAnyType  ){
-                this.addDepend( this.stack.getModuleById("Reflect") );
+                this.addDepend( this.stack.getGlobalTypeById("Reflect") );
                 if( args.length > 0 ){
                     return `${this.checkRefsName("Reflect")}.call(${this.module.id},${this.make(this.stack.callee.object)},"${this.stack.callee.property.value()}",[${args.join(",")}])`;
                 }else{
