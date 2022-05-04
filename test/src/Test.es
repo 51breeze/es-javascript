@@ -516,6 +516,19 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             });
         })
 
+
+         it(`test switch and for Await`,(done)=>{
+           
+            const res = this.loadRemoteData(5);
+            res.then((data)=>{
+                 console.log( data )
+                expect( data ).toEqual([ [ 'five', 5 ], [ '0', 0 ], [ '1', 1 ], [ '2', 2 ], [ '3', 3 ], [ '4', 4 ] ]);
+                done();
+            });
+        })
+
+        
+
         this.getJson().name;
     }
 
@@ -617,7 +630,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
      }
 
-    public async loadRemoteData( type ):Promise<[string,int]>{
+    public async loadRemoteData( type, index=1 ):Promise<any>{
+
+        if( type ===5 ){
+            return index==1 ? await this.fetchApi("one-9999", 1, 800) : await this.fetchApi("two-9999", 1, 800)
+        }
 
         if( type === 1 ){
             var a = await this.fetchApi("one", 1, 800);

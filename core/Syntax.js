@@ -351,19 +351,13 @@ class Syntax extends events.EventEmitter {
     getModuleReferenceName(module,context){
         context = context || this.module;
         if( !module )return null;
-        if( module.required ){
-            return module.id;
-        }
         if( context ){
-            if( context.compilation.isDescriptionType ){
-                return module.id;
-            }
             return context.getReferenceNameByModule( module );
         }
-        return module.namespace.getChain().concat(module.id).join("_");
+        return module.getName("_");
     }
 
-    createModuleAssets(module,refs){
+    createModuleAssets(module,refs,alias=null){
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
@@ -381,7 +375,7 @@ class Syntax extends events.EventEmitter {
                     const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
                     if( !external ){
                         if( asset.assign ){
-                            push( this.createImport( `${asset.assign}`, asset.file ) )
+                            push( this.createImport( `${alias||asset.assign}`, asset.file ) )
                         }else{
                             push( this.createImport( null, asset.file ) );
                         } 
@@ -395,7 +389,7 @@ class Syntax extends events.EventEmitter {
         return refs;
     }
 
-    createModuleRequires(module,refs){
+    createModuleRequires(module,refs,alias=null){
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
@@ -409,22 +403,22 @@ class Syntax extends events.EventEmitter {
             target.requires.forEach( item=>{
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
                 const file = external || this.compiler.normalizePath( item.from );
+                let name = item.key;
                 if( item.extract ){
                     const key = item.key;
-                    const name = item.name;
+                    name = item.name;
                     if( name !== key ){
-                        push( this.createImport( `{${key} as ${name}}`, file ) )
+                        push( this.createImport( `{${key} as ${alias||name}}`, file ) )
                     }else{
-                        push( this.createImport( `{${name}}`, file ) )
+                        push( this.createImport( alias ? `{${name} as ${alias}}` : `{${name}}`, file ) )
                     }
                 }else{
                     if( external ){
-                        push( this.createImport( `{${item.key}}`, file ) )
+                        push( this.createImport( alias ? `{${item.key} as ${alias}}` : `{${item.key}}`, file ) )
                     }else{
-                        push( this.createImport( `${item.key}`, file ) )
+                        push( this.createImport( alias || name, file ) )
                     }
                 }
-                
             });
         }
         return refs;
@@ -440,17 +434,18 @@ class Syntax extends events.EventEmitter {
         this.createModuleAssets( module, refs );
         this.createModuleRequires( module, refs );
         this.getDependencies(module).forEach( depModule=>{
+            const alias = module.importAlias.get( depModule );
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
                 if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
-                    push( this.createImport(name, file.replace(/\\/g,'/') ) );
+                    push( this.createImport(alias || name, file.replace(/\\/g,'/') ) );
                 }else{
-                    push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
+                    push( this.createImport(alias || name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }else if( this.isUsed(depModule) ){
-                this.createModuleAssets( depModule, refs );
-                this.createModuleRequires( depModule, refs );
+                this.createModuleAssets( depModule, refs, alias );
+                this.createModuleRequires( depModule, refs, alias );
             }
         });
     }

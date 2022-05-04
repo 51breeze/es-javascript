@@ -79,10 +79,10 @@ members.start={m:3,d:3,value:function start(){
 		expect(Test.getClass().test).toBe(Test);
 	});
 	it("'Test.getClass().person' should is Person",function(){
-		expect(Test.getClass().person).toBe(Person);
+		expect(Person).toBe(Person);
 	});
 	it("'new (Test.getClass().person)('')' should is true",function(){
-		const o = new (Test.getClass().person)('name');
+		const o = new (Person)('name');
 		expect(o instanceof Person).toBeTrue();
 	});
 	it("'this.bbss=\"666666\"' should is '666666' ",function(){
@@ -363,6 +363,14 @@ members.testAwait={m:1,d:3,value:function testAwait(){
 			done();
 		});
 	});
+	it("test switch and for Await",function(done){
+		const res = _this.loadRemoteData(5);
+		res.then(function(data){
+			console.log(data);
+			expect(data).toEqual([['five',5],['0',0],['1',1],['2',2],['3',3],['4',4]]);
+			done();
+		});
+	});
 	Reflect.get(Test,this.getJson(),'name');
 }};
 members.getJson={m:3,d:3,value:function getJson(){
@@ -445,9 +453,10 @@ members.loadRemoteData2={m:3,d:3,value:function loadRemoteData2(){
 		});
 	});
 }};
-members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type){
-
+members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type,index){
+	index = index === void 0 ? 1 : index;
 	return System.awaiter(this, void 0, void 0, function (){
+					var _res;
 		var a;
 		var bs;
 		var c;
@@ -458,49 +467,63 @@ members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type){
 		return System.generator(this, function (_a) {
 			switch (_a.label){
 				case 0 :
-					if(!(type === 1))return [3,4];
-					return [4,this.fetchApi("one",1,800)];
+					if(!(type === 5))return [3,5];
+					if(!(index == 1))return [3,2];
+					return [4,this.fetchApi("one-9999",1,800)];
 				case 1:
+					_res=_a.sent();
+					return [3,3];
+				case 2:
+					return [4,this.fetchApi("two-9999",1,800)];
+				case 3:
+					_res=_a.sent();
+					_a.label=4;
+				case 4:
+					return [2, _res];
+				case 5:
+					if(!(type === 1))return [3,9];
+					return [4,this.fetchApi("one",1,800)];
+				case 6:
 					a = _a.sent();
 					return [4,this.fetchApi("two",2,500)];
-				case 2:
+				case 7:
 					bs = {"bss":_a.sent()};
 					return [4,this.fetchApi("three",3,900)];
-				case 3:
+				case 8:
 					c = _a.sent();
 					bs.cc=c;
 					return [2, [a,bs,c]];
-				case 4:
+				case 9:
 					list = [];
 					switch(type){
-						case 3 : return [3,5];
-						case 4 : return [3,7];
+						case 3 : return [3,10];
+						case 4 : return [3,12];
 					}
-					return [3,9];
-				case 5:
+					return [3,14];
+				case 10:
 					return [4,this.fetchApi("four",4,300)];
-				case 6:
+				case 11:
 					b = _a.sent();
 					return [2, b];
-				case 7:
+				case 12:
 					return [4,this.fetchApi("five",5,1200)];
-				case 8:
+				case 13:
 					bb = _a.sent();
 					list.push(bb);
-					return [3,9];
-				case 9:
+					return [3,14];
+				case 14:
 					i=0;
-					_a.label=10;
-				case 10:
-					if( !(i < 5) )return [3, 13];
+					_a.label=15;
+				case 15:
+					if( !(i < 5) )return [3, 18];
 					return [4,this.fetchApi(i + '',i,100)];
-				case 11:
+				case 16:
 					list.push(_a.sent());
-					_a.label=12;
-				case 12:
+					_a.label=17;
+				case 17:
 					i++;
-					return [3, 10];
-				case 13:
+					return [3, 15];
+				case 18:
 					list.entries();
 					return [2, list];
 

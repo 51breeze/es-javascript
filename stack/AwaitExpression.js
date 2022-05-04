@@ -4,12 +4,17 @@ class AwaitExpression extends Syntax{
           const stack = this.stack.getParentStack( stack=>!!stack.isFunctionExpression);
           const indent = this.getIndent( this.scope.asyncParentScopeOf.level+3 );
           const parentStack = this.stack.parentStack.isExpressionStatement ? this.stack.parentStack.parentStack : this.stack.parentStack;
-          if( parentStack.isBlockStatement || parentStack.isSwitchCase ){
+          if( parentStack.isBlockStatement || parentStack.isSwitchCase || parentStack.isConditionalExpression ){
                const expression = [
                     `${indent}\treturn [4,${this.make(this.stack.argument)}];`,
                     `${indent}case ${++(this.createDataByStack(stack).awaitCount)}:`,
-                    `${indent}\t${this.generatorVarName(stack,"_a",true)}.sent();`
                ];
+               if( parentStack.isConditionalExpression ){
+                    var refs = this.generatorVarName(parentStack,"_res",true);
+                    expression.push( `${indent}\t${refs}=${this.generatorVarName(stack,"_a",true)}.sent();` ) 
+               }else{
+                    expression.push( `${indent}\t${this.generatorVarName(stack,"_a",true)}.sent();` ) 
+               }
                return expression.join("\r\n");
           }else if(stack){
                const blockStack = this.stack.getParentStack((parent)=>{

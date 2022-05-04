@@ -7,10 +7,11 @@ class MemberExpression extends Syntax{
         const object = this.make(this.stack.object);
         const description = this.stack.description();
         const option = this.getConfig();
-        
+        let isStatic = false;
         if( description && description.isModule && this.compiler.callUtils("isTypeModule",description) ){
             this.addDepend( description );
         }else if( this.compiler.callUtils("isTypeModule",this.stack.object.description()) ){
+            isStatic = true;
             this.addDepend( this.stack.object.description() );
         }
 
@@ -65,7 +66,7 @@ class MemberExpression extends Syntax{
             }
         }
 
-        if(description && description.isPropertyDefinition && description.modifier && description.modifier.value() === "private"){
+        if(description && description.isPropertyDefinition && !isStatic && description.modifier && description.modifier.value() === "private"){
             return `${object}[${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)}].${property}`;
         }
 

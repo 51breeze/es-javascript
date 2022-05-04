@@ -27,8 +27,9 @@ class IfStatement extends Syntax{
                     expression.push(`${topIndent}case ${labelIndex}:`);
                     return expression.join("\r\n");
                 }else{
+                    let nextLabel;
                     if( !aRet ){
-                        const nextLabel = ++(this.createDataByStack(stack).awaitCount);
+                        nextLabel= ++(this.createDataByStack(stack).awaitCount);
                         expression.push(`${topIndent}\treturn [3,${nextLabel}];`);
                     }
                     expression.push(`${topIndent}case ${labelIndex}:`);
