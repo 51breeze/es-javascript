@@ -364,10 +364,30 @@ members.testAwait={m:1,d:3,value:function testAwait(){
 		});
 	});
 	it("test switch and for Await",function(done){
-		const res = _this.loadRemoteData(5);
+		const res = _this.loadRemoteData(5,1);
 		res.then(function(data){
-			console.log(data);
-			expect(data).toEqual([['five',5],['0',0],['1',1],['2',2],['3',3],['4',4]]);
+			expect(data).toEqual(['one-9999',1]);
+			done();
+		});
+	});
+	it("test switch and for Await",function(done){
+		const res = _this.loadRemoteData(5,2);
+		res.then(function(data){
+			expect(data).toEqual(['two-9999',2]);
+			done();
+		});
+	});
+	it("test switch and for Await",function(done){
+		const res = _this.loadRemoteData(6,1);
+		res.then(function(data){
+			expect(data).toEqual(['one-9999',1]);
+			done();
+		});
+	});
+	it("test switch and for Await",function(done){
+		const res = _this.loadRemoteData(6,2);
+		res.then(function(data){
+			expect(data).toEqual(['two-9999',2]);
 			done();
 		});
 	});
@@ -456,7 +476,7 @@ members.loadRemoteData2={m:3,d:3,value:function loadRemoteData2(){
 members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type,index){
 	index = index === void 0 ? 1 : index;
 	return System.awaiter(this, void 0, void 0, function (){
-					var _res;
+	var _cdv;
 		var a;
 		var bs;
 		var c;
@@ -467,63 +487,89 @@ members.loadRemoteData={m:3,d:3,value:function loadRemoteData(type,index){
 		return System.generator(this, function (_a) {
 			switch (_a.label){
 				case 0 :
-					if(!(type === 5))return [3,5];
+					if(!(type === 5))return [3,7];
 					if(!(index == 1))return [3,2];
 					return [4,this.fetchApi("one-9999",1,800)];
 				case 1:
-					_res=_a.sent();
-					return [3,3];
+					_cdv=_a.sent();
+					return [3,6];
 				case 2:
-					return [4,this.fetchApi("two-9999",1,800)];
+					if(!(index == 2))return [3,3];
+					_cdv = ["two-9999",2];
+					return [3,5];
 				case 3:
-					_res=_a.sent();
-					_a.label=4;
+					return [4,this.fetchApi("three-9999",3,800)];
 				case 4:
-					return [2, _res];
+					_cdv=_a.sent();
+					_a.label=5;
 				case 5:
-					if(!(type === 1))return [3,9];
-					return [4,this.fetchApi("one",1,800)];
+					_a.label=6;
 				case 6:
+					return [2, _cdv];
+				case 7:
+					if(!(type === 6))return [3,14];
+					if(!(index >= 2))return [3,11];
+					if(!(index == 2))return [3,8];
+					_cdv = ["two-9999",2];
+					return [3,10];
+				case 8:
+					return [4,this.fetchApi("three-9999",3,800)];
+				case 9:
+					_cdv=_a.sent();
+					_a.label=10;
+				case 10:
+					return [3,13];
+				case 11:
+					return [4,this.fetchApi("one-9999",1,800)];
+				case 12:
+					_cdv=_a.sent();
+					_a.label=13;
+				case 13:
+					return [2, _cdv];
+				case 14:
+					if(!(type === 1))return [3,18];
+					return [4,this.fetchApi("one",1,800)];
+				case 15:
 					a = _a.sent();
 					return [4,this.fetchApi("two",2,500)];
-				case 7:
+				case 16:
 					bs = {"bss":_a.sent()};
 					return [4,this.fetchApi("three",3,900)];
-				case 8:
+				case 17:
 					c = _a.sent();
 					bs.cc=c;
 					return [2, [a,bs,c]];
-				case 9:
+				case 18:
 					list = [];
 					switch(type){
-						case 3 : return [3,10];
-						case 4 : return [3,12];
+						case 3 : return [3,19];
+						case 4 : return [3,21];
 					}
-					return [3,14];
-				case 10:
+					return [3,23];
+				case 19:
 					return [4,this.fetchApi("four",4,300)];
-				case 11:
+				case 20:
 					b = _a.sent();
 					return [2, b];
-				case 12:
+				case 21:
 					return [4,this.fetchApi("five",5,1200)];
-				case 13:
+				case 22:
 					bb = _a.sent();
 					list.push(bb);
-					return [3,14];
-				case 14:
+					return [3,23];
+				case 23:
 					i=0;
-					_a.label=15;
-				case 15:
-					if( !(i < 5) )return [3, 18];
+					_a.label=24;
+				case 24:
+					if( !(i < 5) )return [3, 27];
 					return [4,this.fetchApi(i + '',i,100)];
-				case 16:
+				case 25:
 					list.push(_a.sent());
-					_a.label=17;
-				case 17:
+					_a.label=26;
+				case 26:
 					i++;
-					return [3, 15];
-				case 18:
+					return [3, 24];
+				case 27:
 					list.entries();
 					return [2, list];
 

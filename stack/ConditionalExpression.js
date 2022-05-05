@@ -2,10 +2,10 @@ const Syntax = require("../core/Syntax");
 class ConditionalExpression extends Syntax{
      emitter(){
           const test = this.make(this.stack.test);
-          const consequent = this.make(this.stack.consequent);
-          
-          
-          if(this.stack.hasAwait){
+          let consequent = this.make(this.stack.consequent);
+          let hasBefore = this.stack.consequent.isAwaitExpression;
+          let hasAfter = this.stack.alternate.isAwaitExpression;
+          if(this.stack.hasAwait && (hasBefore || hasAfter) ){
                const stack = this.stack.getParentStack(stack=>!!stack.isFunctionExpression);
                if( stack ){
                     let labelIndex= ++(this.createDataByStack(stack).awaitCount);
@@ -13,40 +13,36 @@ class ConditionalExpression extends Syntax{
                     const blockStack = this.stack.getParentStack((parent)=>{
                          return !!(parent.isBlockStatement || parent.isSwitchStatement || parent.isFunctionExpression)
                     });
+                    const inParent = (target)=>!!target.parentStack.parentStack.isConditionalExpression;
+                    const hasParentConditional = inParent(this.stack.alternate) || inParent(this.stack.consequent);
+                    const refs = this.generatorRefName(stack,"_cdv",'conditionalDefaultValue',null,true,'insertBefore');
+                    if( !hasBefore  ){
+                         consequent = this.semicolon(`${refs} = ${consequent}`);
+                    }
                     const expression = [
                          `${topIndent}\tif(!(${test}))return [3,${labelIndex}];`,
                          consequent
                     ];
-
-                    const isReturnNode=(target)=>{
-                         return !!(target.isReturnStatement);
+                    let alternate = this.make(this.stack.alternate);
+                    if( !hasAfter ){
+                         alternate = `${refs} = ${alternate}`;
                     }
-                    //const aRet = isReturnNode(this.stack.consequent);
-                    //expression.push(`${topIndent}\t${this.generatorVarName(stack,"_a",true)}.sent();`);
-                    expression.push(`${topIndent}\treturn [3,${labelIndex+1}];`);
-                   
+                    let nextIndex =  this.createDataByStack(stack).awaitCount;
+                    expression.push(`${topIndent}\treturn [3,${nextIndex+1}];`);
                     expression.push(`${topIndent}case ${labelIndex}:`);
-
-                    const alternate = this.make(this.stack.alternate);
                     expression.push(alternate);
-
-                    let nextIndex =  ++(this.createDataByStack(stack).awaitCount);
+                    nextIndex =  ++(this.createDataByStack(stack).awaitCount);
                     expression.push(`${topIndent}\t${this.generatorVarName(stack,"_a",true)}.label=${nextIndex};`);
-
                     expression.push(`${topIndent}case ${nextIndex}:`);
-
-                    blockStack.dispatcher("insert", expression.join("\r\n") );
-
-                    var refs = this.generatorVarName(this.stack,"_res",true);
-
-                    stack.dispatcher("insertBefore", this.semicolon(`var ${refs}`) );
-
-                    return `${refs}`
+                    if( hasParentConditional ){
+                         return expression.join("\r\n");
+                    }else{
+                         blockStack.dispatcher("insert", expression.join("\r\n") );
+                         return refs;
+                    }
                }
           }
-
           const alternate = this.make(this.stack.alternate);
-
           return `${test} ? ${consequent} : ${alternate}`;
      }
 }

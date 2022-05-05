@@ -516,13 +516,37 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             });
         })
 
+        it(`test switch and for Await`,(done)=>{
+            const res = this.loadRemoteData(5,1);
+            res.then((data)=>{
+                expect( data ).toEqual([ 'one-9999', 1 ]);
+                done();
+            });
+        })
+
 
          it(`test switch and for Await`,(done)=>{
-           
-            const res = this.loadRemoteData(5);
+            const res = this.loadRemoteData(5,2);
             res.then((data)=>{
-                 console.log( data )
-                expect( data ).toEqual([ [ 'five', 5 ], [ '0', 0 ], [ '1', 1 ], [ '2', 2 ], [ '3', 3 ], [ '4', 4 ] ]);
+                expect( data ).toEqual([ 'two-9999', 2 ]);
+                done();
+            });
+        })
+
+
+        it(`test switch and for Await`,(done)=>{
+            const res = this.loadRemoteData(6,1);
+            res.then((data)=>{
+                expect( data ).toEqual([ 'one-9999', 1 ]);
+                done();
+            });
+        })
+
+
+         it(`test switch and for Await`,(done)=>{
+            const res = this.loadRemoteData(6,2);
+            res.then((data)=>{
+                expect( data ).toEqual([ 'two-9999', 2 ]);
                 done();
             });
         })
@@ -633,7 +657,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     public async loadRemoteData( type, index=1 ):Promise<any>{
 
         if( type ===5 ){
-            return index==1 ? await this.fetchApi("one-9999", 1, 800) : await this.fetchApi("two-9999", 1, 800)
+            return index==1 ? await this.fetchApi("one-9999", 1, 800) : index == 2 ?  ["two-9999", 2] : await this.fetchApi("three-9999", 3, 800)
+        }
+
+        if( type ===6 ){
+            return index >= 2 ? index == 2 ?  ["two-9999", 2] : await this.fetchApi("three-9999", 3, 800) : await this.fetchApi("one-9999", 1, 800)
         }
 
         if( type === 1 ){

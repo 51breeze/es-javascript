@@ -10,10 +10,10 @@ class AwaitExpression extends Syntax{
                     `${indent}case ${++(this.createDataByStack(stack).awaitCount)}:`,
                ];
                if( parentStack.isConditionalExpression ){
-                    var refs = this.generatorVarName(parentStack,"_res",true);
+                    const refs = this.generatorRefName(stack,"_cdv",'conditionalDefaultValue',null,true,'insertBefore');
                     expression.push( `${indent}\t${refs}=${this.generatorVarName(stack,"_a",true)}.sent();` ) 
                }else{
-                    expression.push( `${indent}\t${this.generatorVarName(stack,"_a",true)}.sent();` ) 
+                    expression.push( `${indent}\t${this.generatorVarName(stack,"_a",true)}.sent();`);
                }
                return expression.join("\r\n");
           }else if(stack){

@@ -119,18 +119,25 @@ class Syntax extends events.EventEmitter {
         if( dataset.hasOwnProperty(name) ){
             return dataset[name];
         }
-        const value = stack.scope.generateVarName( name , flag);
+        const value = stack.scope.generateVarName(name, flag);
         return dataset[name] = value;
     }
 
-    generatorRefName(target, name, key, callback){
+    generatorRefName(target, name, key, callback, flag=false, eventType='insert'){
         const dataset = this.createDataByStack(target);
         if( dataset.hasOwnProperty(key) ){
             return dataset[key];
         }
-        const block = target.getParentStack( stack=>!!(stack.isBlockStatement || stack.isFunctionExpression), true);
-        const refName =  this.generatorVarName(target,name);
-        block.dispatcher("insert",this.semicolon(`var ${refName} = ${callback()}`));
+        const fn = stack=>!!(stack.isBlockStatement || stack.isFunctionExpression);
+        const block = fn(target) ? target : target.getParentStack(fn , true);
+        const refName =  this.generatorVarName(target,name,flag);
+        let content = callback ? `var ${refName} = ${callback()}` : `var ${refName}`;
+        if(eventType==="insertBefore"){
+            content = this.semicolon( content, this.getIndent(null, block, !!block.async ) );
+        }else{
+            content = this.semicolon( content );
+        }
+        block.dispatcher(eventType,content);
         return dataset[key] = refName;
     }
 
@@ -237,41 +244,43 @@ class Syntax extends events.EventEmitter {
        return stack;
     }
 
-    inCaseStatement(){
-        let stack = this.stack.parentStack;
+    inCaseStatement(stack){
+        stack = stack || this.stack.parentStack;
         while( stack && !stack.isSwitchCase ){
             stack=stack.parentStack;
         }
         return !!(stack && stack.isSwitchCase);
     }
 
-    getIndentNum( num=null ){
-        let level = num === null ? this.scope.level : num;
+    getIndentNum( num=null, targetStack=null, isTop=false ){
+        targetStack = targetStack || this.stack;
+        let targetScope = targetStack.scope;
+        let level = num === null ? targetScope.level : num;
         if( num === null ){
-            const asyncIndent = this.scope.asyncParentScopeOf ? 4 : 0;
-            const pScope = this.scope.asyncParentScopeOf ? this.scope.getScopeByType("function") : null;
-            if( pScope && this.scope.asyncParentScopeOf && pScope.hasChildAwait ){
-                const asc = this.scope.asyncParentScopeOf;
-                const stack = this.getBlockStatement();
-                level =  this.scope.parent && this.stack.isFunctionExpression ? this.scope.parent.level : asc.level+asyncIndent;
+            const asyncIndent = !isTop && targetScope.asyncParentScopeOf ? 4 : 0;
+            const pScope = targetScope.asyncParentScopeOf ? targetScope.getScopeByType("function") : null;
+            if( pScope && targetScope.asyncParentScopeOf && pScope.hasChildAwait ){
+                const asc = targetScope.asyncParentScopeOf;
+                const stack = this.getBlockStatement(targetStack);
+                level =  targetScope.parent && this.stack.isFunctionExpression ? targetScope.parent.level : asc.level+asyncIndent;
                 if( stack ){
                     if(stack.isFunctionExpression && stack.scope !== asc ){
-                        const diff = this.scope.level - stack.scope.parent.level;
+                        const diff = targetScope.level - stack.scope.parent.level;
                         level = asc.level+asyncIndent+diff;
                     }else{
-                        let ps = this.scope;
+                        let ps = targetScope;
                         while( ps && ps.parent && !(ps.parent === asc || ps === asc || ps.hasChildAwait) ){
                             ps = ps.parent;
                         }
-                        let diff = this.scope.level - ps.level;
+                        let diff = targetScope.level - ps.level;
                         level = asc.level+asyncIndent+diff;
                     }
                 }
                 
             }else{
-                if( this.scope.parent && this.stack.isFunctionExpression ) {
-                    level = this.scope.parent.level;
-                }else if( !this.stack.isBreakStatement && this.inCaseStatement() ){
+                if( targetScope.parent && targetStack.isFunctionExpression ) {
+                    level = targetScope.parent.level;
+                }else if( !targetStack.isBreakStatement && this.inCaseStatement(targetStack) ){
                     level+=1;
                 }
                 level+=asyncIndent;
@@ -280,8 +289,8 @@ class Syntax extends events.EventEmitter {
         return level;
     }
 
-    getIndent(num=null){
-        const level = this.getLevel( this.getIndentNum( num ) );
+    getIndent(num=null,stack=null, isTop=false){
+        const level = this.getLevel( this.getIndentNum( num , stack, isTop) );
         return level > 0 ? "\t".repeat( level ) : '';
     }
 
@@ -289,9 +298,10 @@ class Syntax extends events.EventEmitter {
         return level-1;
     }
     
-    semicolon(expression){
+    semicolon(expression,indent=null){
         if( !expression )return "";
-        return `${this.getIndent()}${expression};`;
+        indent = indent === null ? this.getIndent() : indent;
+        return `${indent}${expression};`;
     }
 
     checkMetaTypeSyntax( metaTypes ){
