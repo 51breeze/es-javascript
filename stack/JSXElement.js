@@ -424,9 +424,10 @@ class JSXElement extends Syntax{
                         }
                     }
                 }
-
-                data.props[propName] = value;
-                return;
+                if( !isDOMAttribute ){
+                    data.props[name] = value;
+                    return;
+                }
             }
 
             switch(name){
