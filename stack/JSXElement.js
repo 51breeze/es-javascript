@@ -50,7 +50,7 @@ class JSXElement extends Syntax{
                 target.dispatcher("insertBefore",this.semicolon(`var ${refName}`));
                 return `(${refName}=${res||'{}'},${computed.map(item=>`${refName}[${item[0]}]=${item[1]}`).join(',')},${refName})`
             }else{
-                const target = this.stack.jsxRootElement.getParentStack( stack=>!!stack.isFunctionExpression, true);
+                const target = this.stack.jsxRootElement.getParentStack( stack=>!!stack.isFunctionExpression );
                 const refName =  this.generatorVarName(target,'_c');
                 target.dispatcher("insertBefore",this.semicolon(`var ${refName}`));
                 return `(${refName}=${res||'{}'},${computed.map(item=>`${refName}[${item[0]}]=${item[1]}`).join(',')},${refName})`

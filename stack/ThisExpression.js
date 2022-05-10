@@ -3,7 +3,7 @@ class ThisExpression  extends Syntax {
     emitter(){
         let scope = this.scope.getScopeByType("function");
         if( scope && scope.isArrow ){
-            let stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression), true);
+            let stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression) );
             if( stack.isProgram && stack.isJSXProgram && stack.body.length == 1){
                 stack = stack.body[0]
             }

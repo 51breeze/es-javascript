@@ -60,7 +60,7 @@ class Syntax extends events.EventEmitter {
 
     checkRefsName(name){
         if( this.scope.isDefine(name) ){
-            const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration, true);
+            const topStack = this.stack.getParentStack(stack=>!!stack.isClassDeclaration);
             var classScope = this.scope.getScopeByType("class");
             var value = this.generatorVarName(topStack,name);
             classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
@@ -129,7 +129,7 @@ class Syntax extends events.EventEmitter {
             return dataset[key];
         }
         const fn = stack=>!!(stack.isBlockStatement || stack.isFunctionExpression);
-        const block = fn(target) ? target : target.getParentStack(fn , true);
+        const block = fn(target) ? target : target.getParentStack(fn);
         const refName =  this.generatorVarName(target,name,flag);
         let content = callback ? `var ${refName} = ${callback()}` : `var ${refName}`;
         if(eventType==="insertBefore"){
