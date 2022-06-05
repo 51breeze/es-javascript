@@ -35,7 +35,7 @@ public class Promist{
         var b = await this.fetchApi("two", 2, 500);
 
        
-        return [a,b,bb]
+        return [a,b]
     }
 
     getApi(i,b){

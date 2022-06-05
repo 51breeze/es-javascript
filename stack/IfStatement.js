@@ -17,7 +17,7 @@ class IfStatement extends Syntax{
                 const isReturnNode=(target)=>{
                     const body = target && target.body;
                     const last = body && body[ body.length-1 ];
-                    return !!(last && last.isReturnStatement);
+                    return !!(last && (last.isReturnStatement || last.isTryStatement) );
                 }
                 const aRet = isReturnNode(this.stack.consequent);
                 if( !alternate ){

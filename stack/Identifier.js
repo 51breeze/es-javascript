@@ -28,6 +28,21 @@ class Identifier extends Syntax{
                this.addDepend( desc );
                return this.getModuleReferenceName(desc, module);
           }
+
+          if(desc && desc.isStack && desc.parentStack ){
+               const ps = desc.parentStack;
+               if(ps.isTryStatement && ps.hasAwait){
+                    const name = this.stack.value();
+                    return this.generatorVarName(desc, name, true, (newValue,oldValue)=>{
+                         const stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression) );
+                         const content = this.semicolon( `var ${newValue}` , this.getIndent(this.scope.asyncParentScopeOf.level+1, stack, !!stack.async) );
+                         if(stack){
+                              stack.dispatcher('insertBefore',content);
+                         }
+                    });
+               }
+          }
+
           return this.stack.value();
      }
 }

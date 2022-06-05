@@ -7,11 +7,9 @@ class ForStatement extends Syntax{
         if( this.stack.hasAwait ){
             const stack = this.stack.getParentStack(stack=>!!stack.isFunctionExpression);
             if( stack ){
-                const topIndent = this.getIndent( this.scope.asyncParentScopeOf.level+3);
-                const initName = this.stack.init.declarations.map( item=>item.id.value() );
-                stack.dispatcher("insertBefore", `${topIndent}var ${initName.join(",")};`);
 
-                const expression = this.stack.init.declarations.map( item=>`\t${topIndent}${item.id.value()}=${this.make(item.init)};`);
+                const topIndent = this.getIndent( this.scope.asyncParentScopeOf.level+3 );
+                const expression = [ this.make( this.stack.init ) ];
                 const startLabelIndex = ++(this.createDataByStack(stack).awaitCount);
                 const body = this.make(this.stack.body);
                 const updateLabelIndex = ++(this.createDataByStack(stack).awaitCount);

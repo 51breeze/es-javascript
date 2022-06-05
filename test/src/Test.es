@@ -24,7 +24,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     *  返回一个类的引用
     */
     static getClass(){
-        var a = Test as class<Test>;
+        var a = Test as class<Test<any>>;
         var buname = {a:1}
         buname.test = a;
         buname.person = Person;
@@ -37,7 +37,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         return buname
     }
 
-    static getClassObject():class<Test>{
+    static getClassObject():class<Test<any>>{
         var a = Test;
         var b = {
             test:a
@@ -63,7 +63,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     * @private
     * the is class type.
     */
-    private static var iiu:class<Test> = Test;
+    private static var iiu:class<Test<any>> = Test;
 
     /**
     * @private
@@ -551,7 +551,21 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             });
         })
 
-        
+        it(`test switch and for Await`,(done)=>{
+            const res = this.loadRemoteData3(1);
+            res.then((data)=>{
+                expect( data ).toEqual([ 'one-9999', 1 ]);
+                done();
+            });
+        }) 
+
+        it(`test switch and for Await`,(done)=>{
+            const res = this.loadRemoteData3(4);
+            res.then((data)=>{
+                expect( data ).toEqual('Invalid index 4');
+                done();
+            });
+        }) 
 
         this.getJson().name;
     }
@@ -657,7 +671,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     public async loadRemoteData( type, index=1 ):Promise<any>{
 
         if( type ===5 ){
-            return index==1 ? await this.fetchApi("one-9999", 1, 800) : index == 2 ?  ["two-9999", 2] : await this.fetchApi("three-9999", 3, 800)
+            try{
+                return index==1 ? await this.fetchApi("one-9999", 1, 800) : index == 2 ?  ["two-9999", 2] : await this.fetchApi("three-9999", 3, 800)
+            }catch(e){
+                console.log(e)
+            }
         }
 
         if( type ===6 ){
@@ -775,6 +793,35 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         dd.push( 1 );
         return dd;
     }
+
+
+     public async loadRemoteData3( index=1 ){
+
+         if( index < 5 ){
+
+            try{
+                if( index == 4 ){
+                    throw new Error(`Invalid index ${index}`);
+                }
+                return  index==1 ? await this.fetchApi("one-9999", 1, 800) : await this.fetchApi("two-9999", 2, 300) 
+            }catch(e){
+                //console.log(e);
+                return e.message;
+            }
+            finally{
+              
+                //return false;
+            }
+
+         }else{
+
+             return null;
+
+         }
+    
+    }
+
+
 
 }
 

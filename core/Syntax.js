@@ -114,12 +114,15 @@ class Syntax extends events.EventEmitter {
         }
     }
 
-    generatorVarName(stack,name,flag=false){
+    generatorVarName(stack,name,flag=false,callback=null){
         const dataset = this.createDataByStack(stack);
         if( dataset.hasOwnProperty(name) ){
             return dataset[name];
         }
         const value = stack.scope.generateVarName(name, flag);
+        if(callback){
+            callback(value,name);
+        }
         return dataset[name] = value;
     }
 
@@ -129,11 +132,12 @@ class Syntax extends events.EventEmitter {
             return dataset[key];
         }
         const fn = stack=>!!(stack.isBlockStatement || stack.isFunctionExpression);
-        const block = fn(target) ? target : target.getParentStack(fn);
+        var block = fn(target) ? target : target.getParentStack(fn);
         const refName =  this.generatorVarName(target,name,flag);
         let content = callback ? `var ${refName} = ${callback()}` : `var ${refName}`;
         if(eventType==="insertBefore"){
-            content = this.semicolon( content, this.getIndent(null, block, !!block.async ) );
+            const num = block.async ? this.scope.asyncParentScopeOf.level+1 : null;
+            content = this.semicolon( content, this.getIndent(num, block, !!block.async ) );
         }else{
             content = this.semicolon( content );
         }
