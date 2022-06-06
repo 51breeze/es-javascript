@@ -2,6 +2,7 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
+const SourceMap = require('./SourceMap');
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
@@ -16,6 +17,16 @@ class Syntax extends events.EventEmitter {
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
         this.module = stack.module; 
+    }
+
+    addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
+       const source = SourceMap.create( this.compilation );
+       source.lastGeneratedLine = generatedLine;
+       source.lastGeneratedColumn = generatedColumn;
+       sourceLine = sourceLine === void 0 ? this.stack.node.loc.start.line : sourceLine;
+       sourceColumn = sourceColumn === void 0 ? this.stack.node.loc.start.column : sourceColumn;
+       name = name === void 0 ? this.stack.value() : name;
+       source.addMapping(generatedLine, generatedColumn, this.compilation.file, sourceLine, sourceColumn, name);
     }
 
     createDataByStack(stack){
