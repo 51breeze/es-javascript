@@ -65,9 +65,6 @@ class Builder extends Syntax{
             }else{
                 this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true);
             }
-            if( config.pack ){
-                this.doPack();
-            }
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
             });
@@ -103,63 +100,12 @@ class Builder extends Syntax{
                     }
                 });
             }else{
-                this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true); 
+                this.emitContent(filesystem, compilation, this.make(compilation.stack), compilation.file, config.emitFile, true); 
             }
             compilation.completed(this.name,true);
             done();
         }catch(e){
             done(e);
-        }
-    }
-
-    doPack(){
-        const compilation = this.compilation;
-        const compiler    = this.compiler;
-        const config = this.getConfig();
-        const options = this.getOptions();
-        const outputPath= path.resolve(config.output || options.output, config.name);
-        const content = [];
-        const added = new Set();
-        const filesystem  = compiler.getOutputFileSystem( this.name );
-        const push = (module)=>{
-            const file = this.getModuleFile(module);
-            if( filesystem.existsSync( file ) ){
-                const value = filesystem.readFileSync( file );
-                if( value ){
-                    const id = this.getIdByModule(module);
-                    const identifier = module.isInterface ? 'Interface' : module.isEnum ? 'Enum' : 'Class';
-                    const comment = `/*\r\n${identifier} ${module.getName()}\r\n*/\r\n`; 
-                    const code = `${comment}function(${this.getPackModuleRefs()},exports){\r\n\t${value.toString().replace(/\r\n/g,'\r\n\t')}\r\n}`;
-                    content.push({id,code});
-                }
-            }
-        }
-        const every=(module)=>{
-            if( added.has(module) )return;
-            added.add( module );
-            if( this.isNeedBuild(module) && this.isUsed(module) ){
-                this.getDependencies(module).forEach( depModule=>{
-                    every(depModule);
-                });
-                push( module );
-            }
-        }
-
-        const main = [];
-        compilation.modules.forEach( module =>{
-            main.push( module );
-            every(module)
-        });
-
-        content.sort((a,b)=>{
-            return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-        });
-
-        const bootstrap= this.bootstrap( main, `{\r\n${content.map(item=>`${item.id}:${item.code}`).join(',\r\n')}\r\n}`);
-        if(config.strict){
-            this.emitFile(outputPath, `"use strict";\r\n${bootstrap}`);
-        }else{
-            this.emitFile(outputPath, bootstrap);
         }
     }
 
@@ -169,21 +115,6 @@ class Builder extends Syntax{
             return false;
         }
         return true;
-    }
-
-    bootstrap(entrances, modules){
-        const bootstrap = fs.readFileSync( path.join(__dirname,"../bootstrap.js") ).toString();
-        return bootstrap.replace(/\[CODE\[([A-Z|_]+?)\]\]/g,(a,name)=>{
-                switch(name){
-                    case "MAIN_ENTER" :
-                        return entrances.map( module=>{
-                            return `/*enter class ${module.getName()}*/\r\n\trequire(${this.getIdByModule(module)});`;
-                        }).join('\r\n');
-                    case "MODULES":
-                        return modules;
-                }
-                return 'null';
-        });
     }
 
     emitFile(file, content){

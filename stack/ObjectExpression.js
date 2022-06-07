@@ -4,7 +4,7 @@ class ObjectExpression extends Syntax{
     objectExpression(properties){
         let indent = this.getIndent();
         let level = 1;
-        const parent = this.stack.getParentStack( (parent)=>{
+        this.stack.getParentStack( (parent)=>{
             if( parent.isProperty && parent.parentStack.isObjectExpression){
                 level++;
                 return false;

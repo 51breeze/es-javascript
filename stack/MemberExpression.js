@@ -7,10 +7,11 @@ class MemberExpression extends Syntax{
         const object = this.make(this.stack.object);
         const description = this.stack.description();
         const option = this.getConfig();
-        
+        let isStatic = false;
         if( description && description.isModule && this.compiler.callUtils("isTypeModule",description) ){
             this.addDepend( description );
         }else if( this.compiler.callUtils("isTypeModule",this.stack.object.description()) ){
+            isStatic = true;
             this.addDepend( this.stack.object.description() );
         }
 
@@ -21,7 +22,7 @@ class MemberExpression extends Syntax{
                 isReflect = true;
             }
             if( isReflect ){
-                this.addDepend( this.stack.getModuleById("Reflect") );
+                this.addDepend( this.stack.getGlobalTypeById("Reflect") );
                 if( this.stack.computed ){
                     return `${this.checkRefsName("Reflect")}.get(${module.id},${object},${property})`;
                 }else{
@@ -65,13 +66,13 @@ class MemberExpression extends Syntax{
             }
         }
 
-        if(description && description.isPropertyDefinition && description.modifier && description.modifier.value() === "private"){
+        if(description && description.isPropertyDefinition && !isStatic && description.modifier && description.modifier.value() === "private"){
             return `${object}[${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)}].${property}`;
         }
 
         if( description && (!description.isAccessor && description.isMethodDefinition) ){
             const pStack = this.stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isCallExpression || stack.isExpressionStatement));
-            if( pStack.jsxElement ){
+            if( pStack && pStack.jsxElement ){
                 return `${object}.${property}.bind(this)`;
             }
         }

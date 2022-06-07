@@ -32,8 +32,9 @@ public class Promist{
     async loadRemoteData( type ):Promise<any>{
 
         var a = await this.fetchApi("one", 1, 3000);
-
         var b = await this.fetchApi("two", 2, 500);
+
+       
         return [a,b]
     }
 

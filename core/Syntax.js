@@ -2,6 +2,7 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
+const SourceMap = require('./SourceMap');
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
@@ -16,6 +17,16 @@ class Syntax extends events.EventEmitter {
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
         this.module = stack.module; 
+    }
+
+    addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
+       const source = SourceMap.create( this.compilation );
+       source.lastGeneratedLine = generatedLine;
+       source.lastGeneratedColumn = generatedColumn;
+       sourceLine = sourceLine === void 0 ? this.stack.node.loc.start.line : sourceLine;
+       sourceColumn = sourceColumn === void 0 ? this.stack.node.loc.start.column : sourceColumn;
+       name = name === void 0 ? this.stack.value() : name;
+       source.addMapping(generatedLine, generatedColumn, this.compilation.file, sourceLine, sourceColumn, name);
     }
 
     createDataByStack(stack){
@@ -60,7 +71,7 @@ class Syntax extends events.EventEmitter {
 
     checkRefsName(name){
         if( this.scope.isDefine(name) ){
-            const topStack = this.stack.getParentStack((stack)=>!!stack.isClassDeclaration);
+            const topStack = this.stack.getParentStack(stack=>!!stack.isClassDeclaration);
             var classScope = this.scope.getScopeByType("class");
             var value = this.generatorVarName(topStack,name);
             classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
@@ -106,9 +117,6 @@ class Syntax extends events.EventEmitter {
             return `return ${name || module.id};`;
         }
         const config = this.getConfig();
-        if( config.pack ){
-            return `${this.getPackModuleRefs()}.exports=${name || module.id};`;
-        }
         const mod = config.module || 'commonjs';
         if( mod.toLowerCase() === 'es' ){
             return `export default ${name || module.id};`;
@@ -117,23 +125,34 @@ class Syntax extends events.EventEmitter {
         }
     }
 
-    generatorVarName(stack,name,flag=false){
+    generatorVarName(stack,name,flag=false,callback=null){
         const dataset = this.createDataByStack(stack);
         if( dataset.hasOwnProperty(name) ){
             return dataset[name];
         }
-        const value = stack.scope.generateVarName( name , flag);
+        const value = stack.scope.generateVarName(name, flag);
+        if(callback){
+            callback(value,name);
+        }
         return dataset[name] = value;
     }
 
-    generatorRefName(target, name, key, callback){
+    generatorRefName(target, name, key, callback, flag=false, eventType='insert'){
         const dataset = this.createDataByStack(target);
         if( dataset.hasOwnProperty(key) ){
             return dataset[key];
         }
-        const block = target.getParentStack( stack=>!!stack.isBlockStatement );
-        const refName =  this.generatorVarName(target,name);
-        block.dispatcher("insert",this.semicolon(`var ${refName} = ${callback()}`));
+        const fn = stack=>!!(stack.isBlockStatement || stack.isFunctionExpression);
+        var block = fn(target) ? target : target.getParentStack(fn);
+        const refName =  this.generatorVarName(target,name,flag);
+        let content = callback ? `var ${refName} = ${callback()}` : `var ${refName}`;
+        if(eventType==="insertBefore"){
+            const num = block.async ? this.scope.asyncParentScopeOf.level+1 : null;
+            content = this.semicolon( content, this.getIndent(num, block, !!block.async ) );
+        }else{
+            content = this.semicolon( content );
+        }
+        block.dispatcher(eventType,content);
         return dataset[key] = refName;
     }
 
@@ -240,41 +259,43 @@ class Syntax extends events.EventEmitter {
        return stack;
     }
 
-    inCaseStatement(){
-        let stack = this.stack.parentStack;
+    inCaseStatement(stack){
+        stack = stack || this.stack.parentStack;
         while( stack && !stack.isSwitchCase ){
             stack=stack.parentStack;
         }
         return !!(stack && stack.isSwitchCase);
     }
 
-    getIndentNum( num=null ){
-        let level = num === null ? this.scope.level : num;
+    getIndentNum( num=null, targetStack=null, isTop=false ){
+        targetStack = targetStack || this.stack;
+        let targetScope = targetStack.scope;
+        let level = num === null ? targetScope.level : num;
         if( num === null ){
-            const asyncIndent = this.scope.asyncParentScopeOf ? 4 : 0;
-            const pScope = this.scope.asyncParentScopeOf ? this.scope.getScopeByType("function") : null;
-            if( pScope && this.scope.asyncParentScopeOf && pScope.hasChildAwait ){
-                const asc = this.scope.asyncParentScopeOf;
-                const stack = this.getBlockStatement();
-                level =  this.scope.parent && this.stack.isFunctionExpression ? this.scope.parent.level : asc.level+asyncIndent;
+            const asyncIndent = !isTop && targetScope.asyncParentScopeOf ? 4 : 0;
+            const pScope = targetScope.asyncParentScopeOf ? targetScope.getScopeByType("function") : null;
+            if( pScope && targetScope.asyncParentScopeOf && pScope.hasChildAwait ){
+                const asc = targetScope.asyncParentScopeOf;
+                const stack = this.getBlockStatement(targetStack);
+                level =  targetScope.parent && this.stack.isFunctionExpression ? targetScope.parent.level : asc.level+asyncIndent;
                 if( stack ){
                     if(stack.isFunctionExpression && stack.scope !== asc ){
-                        const diff = this.scope.level - stack.scope.parent.level;
+                        const diff = targetScope.level - stack.scope.parent.level;
                         level = asc.level+asyncIndent+diff;
                     }else{
-                        let ps = this.scope;
+                        let ps = targetScope;
                         while( ps && ps.parent && !(ps.parent === asc || ps === asc || ps.hasChildAwait) ){
                             ps = ps.parent;
                         }
-                        let diff = this.scope.level - ps.level;
+                        let diff = targetScope.level - ps.level;
                         level = asc.level+asyncIndent+diff;
                     }
                 }
                 
             }else{
-                if( this.scope.parent && this.stack.isFunctionExpression ) {
-                    level = this.scope.parent.level;
-                }else if( !this.stack.isBreakStatement && this.inCaseStatement() ){
+                if( targetScope.parent && targetStack.isFunctionExpression ) {
+                    level = targetScope.parent.level;
+                }else if( !targetStack.isBreakStatement && this.inCaseStatement(targetStack) ){
                     level+=1;
                 }
                 level+=asyncIndent;
@@ -283,8 +304,8 @@ class Syntax extends events.EventEmitter {
         return level;
     }
 
-    getIndent(num=null){
-        const level = this.getLevel( this.getIndentNum( num ) );
+    getIndent(num=null,stack=null, isTop=false){
+        const level = this.getLevel( this.getIndentNum( num , stack, isTop) );
         return level > 0 ? "\t".repeat( level ) : '';
     }
 
@@ -292,9 +313,10 @@ class Syntax extends events.EventEmitter {
         return level-1;
     }
     
-    semicolon(expression){
+    semicolon(expression,indent=null){
         if( !expression )return "";
-        return `${this.getIndent()}${expression};`;
+        indent = indent === null ? this.getIndent() : indent;
+        return `${indent}${expression};`;
     }
 
     checkMetaTypeSyntax( metaTypes ){
@@ -354,19 +376,13 @@ class Syntax extends events.EventEmitter {
     getModuleReferenceName(module,context){
         context = context || this.module;
         if( !module )return null;
-        if( module.required ){
-            return module.id;
-        }
         if( context ){
-            if( context.compilation.isDescriptionType ){
-                return module.id;
-            }
             return context.getReferenceNameByModule( module );
         }
-        return module.namespace.getChain().concat(module.id).join("_");
+        return module.getName("_");
     }
 
-    createModuleAssets(module,refs){
+    createModuleAssets(module,refs,alias=null){
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
@@ -384,7 +400,7 @@ class Syntax extends events.EventEmitter {
                     const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
                     if( !external ){
                         if( asset.assign ){
-                            push( this.createImport( `${asset.assign}`, asset.file ) )
+                            push( this.createImport( `${alias||asset.assign}`, asset.file ) )
                         }else{
                             push( this.createImport( null, asset.file ) );
                         } 
@@ -398,7 +414,7 @@ class Syntax extends events.EventEmitter {
         return refs;
     }
 
-    createModuleRequires(module,refs){
+    createModuleRequires(module,refs,alias=null){
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
@@ -412,22 +428,22 @@ class Syntax extends events.EventEmitter {
             target.requires.forEach( item=>{
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
                 const file = external || this.compiler.normalizePath( item.from );
+                let name = item.key;
                 if( item.extract ){
                     const key = item.key;
-                    const name = item.name;
+                    name = item.name;
                     if( name !== key ){
-                        push( this.createImport( `{${key} as ${name}}`, file ) )
+                        push( this.createImport( `{${key} as ${alias||name}}`, file ) )
                     }else{
-                        push( this.createImport( `{${name}}`, file ) )
+                        push( this.createImport( alias ? `{${name} as ${alias}}` : `{${name}}`, file ) )
                     }
                 }else{
                     if( external ){
-                        push( this.createImport( `{${item.key}}`, file ) )
+                        push( this.createImport( alias ? `{${item.key} as ${alias}}` : `{${item.key}}`, file ) )
                     }else{
-                        push( this.createImport( `${item.key}`, file ) )
+                        push( this.createImport( alias || name, file ) )
                     }
                 }
-                
             });
         }
         return refs;
@@ -443,19 +459,18 @@ class Syntax extends events.EventEmitter {
         this.createModuleAssets( module, refs );
         this.createModuleRequires( module, refs );
         this.getDependencies(module).forEach( depModule=>{
+            const alias = module.importAlias.get( depModule );
             if( this.isDependModule(depModule) ){
                 const name = this.getModuleReferenceName(depModule, module);
-                if( config.pack ){
-                    push( this.emitPackImportClass(depModule, name) );
-                }else if( config.useAbsolutePathImport ){
+                if( config.useAbsolutePathImport ){
                     const file = this.getModuleFile(depModule);
-                    push( this.createImport(name, file.replace(/\\/g,'/') ) );
+                    push( this.createImport(alias || name, file.replace(/\\/g,'/') ) );
                 }else{
-                    push( this.createImport(name, this.getOutputRelativePath(depModule,module) ) );
+                    push( this.createImport(alias || name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }else if( this.isUsed(depModule) ){
-                this.createModuleAssets( depModule, refs );
-                this.createModuleRequires( depModule, refs );
+                this.createModuleAssets( depModule, refs, alias );
+                this.createModuleRequires( depModule, refs, alias );
             }
         });
     }

@@ -21,10 +21,10 @@ class VariableDeclaration extends Syntax {
                     declarations.push( item );
                 }
             });
-            const indent = this.getIndent(this.scope.asyncParentScopeOf.level+1);
+            const indent = this.getIndent(this.scope.asyncParentScopeOf.level+1, fnStack, !!fnStack.async);
             const content= this.semicolon( this.stack.declarations.filter( item=>!!(item.isPattern || item.init) ).map( item=>this.make(item) ).join(",") );
             const declaration = `${indent}var ${declareBefore.concat(declarations.map(item=>item.value())).join(",")};`;
-            fnStack.dispatcher("insertBefore", declaration);
+            fnStack && fnStack.dispatcher("insertBefore", declaration);
             return content;
         }
         const kind = this.stack.kind;

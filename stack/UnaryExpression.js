@@ -15,7 +15,7 @@ class UnaryExpression extends Syntax {
                   isReflect = true;
                }
                if( isReflect ){
-                  this.addDepend( this.stack.getModuleById("Reflect") );
+                  this.addDepend( this.stack.getGlobalTypeById("Reflect") );
                   const object = this.make( this.stack.argument.object );
                   const property = this.make( this.stack.argument.property );
                   if( this.stack.argument.computed ){

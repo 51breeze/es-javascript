@@ -10,13 +10,21 @@ class FunctionExpression extends Syntax{
             }
         });
 
+        const insertContent = [];
+        this.stack.addListener("insert",(content)=>{
+            if( content ){
+                insertContent.push(content);
+            }
+        });
+
         if( !this.scope.isArrow ){
             this.stack.once("insertThisName",(name)=>{
                 insertBefore.push( this.semicolon(`\tvar ${name} = this`) )
             });
         }
         this.createDataByStack(this.stack).awaitCount = 0;
-        const body = this.make(this.stack.body);
+        var body = this.make(this.stack.body)
+        body = insertContent.join("\r\n")+body;
         const isSupport = false;
         const len = this.stack.params.length;
         const rest = len > 0 && this.stack.params[ len-1 ].isRestElement ?  this.stack.params[ len-1 ] : null;
