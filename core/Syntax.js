@@ -593,7 +593,7 @@ class Syntax extends events.EventEmitter {
 
     isInheritWebComponent(classModule){
         if( webComponents.has(classModule) ){
-            return true;
+            return webComponents.get(classModule);
         }
         while( classModule ){
             const stack = this.compilation.getStackByModule( classModule );

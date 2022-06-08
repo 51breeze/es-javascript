@@ -345,8 +345,9 @@ class JSXElement extends Syntax{
     }
 
     getJsxCreateElementRefs(){
-        const root = this.stack.jsxRootElement;
-        if(root && (root.isWebComponent || root.isSkinComponent)){
+        if( this.compilation.JSX || (
+            this.module && ( this.isInheritWebComponent( this.module ) || this.stack.isModuleForSkinComponent( this.module ) ) 
+        )){
             return super.getJsxCreateElementRefs();
         }
         return 'arguments[0]';
