@@ -344,6 +344,14 @@ class JSXElement extends Syntax{
         };
     }
 
+    getJsxCreateElementRefs(){
+        const root = this.stack.jsxRootElement;
+        if(root && (root.isWebComponent || root.isSkinComponent)){
+            return super.getJsxCreateElementRefs();
+        }
+        return 'arguments[0]';
+    }
+
     makeClass(children, data, level){
         return null;
     }
