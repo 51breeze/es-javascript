@@ -171,6 +171,19 @@ var _Reflect = (function(_Reflect){
                 throw new ReferenceError(`target.${propertyKey} getter is not exists.`);
             }
             return desc.get.call(receiver);
+        }else if( desc.d === DECLARE_PROPERTY_VAR ){
+            if( System.isClass(target) ){
+                return target[propertyKey];
+            }else if( System.isClass(target.constructor) ){
+                if( desc.m & MODIFIER_PUBLIC === MODIFIER_PRIVATE ){
+                    var p = target.constructor[Class.key]._private;
+                    return target[p][propertyKey];
+                }else{
+                    return target[propertyKey];
+                }
+            }else {
+                throw new ReferenceError(`target.${propertyKey} non object.`);
+            }
         }
         return desc.value || null;
     };
@@ -205,8 +218,12 @@ var _Reflect = (function(_Reflect){
             if( System.isClass(target) ){
                 target[propertyKey] = value;
             }else if( System.isClass(target.constructor) ){
-                var p = target.constructor[Class.key]._private;
-                target[p][propertyKey] = value;
+                if( desc.m & MODIFIER_PUBLIC === MODIFIER_PRIVATE ){
+                    var p = target.constructor[Class.key]._private;
+                    target[p][propertyKey] = value;
+                }else{
+                    target[propertyKey] = value;
+                }
             }else {
                 throw new ReferenceError(`target.${propertyKey} non object.`); 
             }

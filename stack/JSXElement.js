@@ -286,12 +286,12 @@ class JSXElement extends Syntax{
         let inline = this.getIndent(level);
         let first = this.stack.parentStack.isJSXElement ?  `\r\n${inline}` : '';
         let handle = this.getJsxCreateElementHandle();
-        if( !this.compilation.JSX || !this.stack.jsxRootElement.isProgram ){
+        if( !(this.compilation.JSX || this.stack.jsxRootElement.isProgram) ){
             const stackMethod = this.stack.getParentStack( stack=>{
                 return !!(stack.isMethodDefinition || stack.isJSXExpressionContainer);
             });
-            if( !(stackMethod && stackMethod.isJSXExpressionContainer) ){
-                handle = this.generatorRefName(this.stack.jsxRootElement,handle,handle,()=>{
+            if( stackMethod && stackMethod.isMethodDefinition ){
+                handle = this.generatorRefName(stackMethod.expression.body,handle,handle,()=>{
                     return this.getJsxCreateElementRefs();
                 });
             }
@@ -550,6 +550,16 @@ class JSXElement extends Syntax{
         const data = {};
         const name = stack.openingElement.name.value();
         const children = stack.children.length > 0 ? this.makeChildren(stack.children, data, level) : null;
+        const isJsxDocument = !!(this.compilation.JSX || this.stack.jsxRootElement.isProgram);
+        var _this = 'this';
+        if( !isJsxDocument ){
+            let stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression) );
+            if( stack && stack.isFunctionExpression ){
+                _this = this.generatorVarName(stack,"_this",true);
+                stack.dispatcher("insertThisName", _this );
+            }
+        }
+
         if( stack.isSlotDeclared ){
             const args = stack.attributes.map( attr=>{
                 const key = attr.name.value();
@@ -560,22 +570,22 @@ class JSXElement extends Syntax{
                 const scope = args.map( item=>{
                     return `${item.key}:${item.value}`;
                 })
-                return `(this.slot('${name}',true,true,{${scope.join(',')}}) || ${children})`;
+                return `(${_this}.slot('${name}',true,true,{${scope.join(',')}}) || ${children})`;
             }else if(children){
-                return `(this.slot('${name}') || ${children})`;
+                return `(${_this}.slot('${name}') || ${children})`;
             }else{
-                return `(this.slot('${name}') || [])`;
+                return `(${_this}.slot('${name}') || [])`;
             }
 
         }else{
             if( stack.attributes.length > 0 ){
                 const scope = stack.attributes.find( attr=>attr.name.value()==='scope' );
                 const scopeName = scope && scope.value? scope.value.value() : 'scope';
-                return `(this.slot('${name}',true) || (function(${scopeName}){return ${children}}).bind(this))`;
+                return `(${_this}.slot('${name}',true) || (function(${scopeName}){return ${children}}).bind(${_this}))`;
             }else if(children){
-                return `(this.slot('${name}') || ${children})`;
+                return `(${_this}.slot('${name}') || ${children})`;
             }else{
-                return `this.slot('${name}')`;
+                return `${_this}.slot('${name}')`;
             }
         }
     }
