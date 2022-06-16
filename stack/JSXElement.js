@@ -296,8 +296,39 @@ class JSXElement extends Syntax{
                 });
             }
         }
+
+        var hasScopedSlot = false;
+        if( this.stack.hasAttributeSlot ){
+            const attrSlot = this.stack.openingElement.attributes.filter( attr=>!!attr.isAttributeSlot );
+            if( attrSlot && attrSlot.length > 0 ){
+                const nameAttr = attrSlot.find( attr=>attr.name.value() ==="name" );
+                const scopeAttr = attrSlot.find( attr=>attr.name.value() ==="scope" );
+                const name = nameAttr && nameAttr.value ? nameAttr.value.value() : 'default';
+                if( scopeAttr ){
+                    var _this = 'this';
+                    const isJsxDocument = !!(this.compilation.JSX || this.stack.jsxRootElement.isProgram);
+                    if( !isJsxDocument ){
+                        let stack = this.stack.getParentStack( stack=>!!(stack.isFunctionExpression && !stack.isArrowFunctionExpression) );
+                        if( stack && stack.isFunctionExpression ){
+                            _this = this.generatorVarName(stack,"_this",true);
+                            stack.dispatcher("insertThisName", _this );
+                        }
+                    }
+                    const scopeName = scopeAttr.value ? scopeAttr.value.value() : 'scope';
+                    if(elements){
+                        hasScopedSlot = true;
+                        data.scopedSlots[ name ] = `(function(${scopeName}){return ${elements}}).bind(${_this})`
+                    }else{
+                        data.slot = `'${name}'`;
+                    }
+                }else{
+                    data.slot = `'${name}'`;
+                }
+            }
+        } 
+
         data = this.makeProperty(data,level);
-        if( elements ){
+        if( elements && !hasScopedSlot ){
             return `${first}${handle}(${name},${data}, ${elements})`;
         }else if(data){
             return `${first}${handle}(${name},${data})`;
@@ -394,6 +425,8 @@ class JSXElement extends Syntax{
                 return;
             }else if( item.isJSXSpreadAttribute ){
                 spreadAttributes && spreadAttributes.push( this.make( item ) );
+                return;
+            }else if( item.isAttributeSlot ){
                 return;
             }
             let [name,value,ns] = this.make( item );
