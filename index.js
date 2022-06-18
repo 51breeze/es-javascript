@@ -72,10 +72,9 @@ function registerError(define, cn, en){
 function plugin(complier){
     registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     this.complier = complier;
-    complier.loadTypes([
-        require.resolve('./types/web.d.es'),
-        require.resolve('./types/http.d.es'),
-    ],true);
+    const dir = path.join(__dirname,'types');
+    const files = fs.readdirSync( dir ).filter( item=>!(item === '.' || item === '..') ).map( item=>path.join(dir,item) );
+    complier.loadTypes(files,true);
 };
 
 for(var name in properties){

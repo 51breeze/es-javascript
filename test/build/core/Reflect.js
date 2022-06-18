@@ -180,7 +180,7 @@ var _Reflect = (function(_Reflect){
                     return target[propertyKey];
                 }
             }else {
-                throw new ReferenceError(`target.${propertyKey} non object.`); 
+                throw new ReferenceError(`target.${propertyKey} non object.`);
             }
         }
         return desc.value || null;

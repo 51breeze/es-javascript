@@ -299,12 +299,11 @@ class JSXElement extends Syntax{
 
         var hasScopedSlot = false;
         if( this.stack.hasAttributeSlot ){
-            const attrSlot = this.stack.openingElement.attributes.filter( attr=>!!attr.isAttributeSlot );
-            if( attrSlot && attrSlot.length > 0 ){
-                const nameAttr = attrSlot.find( attr=>attr.name.value() ==="name" );
-                const scopeAttr = attrSlot.find( attr=>attr.name.value() ==="scope" );
-                const name = nameAttr && nameAttr.value ? nameAttr.value.value() : 'default';
-                if( scopeAttr ){
+            const attrSlot = this.stack.openingElement.attributes.find( attr=>!!attr.isAttributeSlot );
+            if( attrSlot ){
+                const name = attrSlot.name.value();
+                const scopeName = attrSlot.value ? attrSlot.value.value() : null;
+                if( scopeName ){
                     var _this = 'this';
                     const isJsxDocument = !!(this.compilation.JSX || this.stack.jsxRootElement.isProgram);
                     if( !isJsxDocument ){
@@ -314,13 +313,8 @@ class JSXElement extends Syntax{
                             stack.dispatcher("insertThisName", _this );
                         }
                     }
-                    const scopeName = scopeAttr.value ? scopeAttr.value.value() : 'scope';
-                    if(elements){
-                        hasScopedSlot = true;
-                        data.scopedSlots[ name ] = `(function(${scopeName}){return ${elements}}).bind(${_this})`
-                    }else{
-                        data.slot = `'${name}'`;
-                    }
+                    hasScopedSlot = true;
+                    data.scopedSlots[ name ] = `(function(${scopeName}){return ${elements||'null'}}).bind(${_this})`
                 }else{
                     data.slot = `'${name}'`;
                 }

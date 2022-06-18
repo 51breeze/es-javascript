@@ -29,8 +29,8 @@
     "@babel/core": "^7.17.10",
     "@babel/plugin-transform-runtime": "^7.17.10",
     "axios": "^0.26.1",
-    "js-cookie": "^3.0.1",
     "easescript": "*",
+    "js-cookie": "^3.0.1",
     "lodash": "^4.17.21",
     "source-map-builder": "^0.0.7"
   },
