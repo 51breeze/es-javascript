@@ -383,18 +383,23 @@ class Syntax extends events.EventEmitter {
     }
 
     createModuleAssets(module,refs,alias=null){
+        if(!module || !(module.assets.size > 0 || module === this.module && this.compilation.assets.size > 0) )return;
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
                 refs.push( value );
             }
         }
-        const target = module || this.compilation;
-        const assets = target.assets;
+       
         const config = this.getConfig();
-        const isWebpack = config.webpack;
-        let externals = config.external;
-        if( assets && assets.size > 0 && isWebpack ){
+        var assets = module.assets;
+        var externals = config.external;
+        if( module.compilation === this.compilation && this.compilation.assets.size > 0 ){
+            assets = Array.from( assets.values() );
+            assets = assets.concat( Array.from( this.compilation.assets.values() ) );
+        }
+
+        if( assets ){
             assets.forEach( asset=>{
                 if( asset.file ){
                     const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
@@ -406,7 +411,7 @@ class Syntax extends events.EventEmitter {
                         } 
                     }
                 }else if( asset.type ==="style" && module ){
-                    const filename = (config.styleLoader || []).concat( this.getModuleFile(module, module.getName(), asset.type, asset.resolve) ).join('!');
+                    const filename = (config.styleLoader || []).concat( this.getModuleFile(module, asset.id, asset.type, asset.resolve) ).join('!');
                     push( this.createImport( null, filename ) );
                 }
             });
@@ -415,17 +420,18 @@ class Syntax extends events.EventEmitter {
     }
 
     createModuleRequires(module,refs,alias=null){
+        if(!module || module.requires.size < 1 )return;
         refs = refs || [];
         const push = (value)=>{
             if( refs.indexOf(value) < 0 ){
                 refs.push( value );
             }
         }
-        const target = module || this.compilation;
+        const requires = module.requires
         const config = this.getConfig();
         let externals = config.external;
-        if( target.requires && target.requires.size > 0 ){
-            target.requires.forEach( item=>{
+        if( requires && requires.size > 0 ){
+            requires.forEach( item=>{
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
                 const file = external || this.compiler.normalizePath( item.from );
                 let name = item.key;

@@ -14,13 +14,22 @@ class Builder extends Syntax{
     }
 
     emitAssets(filesystem,module){
-        module && module.assets.forEach( asset=>{
+        if( !module )return;
+        var assets = module.assets;
+        const compilation = module.compilation;
+        if( compilation.assets.size > 0 ){
+            assets = Array.from( assets.values() );
+            assets = assets.concat( Array.from( compilation.assets.values() ) );
+        }
+        assets.forEach( asset=>{
             if( !asset.file && asset.type ==="style" ){
-                const file = this.getModuleFile( module, module.getName(), asset.type, asset.resolve);
+                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
                 this.emitContent(filesystem, module, asset.content, file);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
                     this.emitContent(filesystem, module, fs.readFileSync( asset.resolve ), asset.resolve);
+                }else{
+                    console.warn( `Assets file the '${asset.file}' is not emit.`);
                 }
             }else{
                 console.warn( `Assets file the '${asset.file}' is not emit.`);
