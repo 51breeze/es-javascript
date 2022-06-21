@@ -13,7 +13,7 @@ class Builder extends Syntax{
         }
     }
 
-    emitAssets(filesystem,module){
+    emitAssets(filesystem,module,emitFile){
         if( !module )return;
         var assets = module.assets;
         const compilation = module.compilation;
@@ -27,7 +27,11 @@ class Builder extends Syntax{
                 this.emitContent(filesystem, module, asset.content, file);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
-                    this.emitContent(filesystem, module, fs.readFileSync( asset.resolve ), asset.resolve);
+                    const content = fs.readFileSync( asset.resolve );
+                    this.emitContent(filesystem, module, content, asset.resolve);
+                    if( emitFile ){
+                        this.emitFile( this.getOutputAbsolutePath(asset.resolve, true), content );
+                    }
                 }else{
                     console.warn( `Assets file the '${asset.file}' is not emit.`);
                 }
@@ -51,7 +55,7 @@ class Builder extends Syntax{
                         const file = this.getModuleFile(module);
                         const content = this.make(stack);
                         this.emitContent(filesystem, module, content, file, config.emitFile);
-                        this.emitAssets(filesystem,module);
+                        this.emitAssets(filesystem,module,config.emitFile);
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -102,7 +106,7 @@ class Builder extends Syntax{
                             const content = this.make(stack);
                             const file    = this.getModuleFile(module);
                             this.emitContent(filesystem, module, content, file, config.emitFile);
-                            this.emitAssets(filesystem,module);
+                            this.emitAssets(filesystem,module,config.emitFile);
                         }else{
                             throw new Error(`Not found stack by '${module.getName()}'`);
                         }

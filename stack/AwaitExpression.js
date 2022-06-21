@@ -1,5 +1,8 @@
 const Syntax = require("../core/Syntax");
 class AwaitExpression extends Syntax{
+     emitter_none(){
+          return 'await ' +this.make( this.stack.argument );
+     }
      emitter(){
           const stack = this.stack.getParentStack( stack=>!!stack.isFunctionExpression);
           const indent = this.getIndent( this.scope.asyncParentScopeOf.level+3 );

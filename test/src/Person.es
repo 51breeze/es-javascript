@@ -14,11 +14,6 @@ public class Person<T> extends Object implements TestInterface
     constructor( name:string ){
         super();
         this._name = name;
-        document.body.onclick=(e)=>{
-
-            return 1;
-
-        }
     }
 
     get target(){

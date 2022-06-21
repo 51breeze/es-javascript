@@ -13,6 +13,10 @@ class ArrayExpression extends Syntax{
         return `[].concat(${first})`;
     }
 
+    emitter_none(){
+        return this.makeArray( this.stack.elements.map( item=>this.make(item) ) ); 
+    }
+
     emitter(){ 
         let elements = this.stack.elements.slice(0);
         let spreadElementIndex = elements.findIndex( item=>item.isSpreadElement );

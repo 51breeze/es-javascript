@@ -11,7 +11,7 @@ import unit.Param;
 import Request as Http;
 
 //@Embed(Types='img.png');
-@Embed('assets/style.css');
+//@Embed('assets/style.css');
 
 /**
 * Test a class

@@ -16,7 +16,10 @@ class Syntax extends events.EventEmitter {
         this.scope = stack.scope;
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
-        this.module = stack.module; 
+        this.module = stack.module;
+        this.plugin = null;
+        this.name = null;
+        this.platform = null;
     }
 
     addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
@@ -156,14 +159,15 @@ class Syntax extends events.EventEmitter {
         return dataset[key] = refName;
     }
 
-    getOutputAbsolutePath(module, flag){
+    getOutputAbsolutePath(module){
         const options = this.getOptions();
         const config = this.getConfig();
         const suffix = config.suffix||".js";
         const workspace = config.workspace || this.compiler.workspace;
         const output = config.output || options.output;
+        const isStr = typeof module === "string";
         if( !module )return output;
-        if( !flag && module && module.isModule ){
+        if( !isStr && module && module.isModule ){
             if( module.isDeclaratorModule ){
                 const polyfillModule = Polyfill.modules.get( module.getName() );
                 const filename = module.id+suffix;
@@ -175,13 +179,13 @@ class Syntax extends events.EventEmitter {
                 return PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/');
             }
         }
-        let filepath = flag && typeof module === "string" ? module : 
+        let filepath = isStr ? PATH.resolve(output, PATH.relative( workspace, module ) ) : 
         module && module.isModule && this.compiler.normalizePath( module.file ).includes(workspace) ?
         PATH.resolve(output, PATH.relative( workspace, module.file ) ) :
         PATH.join(output,module.getName("/")+suffix).replace(/\\/g,'/') ;
 
         const info = PATH.parse(filepath);
-        if( info.ext !== suffix ){
+        if( info.ext === '.es' ){
            return PATH.join(info.dir,info.name+suffix).replace(/\\/g,'/');
         }
         return filepath.replace(/\\/g,'/');
@@ -202,7 +206,7 @@ class Syntax extends events.EventEmitter {
     }
     
     getConfig( name ){
-        const config = this.compiler.getPlugin( this.name ).config();
+        const config = this.plugin.config();
         if( name ){
             if( name.lastIndexOf(".") > 0 ){
                 const keys = name.split('.');
@@ -382,7 +386,7 @@ class Syntax extends events.EventEmitter {
         return module.getName("_");
     }
 
-    createModuleAssets(module,refs,alias=null){
+    createModuleAssets(module,refs,alias=null,context=null){
         if(!module || !(module.assets.size > 0 || module === this.module && this.compilation.assets.size > 0) )return;
         refs = refs || [];
         const push = (value)=>{
@@ -403,13 +407,20 @@ class Syntax extends events.EventEmitter {
             assets.forEach( asset=>{
                 if( asset.file ){
                     const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
+                    var file = asset.file;
+                    if( config.useAbsolutePathImport ){
+                        file = asset.resolve || file;
+                    }else if(asset.resolve && !asset.resolve.includes('/node_modules/') ){
+                        file = this.getOutputRelativePath(asset.resolve,module);
+                    }
                     if( !external ){
                         if( asset.assign ){
-                            push( this.createImport( `${alias||asset.assign}`, asset.file ) )
+                            push( this.createImport( `${alias||asset.assign}`, file ) )
                         }else{
-                            push( this.createImport( null, asset.file ) );
+                            push( this.createImport( null, file ) );
                         } 
                     }
+
                 }else if( asset.type ==="style" && module ){
                     const filename = (config.styleLoader || []).concat( this.getModuleFile(module, asset.id, asset.type, asset.resolve) ).join('!');
                     push( this.createImport( null, filename ) );
@@ -419,7 +430,7 @@ class Syntax extends events.EventEmitter {
         return refs;
     }
 
-    createModuleRequires(module,refs,alias=null){
+    createModuleRequires(module,refs,alias=null,context=null){
         if(!module || module.requires.size < 1 )return;
         refs = refs || [];
         const push = (value)=>{
@@ -433,7 +444,16 @@ class Syntax extends events.EventEmitter {
         if( requires && requires.size > 0 ){
             requires.forEach( item=>{
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
-                const file = external || this.compiler.normalizePath( item.from );
+                var file = external;
+                if( !file ){
+                    file = this.compiler.normalizePath( item.from );
+                    if( config.useAbsolutePathImport ){
+                        file = item.resolve || file;
+                    }else if(item.resolve && !item.resolve.includes('/node_modules/') ){
+                        file = this.getOutputRelativePath(item.resolve,module);
+                    }
+                }
+
                 let name = item.key;
                 if( item.extract ){
                     const key = item.key;
@@ -475,8 +495,8 @@ class Syntax extends events.EventEmitter {
                     push( this.createImport(alias || name, this.getOutputRelativePath(depModule,module) ) );
                 }
             }else if( this.isUsed(depModule) ){
-                this.createModuleAssets( depModule, refs, alias );
-                this.createModuleRequires( depModule, refs, alias );
+                this.createModuleAssets( depModule, refs, alias , module);
+                this.createModuleRequires( depModule, refs, alias , module);
             }
         });
     }
@@ -616,16 +636,20 @@ class Syntax extends events.EventEmitter {
     }
 
     make(stack, ...args){
-        const plugin = this.compiler.getPlugin( this.name );
+        const plugin = this.plugin;
         const stackClass = plugin.getStack( stack.toString() );
         if( stackClass ){
+            const config = plugin.config();
             const obj = new stackClass( stack );
+            obj.plugin = plugin;
             obj.name = this.name;
             obj.platform = this.platform;
-            if( args.length > 0 ){
-                return obj.emitter.apply(obj, args);
+            if(config.target==='es6'){
+                return obj.emitter_es6(...args);
+            }else if(config.target==='none'){
+                return obj.emitter_none(...args);
             }else{
-                return obj.emitter();
+                return obj.emitter(...args);
             }
         }
         throw new Error(`Stack '${stack.toString()}' is not found.`);
@@ -636,6 +660,14 @@ class Syntax extends events.EventEmitter {
         obj.name = this.name
         obj.platform = this.platform;
         return obj;
+    }
+
+    emitter_none( ...args ){
+        return this.emitter( ...args );
+    }
+
+    emitter_es6( ...args ){
+        return this.emitter( ...args );
     }
 
     emitter(){

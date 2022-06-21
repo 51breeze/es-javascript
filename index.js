@@ -11,7 +11,7 @@ fs.readdirSync( dirname ).forEach( (filename)=>{
 });
 
 const defaultConfig ={
-    "target":"es6",
+    "target":"es6", //transform es6, none not do transform
     "webComponent":"vue",
     "webpack":false,
     "styleLoader":null,
@@ -49,6 +49,7 @@ const properties ={
         const builder = new Builder( compilation.stack );
         builder.name = this.name;
         builder.platform = this.platform;
+        builder.plugin = this;
         builder.start(done);
     },
     build(compilation, done, options){

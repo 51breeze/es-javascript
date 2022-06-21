@@ -1,5 +1,6 @@
 const Syntax = require("../core/Syntax");
 class AssignmentExpression extends Syntax{
+
     emitter(){
         const option = this.getConfig();
         const right= this.make(this.stack.right);

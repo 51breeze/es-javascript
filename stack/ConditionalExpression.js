@@ -1,5 +1,12 @@
 const Syntax = require("../core/Syntax");
 class ConditionalExpression extends Syntax{
+     emitter_none(){
+          const test = this.make(this.stack.test);
+          const consequent = this.make(this.stack.consequent);
+          const alternate = this.make(this.stack.alternate);
+          return `${test} ? ${consequent} : ${alternate}`;
+     }
+
      emitter(){
           const test = this.make(this.stack.test);
           let consequent = this.make(this.stack.consequent);
