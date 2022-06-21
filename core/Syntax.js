@@ -20,6 +20,11 @@ class Syntax extends events.EventEmitter {
         this.plugin = null;
         this.name = null;
         this.platform = null;
+        this.parent = null;
+    }
+
+    get children(){
+        return this._children || (this._children=[]);
     }
 
     addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
@@ -644,6 +649,8 @@ class Syntax extends events.EventEmitter {
             obj.plugin = plugin;
             obj.name = this.name;
             obj.platform = this.platform;
+            obj.parent = this;
+            this.children.push( obj );
             if(config.target==='es6'){
                 return obj.emitter_es6(...args);
             }else if(config.target==='none'){
