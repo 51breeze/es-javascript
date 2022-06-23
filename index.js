@@ -10,6 +10,13 @@ fs.readdirSync( dirname ).forEach( (filename)=>{
     modules.set(info.name, require( path.join(dirname,filename) ) );
 });
 
+const transformModules = new Map();
+const transform = path.join(__dirname,"transform");
+fs.readdirSync( transform ).forEach( (filename)=>{
+    const info = path.parse( filename );
+    transformModules.set(info.name, require( path.join(transform,filename) ) );
+});
+
 const defaultConfig ={
     "target":"es6", //transform es6, none not do transform
     "webComponent":"vue",
@@ -43,6 +50,9 @@ const properties ={
     },
     getStack(name){
         return modules.get(name);
+    },
+    getTransformPlugin(name){
+        return transformModules.get(name);
     },
     start(compilation, done, options){
         if(options)this.config(options);
