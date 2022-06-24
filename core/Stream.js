@@ -26,12 +26,6 @@ class Generator{
         this.column = 0;
     }
 
-    push( str ){
-        if( str ){
-            this.code += str;
-        }
-    }
-
     getStartColumn(){
         if( this.column===0 ){
             return this.indent * 2;
@@ -43,9 +37,9 @@ class Generator{
         if( !value )return;
         if( this.column===0 ){
             this.column = this.indent * 2;
-            this.push( '\t'.repeat( this.indent ) );
+            this.code += '\t'.repeat( this.indent );
         }
-        this.push(value);
+        this.code +=value;
         this.column += value.length;
     }
 
@@ -57,13 +51,53 @@ class Generator{
         this.newLine();
     }
 
+    withParenthesL(){
+        this.withString('(');
+    }
+
+    withParenthesR(){
+        this.withString(')');
+    }
+
+    withBracketL(){
+        this.withString('[');
+    }
+
+    withBracketR(){
+        this.withString(']');
+    }
+
+    withBraceL(){
+        this.withString('{');
+    }
+
+    withBraceR(){
+        this.withString('}');
+    }
+
+    withSpace(){
+        this.withString(' ');
+    }
+
+    withDot(){
+        this.withString('.');
+    }
+
+    withOperator( value ){
+        this.withString( value );
+    }
+
+    withComma(){
+        this.withString(',');
+    }
+
     withSemicolon(){
         const code = this.code;
         const char = code.charCodeAt( code.length-1 );
         if( char === 59 || char === 10 || char ===13 || char ===32 || char===125 ){
             return this;
         }
-        this.push(';');
+        this.withString(';');
         return this;
     }
 
@@ -73,7 +107,7 @@ class Generator{
         items.forEach( (item,index)=>{
             item.emit( this );
             if( index < len ){
-                this.withToken(',');
+                this.withString(',');
             }
         });
         return this;
@@ -88,7 +122,7 @@ class Generator{
         return this;
     }
 
-    emitToken( node ){
+    emit( node ){
         if( node ){
             node.emit( this );
         }
