@@ -1,45 +1,7 @@
 const Syntax = require("../core/Syntax");
 const Constant = require("../core/Constant");
 class FunctionExpression extends Syntax{
-
-    emitter_none(){
-
-        const body = this.make(this.stack.body)
-        const len = this.stack.params.length;
-        const rest = len > 0 && this.stack.params[ len-1 ].isRestElement ?  this.stack.params[ len-1 ] : null;
-        const paramItems = rest ? this.stack.params.slice(0,-1) : this.stack.params;
-        const params = paramItems.map( item=>{
-            return this.make(item);
-        });
-
-        const key = this.stack.isConstructor ? this.module.id : (this.stack.key ? this.stack.key.value() : null);
-        const endIndent = this.getIndent();
-        const startIndent = this.stack.parentStack.isBlockStatement ? endIndent : '';
-        const async = this.stack.async ? 'async' : '';
-        
-        if( this.stack.isArrowFunctionExpression && this.stack.scope.isExpression ){
-            return `${startIndent}${async}(${params.join(",")})=>${body}`;
-        }else{
-            const content = [body];
-            if( this.stack.isConstructor ){
-                const event={properties:null, initialProps:null};
-                this.stack.parentStack.dispatcher("fetchClassProperty",event);
-                if( event.properties ){
-                    content.unshift(this.semicolon(`\tObject.defineProperty(this,${this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)},{value:${event.properties}})`));
-                }
-                if( event.initialProps ){
-                    content.push( event.initialProps );
-                }
-            }
-            if( key ){
-                return `${startIndent}${async} function ${key}(${params.join(",")}){\r\n${content.join("\r\n")}\r\n${endIndent}}`;
-            }
-            return `${startIndent}${async} function(${params.join(",")}){\r\n${content.join("\r\n")}\r\n${endIndent}}`;
-        }
-    }
-
     emitter(){
-        
         const insertBefore = [];
         this.stack.removeAllListeners("insertBefore")
         this.stack.addListener("insertBefore",(content)=>{

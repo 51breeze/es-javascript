@@ -43,16 +43,6 @@ class CallExpression extends Syntax{
         }
         return `${callee}.apply(this,[${args.join(",")}].concat(${spread}))`;
     }
-
-    emitter_none(){
-        const args = this.stack.arguments.map( item=>this.make(item) );
-        const desc = this.stack.callee.description();
-        if( this.compiler.callUtils("isTypeModule", desc) ){
-            this.addDepend( desc );
-        }
-        const callee= this.make(this.stack.callee);
-        return `${callee}(${args.join(",")})`;
-    }
     
     emitter(){
         const hasSpread = this.stack.arguments.some(item=>!!item.isSpreadElement );

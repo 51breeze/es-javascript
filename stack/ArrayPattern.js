@@ -16,18 +16,9 @@ class ArrayPattern extends Syntax {
         return expression();
     }
 
-    emitter_none(){
-        const init = this.make(this.stack.parentStack.init);
-        const elements = this.stack.elements.map( item=>this.make(item) );
-        if( init ){
-            return `[${elements.join(',')}]=${init}`;
-        }
-        return `[${elements.join(',')}]`;
-    }
-
     emitter(){
         const init = this.stack.parentStack.init;
-        const initValue = this.make(init);
+        const initValue = this.make(this.stack.parentStack.init);
         const is = init.isArrayExpression;
         const elements = this.stack.elements.map( (item,index)=>{
             if( item.isRestElement ){

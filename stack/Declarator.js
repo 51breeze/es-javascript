@@ -1,9 +1,5 @@
 const Syntax = require("../core/Syntax");
 class Declarator  extends Syntax {
-    emitter_none(){
-        return this.stack.value();
-    }
-
     emitter(){
         let desc = this.stack.description();
         if(desc && this.compiler.callUtils("isTypeModule",desc) ){

@@ -2,7 +2,6 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
-const SourceMap = require('./SourceMap');
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
@@ -20,21 +19,6 @@ class Syntax extends events.EventEmitter {
         this.plugin = null;
         this.name = null;
         this.platform = null;
-        this.parent = null;
-    }
-
-    get children(){
-        return this._children || (this._children=[]);
-    }
-
-    addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
-       const source = SourceMap.create( this.compilation );
-       source.lastGeneratedLine = generatedLine;
-       source.lastGeneratedColumn = generatedColumn;
-       sourceLine = sourceLine === void 0 ? this.stack.node.loc.start.line : sourceLine;
-       sourceColumn = sourceColumn === void 0 ? this.stack.node.loc.start.column : sourceColumn;
-       name = name === void 0 ? this.stack.value() : name;
-       source.addMapping(generatedLine, generatedColumn, this.compilation.file, sourceLine, sourceColumn, name);
     }
 
     createDataByStack(stack){
@@ -644,20 +628,11 @@ class Syntax extends events.EventEmitter {
         const plugin = this.plugin;
         const stackClass = plugin.getStack( stack.toString() );
         if( stackClass ){
-            const config = plugin.config();
             const obj = new stackClass( stack );
             obj.plugin = plugin;
             obj.name = this.name;
             obj.platform = this.platform;
-            obj.parent = this;
-            this.children.push( obj );
-            if(config.target==='es6'){
-                return obj.emitter_es6(...args);
-            }else if(config.target==='none'){
-                return obj.emitter_none(...args);
-            }else{
-                return obj.emitter(...args);
-            }
+            return obj.emitter(...args);
         }
         throw new Error(`Stack '${stack.toString()}' is not found.`);
     }
@@ -667,14 +642,6 @@ class Syntax extends events.EventEmitter {
         obj.name = this.name
         obj.platform = this.platform;
         return obj;
-    }
-
-    emitter_none( ...args ){
-        return this.emitter( ...args );
-    }
-
-    emitter_es6( ...args ){
-        return this.emitter( ...args );
     }
 
     emitter(){
