@@ -1,10 +1,11 @@
 const MethodDefinition = require("./MethodDefinition");
+const Constant = require("../core/Constant");
 class MethodGetterDefinition extends MethodDefinition{
-    constructor(stack){
-        super(stack);
-        this.isMethodGetterDefinition= true;
+    createChildren(stack){
+        super.createChildren(stack);
         this.isAccessor = true;
-        this.kind= stack.kind;
+        this.isMethodGetterDefinition = true;
+        this.kind= Constant.DECLARE_PROPERTY_ACCESSOR;
     }
 }
 module.exports = MethodGetterDefinition;

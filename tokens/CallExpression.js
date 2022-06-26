@@ -1,8 +1,8 @@
 const Token = require("../core/Token");
 class CallExpression extends Token{
     createChildren(stack){
-        this.arguments = stack.arguments.map(item=>this.createToken(item) );
         this.callee= this.createToken(stack.callee);
+        this.arguments = stack.arguments.map(item=>this.createToken(item) );
     }
     make( gen ){
         gen.withCall(this.callee, this.arguments);

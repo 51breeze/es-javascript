@@ -1,12 +1,19 @@
 const Token = require("../core/Token");
+const Constant = require("../core/Constant");
 class PropertyDefinition extends Token{
 
-    constructor(stack){
-        super(stack);
+    createChildren(stack){
         this.key = this.createToken(stack.id);
         this.value = this.createToken(stack.init);
-        this.kind= stack.kind;
         this.modifier = stack.compiler.callUtils('getModifierValue', stack);
+        this.static = !!stack.static;
+        if( !this.static && modifier==='private' ){
+            const property = this.createToken('Property',true);
+            property.key = this.key;
+            property.init = this.value;
+            this.parent.privateProperties.push( property );
+        }
+        this.kind = stack.kind ==="var" ?  Constant.DECLARE_PROPERTY_VAR : Constant.DECLARE_PROPERTY_CONST;
     }
 
     emitter() {

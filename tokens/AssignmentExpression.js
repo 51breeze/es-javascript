@@ -24,27 +24,23 @@ class AssignmentExpression extends Token{
 
         if( isReflect ){
             this.addDepend( this.getGlobalTypeById("Reflect") );
-            gen.withString( this.checkRefsName("Reflect") );
-            gen.withDot();
-            gen.withString(`set`);
-            gen.withParenthesL();
-            gen.withString(module.id);
-            gen.withComma();
-            this.left.object.make( gen );
-            gen.withComma();
-            this.left.property.make( gen );
-            gen.withComma();
-            this.right.make( gen );
-            gen.withParenthesR();
+            return this.createCalleeToken(
+                this.createMemberToken(['Reflect','set']),
+                [
+                    this.createIdentifierToken( module.id ),
+                    this.left.object,
+                    this.left.property,
+                    this.right
+                ]
+            ).make( gen );
         }else if( desc && isMember && stack.left.object.isSuperExpression ){
-            this.left.make( gen );
-            gen.withDot();
-            gen.withString('call');
-            gen.withParenthesL();
-            gen.withString('this');
-            gen.withComma();
-            this.right.make( gen );
-            gen.withParenthesR();
+            return this.createCalleeToken(
+                this.createMemberToken([this.left,'call']),
+                [
+                    this.createIdentifierToken( null, 'ThisExpression' ),
+                    this.right
+                ]
+           ).make( gen );
         }else{
             this.left.make( gen );
             gen.withOperator('=');

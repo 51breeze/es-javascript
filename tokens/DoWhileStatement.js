@@ -1,10 +1,9 @@
 const Token = require("../core/Token");
 class DoWhileStatement extends Token{
-   constructor(stack){
-      super(stack);
+
+   createChildren( stack ){
       this.condition =  this.createToken(stack.condition);
       this.body = this.createToken(stack.body);
-      this.createChilrenForBlock(this.body);
    }
    
    addChildToken(token){
@@ -21,6 +20,15 @@ class DoWhileStatement extends Token{
           body.addChildTokenAt( token, index );
       }
       return this;
+   }
+
+   make( gen ){
+      gen.withString('do');
+      this.body.make( gen );
+      gen.withString('while');
+      gen.withParenthesL();
+      this.condition.make( gen );
+      gen.withParenthesR();
    }
 }
 

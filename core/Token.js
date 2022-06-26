@@ -69,38 +69,135 @@ class Token extends events.EventEmitter {
         const object = this.createToken('ObjectExpression',true);
         object.properties = [];
         properties.forEach( (value,key)=>{
-            const propery = object.createToken('Property', true);
-            propery.key = propery.createToken('Identifier', true);
-            propery.key.value = key;
-            if( typeof value === 'string'){
-                propery.init = propery.createToken( value , true);
-            }else if( value instanceof Token ){
-                propery.init = value;
-            }else if( value.isStack ){
-                propery.init = propery.createToken( value ); 
+            if( value instanceof Token ){
+                value.parent = object;
+                object.properties.push( value );
+            }else{
+                object.properties.push( object.createPropertyToken(key,value) );
             }
-            object.properties.push( propery );
         });
         return object;
+    }
+
+    createArrayToken( elements ){
+        const object = this.createToken('ArrayExpression',true);
+        object.elements = [];
+        elements.forEach( (value)=>{
+            if( value instanceof Token ){
+                value.parent = object;
+                object.elements.push( value );
+            }else{
+                object.properties.push( object.createIdentifierToken(value) );
+            }
+        });
+        return object;
+    }
+
+    createPropertyToken(key, init){
+        var propery = key;
+        if( typeof propery === 'string' ){
+            this.createToken('Property', true);
+            propery.key = propery.createToken('Identifier', true);
+            propery.key.value = key;
+        }
+        if( typeof init === 'string'){
+            propery.init = propery.createToken( value , true);
+            propery.init.value = init;
+        }else if( init instanceof Token ){
+            init.parent = propery;
+            propery.init = init;
+        }else if( init.isStack ){
+            propery.init = propery.createToken( init ); 
+        }
+        return propery;
     }
 
     createMemberToken(items){
         const create = (items, object)=>{
             const member = (object || this).createToken('MemberExpression',true); 
-            member.property = member.createToken('Identifier',true); 
-            member.property.value = items.pop(); 
+            if( typeof items[ items.length-1] === 'string' ){
+                member.property = member.createToken('Identifier',true); 
+                member.property.value = items.pop();
+            }else{
+                member.property = items.pop();
+            }
+
             if( object ){
                 member.object = object;
             }else{
-                member.object = member.createToken('Identifier',true); 
-                member.object.value = items.pop();
+                if( typeof items[ items.length-1 ] === 'string' ){
+                    member.object = member.createToken('Identifier',true); 
+                    member.object.value = items.pop();
+                }else{
+                    member.object = items.pop();
+                }
             }
+            member.property.parent = member;
+            member.object.parent = member;
             if( items.length > 0 ){
                 return create(items, member);
             }
             return member;
         }
         return create( items.slice(0) );
+    }
+
+    createCalleeToken(callee, args){
+        const expression = this.createToken('CallExpression',true);
+        callee.parent = expression;
+        expression.callee = callee;
+        expression.arguments = args;
+        args.forEach( item=>{
+            item.parent = expression;
+        });
+        return expression;
+    }
+
+    createAssignmentToken(left,right){
+        const expression = this.createToken('AssignmentExpression',true);
+        left.parent = expression;
+        right.parent = expression;
+        expression.left = left;
+        expression.right = right;
+        return expression;
+    }
+
+    createStatementToken( expression ){
+        const obj = this.createToken('ExpressionStatement',true);
+        expression.parent = obj;
+        obj.expression=expression;
+        return obj;
+    }
+
+    createDeclarationToken( kind, items){
+        const obj = this.createToken('VariableDeclaration',true);
+        obj.kind = kind;
+        obj.declarations = items;
+        items.forEach( item=>{
+            item.parent = obj;
+        });
+        return obj;
+    }
+
+    createDeclaratorToken( id, init){
+        const obj = this.createToken('VariableDeclarator',true);
+        obj.id = typeof id === 'string' ? obj.createIdentifierToken(id) : id;
+        obj.init = typeof init === 'string' ? obj.createIdentifierToken( init ) : init;
+        obj.id.parent = obj;
+        obj.init.parent = obj;
+        return obj;
+    }
+
+    createLiteralToken(value){
+        const token = this.createToken('Literal',true);
+        token.value = value;
+        return token;
+    }
+
+    createIdentifierToken(value, type='Identifier'){
+        const token = this.createToken(type,true);
+        token.value = value;
+        return token;
     }
 
     createDataByStack(stack){

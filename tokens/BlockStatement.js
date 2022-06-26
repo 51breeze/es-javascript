@@ -29,9 +29,14 @@ class BlockStatement extends Token{
     }
 
     make(gen){
+        gen.withBraceL();
+        gen.newBlock();
+        gen.newLine();
         this.body.forEach( child=>{
-            gen.make( child );
+            child.make( gen );
         });
+        gen.endBlock();
+        gen.withBraceR();
     }
 }
 

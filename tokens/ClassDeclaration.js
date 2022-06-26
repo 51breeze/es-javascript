@@ -15,28 +15,37 @@ class ClassDeclaration extends Token{
         this.initProperties=[];
     }
 
-    createChildren(){
-        this.id = this.createToken(this.stack.id);
-        this.inherit = this.createToken(this.stack.inherit);
+    createChildren(stack){
+        this.id = this.createToken(stack.id);
+        this.inherit = this.createToken(stack.inherit);
         this.implements = this.stack.implements.map( item=>this.createToken(item) );
         this.imports = this.stack.imports.map( item=> this.createToken(item) );
-        const dataset = new Map();
-        this.stack.body.forEach( item=> {
+        this.methods = [];
+        this.members = [];
+        this.construct = null;
+        const caches = [new Map(), new Map()];
+        stack.body.forEach( item=> {
             const node = this.createToken(item);
-            if( item.isAccessor && item.isMethodDefinition ){
+            const static = !!(stack.static || node.static);
+            const refs  = static ? this.methods : this.members;
+            if( item.isMethodGetterDefinition || item.isMethodGetterDefinition ){
                 const name = item.key.value();
+                const dataset = static ? caches[1] : caches[0];
                 var target = dataset.get( name );
                 if( !target ){
-                    dataset.set( name, target={isAccessor:true,kind:'accessor'});
-                    this.body.push( target );
+                    dataset.set( name, target={isAccessor:true,kind:item.kind});
+                    refs.push( target );
                 }
                 if( item.isMethodGetterDefinition ){
                     target.get =node;
                 }else if( item.isMethodGetterDefinition ){
                     target.set = node;
                 }
-            }else{
-                this.body.push( node );
+            }else if(item.isConstructor && item.isMethodDefinition){
+                this.construct = node;
+            }
+            else{
+                refs.push( node );
             }
         });
 
@@ -47,10 +56,11 @@ class ClassDeclaration extends Token{
                 const obj = ctx.createToken('ReturnStatement', true); 
                 obj.argument = obj.createToken('ThisExpression', true);
                 ctx.addChildToken( obj );
-            })
+            });
             method.key.compute = true;
             this.addChildToken( method );
         }
+
     }
 
     addDepend( depModule ){
@@ -76,140 +86,129 @@ class ClassDeclaration extends Token{
         return this;
     }
 
+    createDefaultConstructMethod(_private){
+        return this.createMethodToken( this.module.id , (ctx)=>{
+            if( this.privateProperties.length ){
+                ctx.addChildToken(
+                    this.createStatementToken( 
+                        this.createCalleeToken( 
+                            this.createMemberToken(['Object','defineProperty']),
+                            [
+                                this.createToken('ThisExpression',true),
+                                this.createIdentifierToken(_private),
+                                this.createObjectToken( Object.entries({value:this.createObjectToken( this.privateProperties )}) )
+                            ]
+                        )
+                    )
+                );
+            }
+            if( this.initProperties.length ){
+                this.initProperties.forEach( item=>{
+                    ctx.addChildToken(item);
+                });
+            }
+        });
+    }
+
+    createMemberDescriptor(key, node){
+        const modifier = node.modifier;
+        const kind = node.kind;
+        const properties = [];
+        properties.push( this.createPropertyToken('m', MODIFIER_MAP[ modifier ]) );
+        properties.push( this.createPropertyToken('id', kind) );
+        if( kind === Constant.DECLARE_PROPERTY_VAR ){
+            properties.push( this.createPropertyToken('writable', true) );
+        }
+        if( (node.isAccessor || kind === Constant.DECLARE_PROPERTY_VAR || kind === Constant.DECLARE_PROPERTY_CONST) && modifier==="public" ){
+            properties.push( this.createPropertyToken('enumerable', true) );
+        }
+        if( node.isAccessor ){
+            if( node.get ){
+                properties.push( this.createPropertyToken('get', node.get) ); 
+            }
+            if( node.set ){
+                properties.push( this.createPropertyToken('set', node.set) );
+            }
+        }else{
+            properties.push( this.createPropertyToken('value', node) );
+        }
+        return this.createPropertyToken(key,this.createObjectToken( properties ));
+    }
+
+    createClassDescriptor(module,_private){
+        const description = [];
+        description.push(this.createPropertyToken('id', Constant.DECLARE_CLASS));
+        description.push(this.createPropertyToken('ns', this.createLiteralToken( `"${module.namespace.toString()}"` ) ) );
+        description.push(this.createPropertyToken('name', module.id));
+        if( module.dynamic ){
+            description.push(this.createPropertyToken('dynamic',String(true)));
+        }
+        if( _private ){
+            description.push(this.createPropertyToken('private',_private));
+        }
+        if( this.imps.length > 0 ){
+            description.push(this.createPropertyToken('imps', this.createArrayToken(
+                imps.map(item=>this.getModuleReferenceName(item) )
+            )));
+        }
+        if( this.inherit ){
+            description.push(this.createPropertyToken('inherit',this.getModuleReferenceName( this.inherit, module)));
+        }
+        if( this.methods.length ){
+            description.push(this.createPropertyToken('methods', 'methods'));
+        }
+        if( this.members.length ){
+            description.push(this.createPropertyToken('members', 'members'));
+        }
+        
+        const args = [this.getIdByModule(module), module.id, this.createObjectToken(description)]
+        if( module && module.isFragment ){
+            args[0] = 'null';
+        }
+        return this.createStatementToken( this.createCalleeToken( this.createMemberToken([this.checkRefsName('Class'),'creator']), args) );
+    }
+
+    createExportExpression(module){
+        return this.createStatementToken( this.createMemberToken(['module','exports']), this.createIdentifierToken(module.id));
+    }
+
+    createStatementMember(name, members){
+        if( !members.length )return;
+        return this.createStatementToken( 
+            this.createDeclarationToken(
+                'const',
+                this.createDeclaratorToken(
+                    name, 
+                    this.createObjectToken( members.map( node=>this.createMemberDescriptor(node.key, node) ) )
+                )
+            )
+        );
+    }
+
     make(gen){
         
         this.imports.forEach( item=>item.makeEnd( gen ) );
         this.dependencies.forEach( item=>gen.makeEnd(item) );
+        this.body.forEach( item=>gen.makeEnd(item) );
+
+        var construct = this.construct;
         const module = this.module;
-        const methods = this.static ? this.body : this.body.filter( item=>!!(item.static && !(item.isConstructor && item.isMethodDefinition)));
-        const members = this.static ? [] : this.body.filter( item=>!(item.static || (item.isConstructor && item.isMethodDefinition)));
-        const constructMethod = this.body.find( item=>item.isConstructor && item.isMethodDefinition);
-        const _private = ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME, this);
-        if( constructMethod ){
-            constructMethod.make( gen );
-        }else if( this.privateProperties.length + this.initProperties.length > 0 ){
-            gen.withString(`function`);
-            gen.withSpace();
-            gen.withString(module.id);
-            gen.withParenthesL();
-            gen.withParenthesR();
-            gen.withBraceL();
-            gen.newBlock();
-            gen.newLine();
-            if( this.privateProperties.length ){
-                gen.withString(`Object.defineProperty`);
-                gen.withParenthesL();
-                gen.withString(`this`);
-                gen.withComma();
-                gen.withString(_private);
-                gen.withComma();
-                gen.withBraceL();
-                gen.withString(`value`);
-                gen.withColon();
-                gen.withBraceL();
-                this.privateProperties.forEach( item=>{
-                    item.emit( gen );
-                });
-                gen.withBraceR();
-                gen.withBraceR();
-                gen.withParenthesR();
-            }
-
-            if( this.initProperties.length ){
-                this.initProperties.forEach( item=>{
-                    item.make( gen );
-                });
-            }
-            gen.endBlock();
-            gen.withBraceL();
+        const methods = this.methods;
+        const members = this.members;
+        const _private = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME, this);
+        if( !construct && (this.privateProperties.length + this.initProperties.length) > 0 ){
+            construct = this.createDefaultConstructMethod( _private );
         }
 
-        const maker = (name,items)=>{
-            if( !items.length )return;
-            gen.withString('var');
-            gen.withSpace();
-            gen.withString(name);
-            gen.withOperator('=');
-            gen.withBraceL();
-            gen.newBlock();
-            const len = target.length-1;
-            items.forEach( (node,index)=>{
-                const key = node.key;
-                const modifier = node.modifier;
-                const kind = node.kind;
-                const properties = [];
-                properties.push({name:'m', value:MODIFIER_MAP[ modifier ]});
-                properties.push({name:'id', value:kind});
-                if( kind === Constant.DECLARE_PROPERTY_VAR ){
-                    properties.push({name:'writable', value:true});
-                }
-                if( (node.isAccessor || kind === Constant.DECLARE_PROPERTY_VAR || kind === Constant.DECLARE_PROPERTY_CONST) && modifier==="public" ){
-                    properties.push({name:'enumerable', value:true});
-                }
-                if( node.isAccessor ){
-                    if( node.get ){
-                        properties.push({name:'get', value:node.get});
-                    }
-                    if( node.set ){
-                        properties.push({name:'set', value:node.set});
-                    }
-                }else{
-                    properties.push({name:'value', value:node});
-                }
-                gen.withKeyValue(key, properties, key.compute);
-                if( index < len ){
-                    gen.withComma();
-                }
-            });
-            gen.endBlock();
-            gen.withBraceR();
+        if( construct ){
+            construct.make( gen );
         }
 
-        maker('methods', methods );
-        maker('members', members );
+        this.createStatementMember(gen, 'methods', methods ).make( gen );
+        this.createStatementMember(gen, 'members', members ).make( gen );
 
-        const description = [];
-        description.push({name:'id',value:Constant.DECLARE_CLASS});
-        description.push({name:'ns',value:module.namespace.toString()});
-        description.push({name:'name',value:module.id});
-        if( module.dynamic ){
-            description.push({name:'dynamic',value:true});
-        }
-        if( _private ){
-            description.push({name:'private',value:_private});
-        }
-        if( imps.length > 0 ){
-            description.push(`'imps':[${imps.map(item=>this.getModuleReferenceName(item)).join(",")}]`);
-            description.push({name:'imps',value:`${imps.map(item=>this.getModuleReferenceName(item)).join(",")}`});
-        }
-        if( inherit ){
-            description.push({name:'inherit',value:this.getModuleReferenceName( inherit, module)});
-        }
-        if( methods ){
-            description.push({name:'methods',value:'methods'});
-        }
-        if( members ){
-            description.push({name:'members',value:'members'});
-        }
-        
-        const refs = this.checkRefsName( this.getClassHelper() );
-        if( module && module.isFragment ){
-            gen.withCall(`${refs}.creator`, ['null', module.id, new TokenChunk('ObjectExpression', description )])
-        }else{
-            gen.withCall(`${refs}.creator`, [this.getIdByModule(module), module.id, new TokenChunk('ObjectExpression', description )]);
-        }
-
-        if( module.isFragment ){
-            return `return ${name || module.id};`;
-        }
-
-        const config = this.getConfig();
-        const mod = config.module || 'commonjs';
-        if( mod.toLowerCase() === 'es' ){
-            return `export default ${name || module.id};`;
-        }else{
-            return `module.exports=${name || module.id};`;
-        }
+        this.createClassDescriptor(module,_private).make( gen );
+        this.createExportExpression(module).make( gen );
 
     }
 }

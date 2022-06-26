@@ -13,16 +13,16 @@ class BinaryExpression extends Token{
                const type = stack.right.type();
                this.addDepend( type );
                if( operator !== "instanceof" && !this.compiler.callUtils("isGloableModule", type) ){
-                    ctx.addDepend( this.getGlobalModuleById('System') );
-                    gen.withString( this.checkRefsName('System') );
-                    gen.withDot();
-                    gen.withString('is');
-                    gen.withParenthesL();
-                    this.left.make( gen );
-                    gen.withComma();
-                    this.right.make( gen );
-                    gen.withParenthesR();
-                    return;
+                    this.addDepend( this.getGlobalModuleById('System') );
+                    return this.createStatementToken(
+                         this.createCalleeToken(
+                              this.createMemberToken(['System','is']),
+                              [
+                                   this.left,
+                                   this.right
+                              ]
+                         )
+                    ).make( gen );
                }
           }
           this.left.make( gen );
