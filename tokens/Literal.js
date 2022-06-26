@@ -1,6 +1,9 @@
-const Syntax = require("../core/Syntax");
-class Literal extends Syntax{
+const Token = require("../core/Token");
+class Literal extends Token{
      emitter(){
+          return this.stack.raw();
+     }
+     get value(){
           return this.stack.raw();
      }
 }

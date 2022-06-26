@@ -83,6 +83,71 @@ class Generator{
         this.withString('.');
     }
 
+    withColon(){
+        this.withString(':');
+    }
+
+    withKeyValue(name, value, compute=false){
+        if( typeof name === 'string' ){
+            if(compute){
+                this.withString(`[${name}]`);
+            }else{
+                this.withString(`"${name}"`);
+            }
+        }else{
+            if(compute){
+                name.make( this );
+            }else{
+                if( name.type ==="Identifier"){
+                    this.withString(`"`);
+                    name.make( this );
+                    this.withString(`"`);
+                }else{
+                    name.make( this );
+                }
+            }
+        }
+        this.withColon();
+        if( Array.isArray(value) ){
+            this.withBraceL();
+            const len = value.length-1;
+            value.forEach( (item,index)=>{
+                this.withKeyValue(item.name,item.value, item.name.compute );
+                if(index < len ){
+                    this.withComma();
+                }
+            });
+            this.withBraceR();
+        }else{
+            if( typeof value === 'string' ){
+                this.withString(value);
+            }else if(value){
+                value.emit(this);
+            }else{
+                this.withString(`null`);
+            }
+        }
+    }
+
+    withObject( properties ){
+        this.withBraceL();
+        const len = properties.length-1;
+        properties.forEach( (item,index)=>{
+            this.withKeyValue(item.name,item.value,item.name.compute);
+            if(index < len ){
+                this.withComma();
+            }
+        });
+        this.withBraceR();
+    }
+
+    withCall(callee, args){
+        callee.make( this );
+        this.withParenthesL();
+        this.withSequence( args );
+        this.withParenthesR();
+    }
+
     withOperator( value ){
         this.withString( value );
     }
@@ -101,11 +166,11 @@ class Generator{
         return this;
     }
 
-    emitSequence( items ){
+    withSequence( items ){
         if( !items )return this;
         const len = items.length-1;
         items.forEach( (item,index)=>{
-            item.emit( this );
+            item.make( this );
             if( index < len ){
                 this.withString(',');
             }
@@ -113,18 +178,18 @@ class Generator{
         return this;
     }
 
-    emitEnd( node ){
-        if( node ){
-            node.emit( this );
+    makeEnd( token ){
+        if( token ){
+            token.make( this );
             this.withSemicolon();
+            this.newLine();
         }
-        this.newLine();
         return this;
     }
 
-    emit( node ){
-        if( node ){
-            node.emit( this );
+    make( token ){
+        if( token ){
+            token.make( this );
         }
         return this;
     }

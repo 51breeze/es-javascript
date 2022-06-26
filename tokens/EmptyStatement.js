@@ -1,7 +1,4 @@
-const Syntax = require("../core/Syntax");
-class EmptyStatement extends Syntax{
-     emitter(){
-          return null;
-     }
+const Token = require("../core/Token");
+class EmptyStatement extends Token{
 }
 module.exports = EmptyStatement;

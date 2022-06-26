@@ -1,5 +1,11 @@
-const Syntax = require("../core/Syntax");
-class Property extends Syntax{
+const Token = require("../core/Token");
+class Property extends Token{
+
+    constructor(stack){
+        super(stack);
+        this.key = this.createToken(stack.key);
+        this.value = this.createToken(stack.init);
+    }
 
     computeValue(value,defaultValue){
         if( !defaultValue ) {

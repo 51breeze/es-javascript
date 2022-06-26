@@ -1,7 +1,7 @@
-const Syntax = require("../core/Syntax");
+const Token = require("../core/Token");
 const Constant = require("../core/Constant");
 const Polyfill = require("../core/Polyfill");
-class DeclaratorDeclaration extends Syntax{
+class DeclaratorDeclaration extends Token{
 
     getModuleReferenceName(module,context){
         context = context || this.module;

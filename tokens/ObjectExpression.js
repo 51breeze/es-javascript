@@ -1,5 +1,10 @@
-const Syntax = require("../core/Syntax");
-class ObjectExpression extends Syntax{
+const Token = require("../core/Token");
+class ObjectExpression extends Token{
+
+    createChildren(stack){
+        this.properties = stack.properties.map( item=>this.createToken(item) );
+    }
+
 
     objectExpression(properties){
         let indent = this.getIndent();

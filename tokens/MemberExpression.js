@@ -1,6 +1,12 @@
-const Syntax = require("../core/Syntax");
+const Token = require("../core/Token");
 const Constant = require("../core/Constant");
-class MemberExpression extends Syntax{
+class MemberExpression extends Token{
+    constructor(stack){
+        super(stack)
+        this.object = this.createToken(stack.object);
+        this.property = this.createToken(stack.property);
+    }
+    
     emitter(){
         const module = this.module;
         let property = this.stack.property.isIdentifier ? this.stack.property.value() : this.make(this.stack.property);

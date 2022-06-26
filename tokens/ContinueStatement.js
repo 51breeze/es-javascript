@@ -1,10 +1,8 @@
-const Syntax = require("../core/Syntax");
-class ContinueStatement extends Syntax{
-    emitter(){
-        if( this.stack.label ){
-            return this.semicolon(`continue ${this.stack.label.value()}`); 
-        }
-        return this.semicolon('continue'); 
+const Token = require("../core/Token");
+class ContinueStatement extends Token{
+    constructor(stack){
+        super(stack);
+        this.label = this.createToken(stack.label)
     }
 }
 

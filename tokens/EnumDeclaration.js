@@ -1,6 +1,6 @@
-const Syntax = require("../core/Syntax");
+const Token = require("../core/Token");
 const Constant = require("../core/Constant");
-class EnumDeclaration extends Syntax{
+class EnumDeclaration extends Token{
     objectExpression(properties){
         return `{${properties.join(",")}}`;
     }

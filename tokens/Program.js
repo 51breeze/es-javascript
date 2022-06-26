@@ -1,5 +1,33 @@
-const Syntax = require("../core/Syntax");
-class Program extends Syntax{
+const Token = require("../core/Token");
+class Program extends Token{
+
+    constructor(stack){
+        super(stack);
+        this.body =[];
+        this.externals = [];
+        stack.body.forEach( item=> this.addChildToken( this.createToken(item) ) );
+        stack.externals.forEach( item=> this.externals.push( this.createToken(item) ) );
+    }
+
+    addChildToken(token){
+        const children = this.body;
+        children.push( token );
+        token.parent = this;
+        return this;
+    }
+ 
+    addChildTokenAt(token, index){
+        const children = this.body;
+        if( index < 0 ){
+            index = children.length + index;
+        }else if( index > children.length ){
+            index = children.length;
+        }
+        children.splice(index,0,token);
+        token.parent = this;
+        return this;
+    }
+
     buildExternal(){
         const stack = this.stack;
         if( stack && stack.externals.length > 0 ){

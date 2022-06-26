@@ -1,5 +1,12 @@
-const Syntax = require("../core/Syntax");
-class SwitchCase  extends Syntax {
+const Token = require("../core/Token");
+class SwitchCase extends Token{
+
+    constructor(stack){
+        super(stack);
+        this.condition =this.createToken(stack.condition);
+        this.consequent = stack.consequent.map( item=>this.createToken(item) );
+    }
+
    emitter(){
       const condition = this.make(this.stack.condition && this.stack.condition);
       if( this.stack.condition ){

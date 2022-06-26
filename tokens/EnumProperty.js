@@ -1,6 +1,6 @@
-const Syntax = require("../core/Syntax");
-class EnumProperty extends Syntax{
-    emitter(){
+const Token = require("../core/Token");
+class EnumProperty extends Token{
+    get value(){
         return this.stack.init.value();
     }
 }

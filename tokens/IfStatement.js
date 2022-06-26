@@ -1,5 +1,5 @@
-const Syntax = require("../core/Syntax");
-class IfStatement extends Syntax{
+const Token = require("../core/Token");
+class IfStatement extends Token{
     emitter_none(){
         const condition = this.make(this.stack.condition);
         const consequent = this.make(this.stack.consequent);
@@ -9,6 +9,15 @@ class IfStatement extends Syntax{
             return `${indent}if(${condition}){\r\n${consequent}\r\n${indent}}else{\r\n${alternate}\r\n${indent}}`;
         }
         return `${indent}if(${condition}){\r\n${consequent}\r\n${indent}}`;
+    }
+
+    constructor( stack ){
+        super(stack);
+        this.condition = this.createToken(stack.condition);
+        this.consequent = this.createToken(stack.consequent);
+        this.createChilrenForBlock(this.consequent);
+        this.alternate = this.createToken(stack.alternate);
+        this.createChilrenForBlock(this.alternate);
     }
 
     emitter(){

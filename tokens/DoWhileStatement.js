@@ -1,10 +1,26 @@
-const Syntax = require("../core/Syntax");
-class DoWhileStatement extends Syntax{
-   emitter(){
-      const condition =  this.make(this.stack.condition);
-      const body =  this.make(this.stack.body);
-      const indent = this.getIndent();
-      return `${indent}do{\r\n${body}\r\n${indent}}while(${condition});`;
+const Token = require("../core/Token");
+class DoWhileStatement extends Token{
+   constructor(stack){
+      super(stack);
+      this.condition =  this.createToken(stack.condition);
+      this.body = this.createToken(stack.body);
+      this.createChilrenForBlock(this.body);
+   }
+   
+   addChildToken(token){
+      const body = this.body;
+      if( body && body.stack.isBlockStatement ){
+          body.addChildToken( token );
+      }
+      return this;
+   }
+
+   addChildTokenAt(token, index){
+      const body = this.body;
+      if( body && body.stack.isBlockStatement ){
+          body.addChildTokenAt( token, index );
+      }
+      return this;
    }
 }
 

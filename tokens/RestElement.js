@@ -1,5 +1,9 @@
-const Syntax = require("../core/Syntax");
-class RestElement extends Syntax{
+const Token = require("../core/Token");
+class RestElement extends Token{
+
+    constructor(stack){
+        super(stack);
+    }
 
     getSpreadRefName( target, expression){
         const desc = target.description();

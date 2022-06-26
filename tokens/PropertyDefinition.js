@@ -1,5 +1,14 @@
-const Syntax = require("../core/Syntax");
-class PropertyDefinition extends Syntax{
+const Token = require("../core/Token");
+class PropertyDefinition extends Token{
+
+    constructor(stack){
+        super(stack);
+        this.key = this.createToken(stack.id);
+        this.value = this.createToken(stack.init);
+        this.kind= stack.kind;
+        this.modifier = stack.compiler.callUtils('getModifierValue', stack);
+    }
+
     emitter() {
         const annotations = this.stack.annotations || [];
         var embeds = annotations.filter( item=>{

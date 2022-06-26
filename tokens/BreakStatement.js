@@ -1,10 +1,15 @@
-module.exports = function(stack){
-    this.label = this.createNode(stack.label);
-    this.make(strem=>{
-        strem.withString('break');
+const Token = require("../core/Token");
+class BreakStatement extends Token{
+    createChildren(stack){
+        this.label = this.createToken(stack.label);
+    }
+    make(gen){
+        gen.withString('break');
         if( this.label ){
-            strem.withSpace();
-            this.label.emit( strem );
+            gen.withSpace();
+            this.label.make( gen );
         }
-    });
+    }
 }
+
+module.exports = BreakStatement;

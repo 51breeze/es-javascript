@@ -1,5 +1,12 @@
-const Syntax = require("../core/Syntax");
-class SwitchStatement  extends Syntax {
+const Token = require("../core/Token");
+class SwitchStatement extends Token{
+
+    constructor(stack){
+        super(stack);
+        this.condition =this.createToken(stack.condition);
+        this.cases = stack.cases.map( item=>this.createToken(item) );
+    }
+
     emitter() {
         const insert = [];
         this.stack.removeAllListeners("insert")

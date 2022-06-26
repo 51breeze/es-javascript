@@ -1,26 +1,33 @@
-module.exports = function(stack,ctx){
-     this.left = this.createNode(stack.left);
-     this.right = this.createNode(stack.right);
-     const operator = stack.node.operator;
-     this.make( stream=>{
+const Token = require("../core/Token");
+class BinaryExpression extends Token{
+
+     createChildren(stack){
+          this.left = this.createToken(stack.left);
+          this.right = this.createToken(stack.right);
+          this.operator = stack.node.operator;
+     }
+     
+     make(gen){
+          const operator = this.operator;
           if( operator ==="is" || operator==="instanceof" ){
                const type = stack.right.type();
-               ctx.addDepend( type );
+               this.addDepend( type );
                if( operator !== "instanceof" && !this.compiler.callUtils("isGloableModule", type) ){
-                    this.addDepend( ctx.getGlobalModuleById('System') );
-                    stream.withString( ctx.checkRefsName('System') );
-                    stream.withDot();
-                    stream.withString('is');
-                    stream.withParenthesL();
-                    this.left.emit( stream );
-                    stream.withComma();
-                    this.right.emit( stream );
-                    stream.withParenthesR();
+                    ctx.addDepend( this.getGlobalModuleById('System') );
+                    gen.withString( this.checkRefsName('System') );
+                    gen.withDot();
+                    gen.withString('is');
+                    gen.withParenthesL();
+                    this.left.make( gen );
+                    gen.withComma();
+                    this.right.make( gen );
+                    gen.withParenthesR();
                     return;
                }
           }
-          this.left.emit( stream );
-          stream.withOperator( operator );
-          this.right.emit( stream );
-     });
+          this.left.make( gen );
+          gen.withOperator( operator );
+          this.right.make( gen );
+     }
 }
+module.exports = BinaryExpression;

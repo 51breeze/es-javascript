@@ -1,6 +1,6 @@
-const Syntax = require("../core/Syntax");
+const Token = require("../core/Token");
 const Constant = require("../core/Constant");
-class InterfaceDeclaration extends Syntax{
+class InterfaceDeclaration extends Token{
     emitter(){
         const module = this.module;
         const imps   = this.getImps(module);
@@ -24,6 +24,14 @@ class InterfaceDeclaration extends Syntax{
         parts.push(this.emitCreateClassDescription(module, description));
         parts.push( this.emitExportClass(module) );
         return parts.join("\r\n");
+    }
+
+    constructor(stack){
+        super(stack);
+        super(stack);
+        this.id = this.createToken(stack.id);
+        this.inherit = this.createToken(stack.inherit);
+        this.implements = stack.implements.map( item=>this.createToken(item) )
     }
 }
 

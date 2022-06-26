@@ -1,2 +1,4 @@
 const FunctionExpression = require("./FunctionExpression");
-module.exports = FunctionExpression;
+class ArrowFunctionExpression extends FunctionExpression{
+}
+module.exports = ArrowFunctionExpression;
