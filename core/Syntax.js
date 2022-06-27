@@ -7,6 +7,8 @@ const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
 const webComponents = new Map();
+const moduleDependencies = new Map();
+
 class Syntax extends events.EventEmitter {
 
     constructor(stack){
@@ -357,25 +359,42 @@ class Syntax extends events.EventEmitter {
         return namespaceMap.get(namespace);
     }
 
-    addDepend( depModule ){
-        const module = this.module;
-        if( !depModule.isModule || depModule === module )return;
-        this.compilation.addDependency(depModule,module);
+    addDepend( depModule, ctxModule ){
+        ctxModule = ctxModule || this.module;
+        if( !depModule.isModule || depModule === ctxModule )return;
+        if( !this.compiler.callUtils("isTypeModule", depModule) )return;
+        var dataset = moduleDependencies.get(ctxModule);
+        if( !dataset ){
+            dependencies.set( ctxModule, dataset = new Set() );
+        }
+        dataset.add( depModule );
     }
 
-    getDependencies( module ){
-        return this.compilation.getDependencies(module) || [];
+    getDependencies( ctxModule ){
+        ctxModule = ctxModule || this.module;
+        var dataset = moduleDependencies.get(ctxModule);
+        if( !dataset ){
+            return this.compilation.getDependencies(ctxModule);
+        }
+        if( !dataset._merged ){
+            dataset._merged = true;
+            this.compilation.getDependencies(ctxModule).forEach( dep=>{
+                dataset.add(dep);
+            });
+        }
+        return Array.from( dataset.values() );
     }
 
-    isDependModule(depModule,context){
+    isDependModule(depModule,ctxModule){
+        ctxModule = ctxModule || this.module;
         if( this.compilation.isPolicy(2,depModule) ){
             return false;
         }
         const isUsed = this.isUsed(depModule);
         if( !isUsed )return false;
-        const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",this.module, depModule);         
+        const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
         const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has( depModule.getName() );
-        return isRequire || isPolyfill
+        return isRequire || isPolyfill;
     }
 
     getModuleFile(module, uniKey, type, resolve){
@@ -391,93 +410,103 @@ class Syntax extends events.EventEmitter {
         return module.getName("_");
     }
 
-    createModuleAssets(module,refs,alias=null,context=null){
-        if(!module || !(module.assets.size > 0 || module === this.module && this.compilation.assets.size > 0) )return;
-        refs = refs || [];
-        const push = (value)=>{
-            if( refs.indexOf(value) < 0 ){
-                refs.push( value );
-            }
-        }
-       
+    getProgramAssets(){
+        const dataset = new Map();
         const config = this.getConfig();
-        var assets = module.assets;
-        var externals = config.external;
-        if( module.compilation === this.compilation && this.compilation.assets.size > 0 ){
-            assets = Array.from( assets.values() );
-            assets = assets.concat( Array.from( this.compilation.assets.values() ) );
-        }
-
-        if( assets ){
-            assets.forEach( asset=>{
-                if( asset.file ){
-                    const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
-                    var file = asset.file;
-                    if( config.useAbsolutePathImport ){
-                        file = asset.resolve || file;
-                    }else if(asset.resolve && !asset.resolve.includes('/node_modules/') ){
-                        file = this.getOutputRelativePath(asset.resolve,module);
-                    }
-                    if( !external ){
-                        if( asset.assign ){
-                            push( this.createImport( `${alias||asset.assign}`, file ) )
-                        }else{
-                            push( this.createImport( null, file ) );
-                        } 
-                    }
-
-                }else if( asset.type ==="style" && module ){
-                    const filename = (config.styleLoader || []).concat( this.getModuleFile(module, asset.id, asset.type, asset.resolve) ).join('!');
-                    push( this.createImport( null, filename ) );
-                }
-            });
-        }
-        return refs;
+        const externals = config.external;
+        const assets = this.compilation.assets;
+        this.crateAssetItems(null, dataset, assets, externals, this.compilation.file);
+        return Array.from( dataset.values() );
     }
 
-    createModuleRequires(module,refs,alias=null,context=null){
-        if(!module || module.requires.size < 1 )return;
-        refs = refs || [];
-        const push = (value)=>{
-            if( refs.indexOf(value) < 0 ){
-                refs.push( value );
+    crateAssetItems(module, dataset, assets, externals, context){
+        assets.forEach( asset=>{
+            if( asset.file ){
+                const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
+                if( !external ){
+                    const source = this.getModuleImportSource(asset.resolve || asset.file, module || context );
+                    dataset.set(source,{
+                        source:source,
+                        local:asset.assign,
+                        resolve:asset.resolve,
+                        module,
+                        type:'assets'
+                    });
+                }
+            }else if( asset.type ==="style" && module ){
+                const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve);
+                const source = (config.styleLoader || []).concat( file ).join('!');
+                dataset.set(source,{
+                    source:source,
+                    resolve:file,
+                    module,
+                    type:'assets'
+                });
             }
-        }
-        const requires = module.requires
+        });
+    }
+
+    getModuleAssets(module, dataset){
+        if(!module || !(module.assets.size > 0 || module.requires.size > 0) )return;
+        dataset = dataset || new Map();
         const config = this.getConfig();
-        let externals = config.external;
+        const assets = module.assets;
+        const externals = config.external;
+        if( assets ){
+           this.crateAssetItems(module, dataset , assets, externals);
+        }
+
+        const requires = module.requires;
         if( requires && requires.size > 0 ){
             requires.forEach( item=>{
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
-                var file = external;
-                if( !file ){
-                    file = this.compiler.normalizePath( item.from );
-                    if( config.useAbsolutePathImport ){
-                        file = item.resolve || file;
-                    }else if(item.resolve && !item.resolve.includes('/node_modules/') ){
-                        file = this.getOutputRelativePath(item.resolve,module);
-                    }
-                }
-
-                let name = item.key;
+                var source = external || item.from;
+                var local = item.key;
+                var data = {
+                    source,
+                    imported:null,
+                    local,
+                    resolve:item.resolve,
+                    extract: !!external,
+                    module,
+                    type:'requires'
+                };
                 if( item.extract ){
-                    const key = item.key;
-                    name = item.name;
-                    if( name !== key ){
-                        push( this.createImport( `{${key} as ${alias||name}}`, file ) )
+                    data.extract  = true;
+                    if( item.name !== local ){
+                        data.imported = local;
+                        data.local = item.name;
                     }else{
-                        push( this.createImport( alias ? `{${name} as ${alias}}` : `{${name}}`, file ) )
-                    }
-                }else{
-                    if( external ){
-                        push( this.createImport( alias ? `{${item.key} as ${alias}}` : `{${item.key}}`, file ) )
-                    }else{
-                        push( this.createImport( alias || name, file ) )
+                        data.local = item.name;
                     }
                 }
+                dataset.set(source, data);
             });
         }
-        return refs;
+
+        this.getDependencies( module ).forEach( dep=>{
+            if( !this.isActiveForModule(dep, module) && this.isUsed(dep) ){
+                this.getModuleAssets(dep, dataset);
+            }
+        });
+
+        return Array.from( dataset.values() );
+    }
+
+    isActiveForModule( depModule, ctxModule ){
+        return this.isDependModule( depModule, ctxModule );
+    }
+
+    getModuleImportSource(source,module){
+        const config = this.getConfig();
+        const isString = typeof source === 'string';
+        if( config.useAbsolutePathImport ){
+            return isString ? source : this.getModuleFile(source);
+        }
+        if( isString && source.includes('/node_modules/') ){
+            return source;
+        }
+        return this.getOutputRelativePath(source, module);
     }
 
     createDependencies(module, refs){
@@ -640,24 +669,24 @@ class Syntax extends events.EventEmitter {
         return false;
     }
 
-    make(stack, ...args){
+    createToken(stack){
         const plugin = this.plugin;
-        const stackClass = plugin.getStack( stack.toString() );
+        const type = stack.toString();
+        const stackClass = plugin.getToken( type );
         if( stackClass ){
-            const config = plugin.config();
-            const obj = new stackClass( stack );
+            const obj = new stackClass(type);
+            obj.stack = stack;
+            obj.scope = stack.scope;
+            obj.compilation = stack.compilation;
+            obj.compiler = stack.compiler;
+            obj.module = stack.module;
             obj.plugin = plugin;
             obj.name = this.name;
             obj.platform = this.platform;
-            obj.parent = this;
-            this.children.push( obj );
-            if(config.target==='es6'){
-                return obj.emitter_es6(...args);
-            }else if(config.target==='none'){
-                return obj.emitter_none(...args);
-            }else{
-                return obj.emitter(...args);
-            }
+            obj.parent = null;
+            obj.builder = this;
+            obj.createChildren( stack );
+            return obj;
         }
         throw new Error(`Stack '${stack.toString()}' is not found.`);
     }

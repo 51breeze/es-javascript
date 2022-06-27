@@ -1,11 +1,10 @@
 const Token = require("../core/Token");
 class ForInStatement extends Token{
-   constructor(stack){
-      super(stack);
+
+   createChilren(stack){
       this.left = this.createToken(stack.left);
       this.right = this.createToken(stack.right);
       this.body = this.createToken(stack.body);
-      this.createChilrenForBlock(this.body);
    }
 
    addChildToken(token){
@@ -22,6 +21,22 @@ class ForInStatement extends Token{
           body.addChildTokenAt( token, index );
       }
       return this;
+   }
+
+   make( gen ){
+      gen.newLine();
+      gen.withString('for');
+      gen.withParenthesL();
+      this.left.make( gen );
+      gen.withOperator('in');
+      this.right.make( gen );
+      gen.withParenthesR();
+      if( this.body.stack.isBlockStatement ){
+         this.body.make( gen );
+      }else{
+         if( this.body )this.body.make( gen );
+         this.withSemicolon();
+      }
    }
 
 }

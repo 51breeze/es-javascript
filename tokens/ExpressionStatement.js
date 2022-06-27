@@ -4,9 +4,9 @@ class ExpressionStatement extends Token{
         this.expression = this.createToken(stack.expression);
     }
     make( gen ){
+        gen.newLine();
         this.expression.make( gen );
         gen.withSemicolon();
-        gen.newLine();
     }
 }
 module.exports = ExpressionStatement;

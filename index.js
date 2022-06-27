@@ -4,17 +4,10 @@ const Builder = require("./core/Builder");
 const Polyfill = require("./core/Polyfill");
 const {merge} = require("lodash");
 const modules = new Map();
-const dirname = path.join(__dirname,"stack");
+const dirname = path.join(__dirname,"tokens");
 fs.readdirSync( dirname ).forEach( (filename)=>{
     const info = path.parse( filename );
     modules.set(info.name, require( path.join(dirname,filename) ) );
-});
-
-const transformModules = new Map();
-const transform = path.join(__dirname,"transform");
-fs.readdirSync( transform ).forEach( (filename)=>{
-    const info = path.parse( filename );
-    transformModules.set(info.name, require( path.join(transform,filename) ) );
 });
 
 const defaultConfig ={
@@ -48,11 +41,8 @@ const properties ={
     getPolyfill(name){
         return Polyfill.modules.get(name);
     },
-    getStack(name){
+    getToken(name){
         return modules.get(name);
-    },
-    getTransformPlugin(name){
-        return transformModules.get(name);
     },
     start(compilation, done, options){
         if(options)this.config(options);

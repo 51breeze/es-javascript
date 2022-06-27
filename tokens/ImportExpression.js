@@ -1,14 +1,17 @@
 const Token = require("../core/Token");
 class ImportExpression extends Token{
    
-   emitter(){
-      const file = this.stack.source.value();
-      return this.semicolon(`import('${file}')`)
+   createChildren( stack ){
+      this.source = this.createToken( stack.source );
    }
 
-   constructor(stack){
-      super(stack);
-      this.source = this.createToken( stack.source );
+   make( gen ){
+      gen.newLine();
+      gen.withString(`import`);
+      gen.withParenthesL();
+      this.source.make( gen );
+      gen.withParenthesR();
+      gen.withSemicolon();
    }
 }
 

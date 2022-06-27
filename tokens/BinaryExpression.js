@@ -13,7 +13,7 @@ class BinaryExpression extends Token{
                const type = stack.right.type();
                this.addDepend( type );
                if( operator !== "instanceof" && !this.compiler.callUtils("isGloableModule", type) ){
-                    this.addDepend( this.getGlobalModuleById('System') );
+                    this.addDepend( this.compilation.getGlobalTypeById('System') );
                     return this.createStatementToken(
                          this.createCalleeToken(
                               this.createMemberToken(['System','is']),

@@ -21,9 +21,14 @@ class Generator{
     }
 
     newLine(){
+        const char = code.charCodeAt( code.length-1 );
+        if( char === 10 || char ===13 ){
+            return this;
+        }
         this.line++;
-        this.code('\r\n');
+        this.code+='\r\n';
         this.column = 0;
+        return this;
     }
 
     getStartColumn(){
@@ -149,7 +154,7 @@ class Generator{
     }
 
     withOperator( value ){
-        this.withString( value );
+        this.withString(` ${value} `);
     }
 
     withComma(){

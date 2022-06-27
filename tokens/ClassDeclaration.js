@@ -10,15 +10,22 @@ class ClassDeclaration extends Token{
     constructor(type){
         super(type);
         this.body = [];
-        this.dependencies = new Set();
         this.privateProperties=[];
         this.initProperties=[];
     }
 
     createChildren(stack){
         this.id = this.createToken(stack.id);
-        this.inherit = this.createToken(stack.inherit);
-        this.implements = this.stack.implements.map( item=>this.createToken(item) );
+        if( this.isActiveForModule(this.module.inherit) ){
+            this.inherit = this.createToken(stack.inherit);
+            this.addDepend( this.module.inherit );
+        }
+
+        this.implements = this.stack.implements.filter( item=>{
+            const impModule = item.getModuleById( item.value() );
+            return !impModule.isDeclaratorModule && impModule.isInterface;
+        }).map( item=>this.createToken(item) );
+
         this.imports = this.stack.imports.map( item=> this.createToken(item) );
         this.methods = [];
         this.members = [];
@@ -49,8 +56,8 @@ class ClassDeclaration extends Token{
             }
         });
 
-        this.addDepend( this.getGlobalModuleById('Class') );
-        const iteratorType = this.getGlobalModuleById("Iterator")
+        this.addDepend( this.compilation.getGlobalModuleById('Class') );
+        const iteratorType = this.compilation.getGlobalModuleById("Iterator")
         if( this.module.implements.includes(iteratorType) ){
             const method = this.createMethodToken( 'Symbol.iterator', (ctx)=>{
                 const obj = ctx.createToken('ReturnStatement', true); 
@@ -61,10 +68,6 @@ class ClassDeclaration extends Token{
             this.addChildToken( method );
         }
 
-    }
-
-    addDepend( depModule ){
-        this.dependencies.add( depModule );
     }
 
     addChildToken(token){
@@ -110,9 +113,9 @@ class ClassDeclaration extends Token{
         });
     }
 
-    createMemberDescriptor(key, node){
-        const modifier = node.modifier;
-        const kind = node.kind;
+    createMemberDescriptor(key, node, modifier, kind){
+        kind =kind || node.kind;
+        modifier = modifier || node.modifier;
         const properties = [];
         properties.push( this.createPropertyToken('m', MODIFIER_MAP[ modifier ]) );
         properties.push( this.createPropertyToken('id', kind) );
@@ -146,13 +149,14 @@ class ClassDeclaration extends Token{
         if( _private ){
             description.push(this.createPropertyToken('private',_private));
         }
-        if( this.imps.length > 0 ){
+        const imps = this.module.implements.filter( item=>item.isInterface && !item.isDeclaratorModule );
+        if( imps.length > 0 ){
             description.push(this.createPropertyToken('imps', this.createArrayToken(
-                imps.map(item=>this.getModuleReferenceName(item) )
+                imps.map( item=>this.getModuleReferenceName(item) )
             )));
         }
         if( this.inherit ){
-            description.push(this.createPropertyToken('inherit',this.getModuleReferenceName( this.inherit, module)));
+            description.push(this.createPropertyToken('inherit',this.getModuleReferenceName(this.module.inherit, module)));
         }
         if( this.methods.length ){
             description.push(this.createPropertyToken('methods', 'methods'));
@@ -168,8 +172,13 @@ class ClassDeclaration extends Token{
         return this.createStatementToken( this.createCalleeToken( this.createMemberToken([this.checkRefsName('Class'),'creator']), args) );
     }
 
-    createExportExpression(module){
-        return this.createStatementToken( this.createMemberToken(['module','exports']), this.createIdentifierToken(module.id));
+    createExportExpression( id ){
+        return this.createStatementToken( 
+            this.createAssignmentToken(
+                this.createMemberToken(['module','exports']), 
+                this.createIdentifierToken(id) 
+            )
+        );
     }
 
     createStatementMember(name, members){
@@ -185,17 +194,40 @@ class ClassDeclaration extends Token{
         );
     }
 
+    createDependencies(){
+        const items = [];
+        const module = this.module;
+        const dependencies = this.builder.getDependencies(module);
+        dependencies.forEach( depModule =>{
+            if( this.isActiveForModule( depModule ) ){
+                const name = this.builder.getModuleReferenceName(depModule, module);
+                const source = this.builder.getModuleImportSource(depModule, module);
+                items.push( this.createImportToken( source, [[null,name]]) );
+            }
+        });
+        return items;
+    }
+
+    createModuleAssets(){
+        const assets = this.builder.getModuleAssets( this.module ).map( item=>{
+            return this.createImportToken( item.source, [[item.imported,item.local]]);
+        });
+        return assets;
+    }
+
     make(gen){
-        
-        this.imports.forEach( item=>item.makeEnd( gen ) );
-        this.dependencies.forEach( item=>gen.makeEnd(item) );
-        this.body.forEach( item=>gen.makeEnd(item) );
 
         var construct = this.construct;
         const module = this.module;
         const methods = this.methods;
         const members = this.members;
-        const _private = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME, this);
+        const _private = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+        
+        this.imports.forEach( item=>item.make( gen ) );
+        this.createDependencies().forEach( token=>token.make(gen) );
+        this.createModuleAssets().forEach( token=>token.make(gen) );
+        this.body.forEach( item=>gen.make(item) );
+        
         if( !construct && (this.privateProperties.length + this.initProperties.length) > 0 ){
             construct = this.createDefaultConstructMethod( _private );
         }
@@ -208,8 +240,7 @@ class ClassDeclaration extends Token{
         this.createStatementMember(gen, 'members', members ).make( gen );
 
         this.createClassDescriptor(module,_private).make( gen );
-        this.createExportExpression(module).make( gen );
-
+        this.createExportExpression( module.id ).make( gen );
     }
 }
 

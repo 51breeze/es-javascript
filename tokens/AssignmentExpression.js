@@ -23,7 +23,7 @@ class AssignmentExpression extends Token{
         }
 
         if( isReflect ){
-            this.addDepend( this.getGlobalTypeById("Reflect") );
+            this.addDepend( this.compilation.getGlobalTypeById("Reflect") );
             return this.createCalleeToken(
                 this.createMemberToken(['Reflect','set']),
                 [
@@ -46,7 +46,6 @@ class AssignmentExpression extends Token{
             gen.withOperator('=');
             this.right.make( gen );
         }
-
     }
 }
 module.exports = AssignmentExpression;
