@@ -9,7 +9,7 @@ class LabeledStatement extends Token{
     make( gen ){
         gen.newLine();
         this.label.make( gen );
-        gen.withString(':');
+        gen.withColon();
         this.body.make( gen );
     }
 }
