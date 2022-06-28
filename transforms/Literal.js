@@ -1,7 +1,4 @@
-const Syntax = require("../core/Syntax");
-class Literal extends Syntax{
-     emitter(){
-          return this.stack.raw();
-     }
-}
-module.exports = Literal;
+module.exports = function(ctx,stack){
+     const node = ctx.createLiteralNode(stack.raw(), stack);
+     return node;
+ }

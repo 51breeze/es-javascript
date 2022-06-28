@@ -1,8 +1,8 @@
-const Syntax = require("../core/Syntax");
-class MethodDefinition extends Syntax{
-    emitter(){
-        return this.make(this.stack.expression);
-    }
+const FunctionDeclaration = require("./FunctionDeclaration");
+module.exports = function(ctx,stack,type){
+   const node = FunctionDeclaration(ctx,stack,type);
+   node.static = !!stack.static;
+   node.modifier = stack.complier.callUtils('getModifierValue', stack);
+   node.kind = 'method';
+   return node;
 }
-
-module.exports = MethodDefinition;

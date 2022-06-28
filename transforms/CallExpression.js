@@ -6,7 +6,7 @@ module.exports = function(ctx,stack){
     if( isMember && desc && desc.isType && desc.isAnyType  ){
         ctx.addDepend( stack.getGlobalTypeById("Reflect") );
         const propValue = stack.callee.property.value();
-        const property = ctx.createLiteralNode( propValue, `"${propValue}"`, stack.callee.property);
+        const property = ctx.createLiteralNode( propValue, null, stack.callee.property);
         return ctx.createCalleeNode(
             ctx.createMemberNode([ctx.checkRefsName("Reflect"),'call']),
             [

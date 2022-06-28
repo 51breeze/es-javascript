@@ -1,11 +1,8 @@
-const Syntax = require("../core/Syntax");
-class ParenthesizedExpression extends Syntax{
-    emitter(){
-        if( this.stack.parentStack.isExpressionStatement ){
-            return this.make(this.stack.expression);
-        }
-        return `(${this.make(this.stack.expression)})`;
+module.exports = function(ctx,stack){
+    if( stack.parentStack.isExpressionStatement ){
+        return ctx.createToken(stack.expression);
     }
+    const node = ctx.createNode( stack );
+    node.expression = node.createToken(stack.expression) 
+    return node;
 }
-
-module.exports = ParenthesizedExpression;

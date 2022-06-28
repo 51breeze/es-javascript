@@ -1,10 +1,5 @@
-const Syntax = require("../core/Syntax");
-class ObjectPattern extends Syntax {
-    emitter(){
-        return this.stack.properties.map( item=> {
-            return this.make(item);
-        });
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode( stack );
+    node.properties = stack.properties.map( item=> node.createToken(item) );
+    return node;
 }
-
-module.exports = ObjectPattern;

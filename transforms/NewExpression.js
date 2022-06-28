@@ -1,14 +1,10 @@
-const Syntax = require("../core/Syntax");
-class NewExpression extends Syntax{
-    emitter(){
-        const callee= this.make(this.stack.callee);
-        const desc = this.stack.callee.description();
-        if( this.compiler.callUtils("isTypeModule",desc) ){
-            this.addDepend( desc );
-        }
-        const args=this.stack.arguments.map( item=> this.make(item) ).join(",");
-        return `new ${callee}(${args})`;
+module.exports = function(ctx,stack){
+    const desc = stack.callee.description();
+    if( this.compiler.callUtils("isTypeModule",desc) ){
+        ctx.addDepend( desc );
     }
+    const node = ctx.createNode( stack );
+    node.callee = node.createToken( stack.callee );
+    node.arguments = stack.arguments.map( item=> node.createToken(item) );
+    return node;
 }
-
-module.exports = NewExpression;
