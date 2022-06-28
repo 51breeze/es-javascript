@@ -1,10 +1,11 @@
-const Syntax = require("../core/Syntax");
-class ImportDeclaration extends Syntax{
-   emitter(){
-      const classModule = this.stack.getModuleById( this.stack.specifiers.value() );
-      const name = this.stack.alias ? this.stack.alias.value() : classModule.id;
-      const indent = this.getIndent();
-      return indent+this.emitImportClass(classModule, name );
+module.exports = function(ctx,stack,type){
+   const classModule = stack.getModuleById( stack.specifiers.value() );
+   if( this.isActiveForModule(classModule) ){
+      const name = stack.alias ? stack.alias.value() : classModule.id;
+      const source = ctx.builder.getModuleImportSource( classModule, stack.compilation.file );
+      return ctx.createImportNode( source, [
+         ctx.createImportSpecifierNode(null, name)
+      ]);
    }
+   return null;
 }
-module.exports = ImportDeclaration;

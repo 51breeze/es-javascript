@@ -12,11 +12,12 @@ function createClassNode(ctx,stack){
     node.initProperties=[];
     node.beforeBody = [];
     node.afterBody = [];
+    node.body = [];
 
     node.id = node.createToken( stack.id );
-    if( ctx.isActiveForModule(module.inherit) ){
+    if( node.isActiveForModule(module.inherit) ){
         node.inherit = node.createToken( stack.inherit );
-        ctx.addDepend(module.inherit);
+        node.addDepend(module.inherit);
     }
 
     node.implements = stack.implements.filter( item=>{
@@ -25,7 +26,7 @@ function createClassNode(ctx,stack){
     }).map( item=>node.createToken(item) );
 
     this.imports = stack.imports.filter( 
-        item=>ctx.isActiveForModule( item.getModuleById( item.value() ) ) 
+        item=>node.isActiveForModule( item.getModuleById( item.value() ) ) 
     ).map( item=>node.createToken(item) );
 
     node.methods = [];
@@ -57,11 +58,11 @@ function createClassNode(ctx,stack){
         }
     });
 
-    ctx.addDepend( stack.compilation.getGlobalModuleById('Class') );
+    node.addDepend( stack.compilation.getGlobalModuleById('Class') );
     const iteratorType = stack.compilation.getGlobalModuleById("Iterator")
     if( module.implements.includes(iteratorType) ){
-        const method = ctx.createMethodNode( 'Symbol.iterator', (ctx)=>{
-            const obj = ctx.createNode('ReturnStatement'); 
+        const method = node.createMethodNode( 'Symbol.iterator', (ctx)=>{
+            const obj = node.createNode('ReturnStatement'); 
             obj.argument = obj.createThisNode();
             ctx.body.push( obj );
         });
@@ -70,15 +71,15 @@ function createClassNode(ctx,stack){
     }
 
     if( node.privateProperties.length ){
-        node.privateName = ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
-        node.beforeBody.push( ctx.createDeclarationNode(
+        node.privateName = node.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+        node.beforeBody.push( node.createDeclarationNode(
             'const',
             ctx.createDeclaratorNode(
                 node.privateName,
                 ctx.createChunkNode('Symbol("private")')
             )
         ));
-        node.privateName = ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+        node.privateName = node.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
     }
 
     if( !node.construct && (node.privateProperties.length + node.initProperties.length) > 0){
@@ -216,16 +217,16 @@ function createModuleAssets(ctx, module){
 function ClassDeclaration(ctx,stack,type){
     const classNode = createClassNode(ctx,stack,type);
     const module = stack.module;
-    const body = ctx.body;
+    const body = classNode.body;
     classNode.imports.forEach( item=>body.push( item ) );
-    createDependencies(ctx, module).forEach( item=>body.push( item ) );
-    createModuleAssets(ctx, module).forEach( item=>body.push( item ) );
+    createDependencies(classNode, module).forEach( item=>body.push( item ) );
+    createModuleAssets(classNode, module).forEach( item=>body.push( item ) );
     classNode.beforeBody.forEach( item=>body.push( item ) );
     body.push( classNode.construct );
-    body.push( createStatementMember(ctx,'methods', classNode.methods ) );
-    body.push( createStatementMember(ctx, 'members', classNode.members ) );
+    body.push( createStatementMember(classNode,'methods', classNode.methods ) );
+    body.push( createStatementMember(classNode, 'members', classNode.members ) );
     body.push( createClassDescriptor(
-        ctx, 
+        classNode, 
         module, 
         classNode.privateName,
         classNode.methods,
@@ -235,6 +236,7 @@ function ClassDeclaration(ctx,stack,type){
     ));
     classNode.afterBody.forEach( item=>body.push( item ) );
     body.push( createExportExpression( module.id ) );
+    return classNode;
 }
 
 ClassDeclaration.createClassNode = createClassNode;

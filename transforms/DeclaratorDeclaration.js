@@ -1,77 +1,47 @@
-const Syntax = require("../core/Syntax");
-const Constant = require("../core/Constant");
-const Polyfill = require("../core/Polyfill");
-class DeclaratorDeclaration extends Syntax{
+const ClassDeclaration = require("./ClassDeclaration");
+module.exports = function(ctx, stack, type){
 
-    getModuleReferenceName(module,context){
-        context = context || this.module;
-        if( !module )return null;
-        return module.id;
+    const module = this.module;
+    const polyfillModule = ctx.plugin.getPolyfill( module.getName() );
+    if( !polyfillModule ){
+        return null;
     }
 
-    emitter(){
-        const module = this.module;
-        const polyfillModule = Polyfill.modules.get( module.getName() ) || this.compiler.getPlugin( this.name ).getPolyfill( module.getName() );
-        if( !polyfillModule ){
-            return null;
+    const node = ctx.createNode( stack );
+
+    const content = polyfillModule.content;
+    polyfillModule.require.forEach( name=>{
+        const module = stack.getModuleById(name);
+        if( module ){
+            node.addDepend( module );
+        }else{
+            node.error(`the '${name}' dependency does not exist`);
         }
+    });
 
-        const content = [ polyfillModule.content ];
-        const refs = [];
-
-        polyfillModule.require.forEach( name=>{
-            const module = this.stack.getModuleById(name);
-            if( module ){
-                this.addDepend( module );
-            }else{
-                this.error(`the '${name}' dependency does not exist`);
-            }
-        });
-
-        module.extends.forEach( dep=>{
-            if( dep.isClass ){
-                this.addDepend( dep );
-            } 
-        });
-
-        if( polyfillModule.id !== 'Class' &&  polyfillModule.createClass !== false ){
-            this.addDepend( this.getGlobalModuleById('Class') )
+    module.extends.forEach( dep=>{
+        if( dep.isClass ){
+            node.addDepend( dep );
         }
+    });
 
-        this.createDependencies(module,refs);
-        this.createModuleRequires(polyfillModule,refs);
-
-        if( refs.length > 0 ){
-            let has = false;
-            if( content[0] ){
-                content[0] = content[0].replace(/\/\/\/__REFS__\s+?/, ()=>{
-                    has = true;
-                    return refs.join("\r\n");
-                });
-            }
-            if( !has ){
-                content.unshift( refs.join("\r\n") );
-            }
-        }
-
-        if( polyfillModule.id !== 'Class' ){
-            const description = [
-                `'id':${Constant.DECLARE_CLASS}`,
-                `'global':true`,
-                `'dynamic':${!!module.dynamic}`,
-                `'name':'${module.id}'`,
-            ];
-            const inherit = this.getInherit( module )
-            if( inherit ){
-                description.push( `'inherit':${this.getModuleReferenceName(inherit, module)}` );
-            }
-            if( polyfillModule.createClass !== false ){
-                content.push(this.emitCreateClassDescription(module, description, polyfillModule.export));
-            }
-        }
-        content.push( this.emitExportClass(module,polyfillModule.export) );
-        return content.join("\r\n");
+    if( node.isActiveForModule(module.inherit) ){
+        this.inherit = module.inherit;
     }
+
+    if( polyfillModule.id !== 'Class' &&  polyfillModule.createClass !== false ){
+        this.addDepend( this.getGlobalModuleById('Class') );
+    }
+
+    node.body = [];
+    const body = node.body;
+    ClassDeclaration.createDependencies(node, module).forEach( item=>body.push( item ) );
+    ClassDeclaration.createModuleAssets(node, module).forEach( item=>body.push( item ) );
+    body.push( node.createChunkNode( content ) );
+    if( polyfillModule.id !== 'Class' && polyfillModule.createClass !== false ){
+        body.push( ClassDeclaration.createClassDescriptor(module) );
+    }
+    body.push( ClassDeclaration.createExportExpression(node, polyfillModule.export) );
+    return node;
+
 }
-
-module.exports = DeclaratorDeclaration;

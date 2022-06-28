@@ -1,6 +1,5 @@
-module.exports = function(stack){
-    this.expression = this.createNode( stack );
-    this.make((stream)=>{
-        stream.emitEnd( this.expression );
-    });
+module.exports = function(ctx,stack){
+    const node = ctx.createNode( stack );
+    node.expression = node.createNode( stack );
+    return node;
  };

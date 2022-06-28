@@ -1,73 +1,58 @@
-const Syntax = require("../core/Syntax");
+const ClassDeclaration = require("./ClassDeclaration");
 const Constant = require("../core/Constant");
-class EnumDeclaration extends Syntax{
-    objectExpression(properties){
-        return `{${properties.join(",")}}`;
-    }
-    objectMerge(props){
-        let object = props.shift();
-        while( props.length > 0 ){
-            let prop = props.shift();
-            object = `Object.assign(${object},${prop})`;
-        }
-        return object;
-    }
 
-    makeEnum(){
-        const module = this.module;
-        const inherit = this.getInherit(module);
-        const content = [];
-        const refs = [];
-        const description = [
-            `'id':${Constant.DECLARE_ENUM}`,
-            `'ns':'${module.namespace.toString()}'`,
-            `'name':'${module.id}'`
-        ];
-        if( inherit ){
-            description.push(`'inherit':${inherit.id}`);
-        }
-
-        const memberContent = [];
-        const emitter=(target,proto,content)=>{
-            for( var name in target ){
-                const item = target[ name ];
-                const value = this.make(item);
-                content.push(this.definePropertyDescription(proto,`${name}`,value,false,"public", Constant.DECLARE_PROPERTY_ENUM_VALUE,false));
-                content.push(this.definePropertyDescription(proto,value,`"${name}"`,false,"public", Constant.DECLARE_PROPERTY_ENUM_KEY,true));
-            }
-        }
-
-        this.addDepend( this.getGlobalModuleById('Class') );
-        emitter( module.methods, "methods", memberContent );
-        
-        if( memberContent.length > 0 ){
-            content.push(`const methods = {};`);
-            description.push(`'methods':methods`);
-            content.push( memberContent.join("\r\n") );
-        }
-        
-        this.createDependencies(module,refs);
-        const construct = `function ${module.id}(){}`;
-        const parts = refs.concat(construct,content);
-        parts.push(this.emitCreateClassDescription(module, description));
-        parts.push( this.emitExportClass(module) );
-        return parts.join("\r\n");
-    }
-
-    emitter(){
-        if( this.stack.parentStack.isPackageDeclaration ){
-            return this.makeEnum();
-        }
-        const name = this.stack.value();
-        const properties = this.stack.properties.map( item=>{
-            const key = item.value();
-            const value = this.make(item.init);
-            return `${name}[${name}["${key}"]=${value}]="${key}"`;
-        });
-        properties.unshift(`${name}={}`);
-        properties.push(name);
-        return this.semicolon(`var ${name} = (${properties.join(",")})`);
-    }
+function createStatementMember(ctx, name, members){
+    if( !members.length )return;
+    const items = [];
+    members.forEach( item =>{
+        const property = ClassDeclaration.createMemberDescriptor(item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
+        items.push( property );
+        const key = ClassDeclaration.createMemberDescriptor(item.init, item.key, 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
+        items.push( key );
+    });
+    return ctx.createStatementNode( 
+        ctx.createDeclarationNode(
+            'const',
+            ctx.createDeclaratorNode(
+                name, 
+                ctx.createObjectNode( items )
+            )
+        )
+    );
 }
 
-module.exports = EnumDeclaration;
+module.exports = function(ctx,stack,type){
+
+    if( this.stack.parentStack.isPackageDeclaration ){
+        const node = ClassDeclaration.createClassNode(ctx,stack);
+        const module = this.module;
+        ClassDeclaration.createDependencies(node,module).forEach( item=> node.body.push(item) );
+        ClassDeclaration.createModuleAssets(node,module).forEach( item=> node.body.push(item) );
+        node.body.push( ClassDeclaration.createDefaultConstructMethod(node,module.id) );
+        node.body.push( createStatementMember(node, 'methods', node.properties) );
+        node.body.push( ClassDeclaration.createClassDescriptor(node, module,  null, node.properties, null, null, node.inherit) );
+        node.body.push( ClassDeclaration.createExportExpression(node, module.id ) );
+        return node;
+    }else{
+        const name = this.stack.value();
+        const init = ctx.createAssignmentNode( ctx.createIdentifierNode(name), ctx.createObjectNode());
+        const properties = stack.properties.map( item =>{
+            const initNode = ctx.createMemberNode( [ctx.createIdentifierNode(name), ctx.createLiteralNode(item.key.value(), null, item.key)] );
+            initNode.computed = true;
+            const initAssignmentNode = ctx.createAssignmentNode(
+                initNode, 
+                ctx.createLiteralNode(
+                    item.init.value(), 
+                    item.init.value(), 
+                    item.init
+                )
+            );
+            const left = ctx.createMemberNode( [ctx.createIdentifierNode(name), initAssignmentNode]);
+            left.computed = true;
+            return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), null, item.key));
+        });
+        return ctx.createDeclarationNode('const', [
+            ctx.createDeclaratorNode(name, ctx.createSequenceNode([init, ...properties]))
+        ]);
+    }
+}

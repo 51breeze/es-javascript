@@ -1,38 +1,28 @@
-const Syntax = require("../core/Syntax");
-class ForOfStatement extends Syntax{
-    emitter_none(){
-        const left = this.make(this.stack.left);
-        const right = this.make(this.stack.right);
-        const body = this.stack.body && this.make(this.stack.body);
-        const indent = this.getIndent();
-        const condition = `${left} of ${right}`;
-        if( !body ){
-            return this.semicolon(`for(${condition})`);
-        }
-        if( body ){
-            return `${indent}for(${condition}){\r\n${body}\r\n${indent}}`;
-        }
-        return `${indent}for(${condition}){\r\n${indent}}`;
+module.exports = function(ctx,stack){
+    const type = stack.complier.callUtils('getOriginType',stack.right.type());
+    if( stack.complier.callUtils('isLocalModule', type) || stack.right.type().isAnyType ){
+        const node = ctx.createNode(stack,'ForStatement');
+        const obj = ctx.checkRefsName('_i');
+        const res = ctx.checkRefsName('_v');
+        const init = ctx.createToken(stack.left);
+        const object = init.createAssignmentNode( init.createIdentifier( obj ), init.createCalleeNode(
+            init.createMemberNode([ctx.checkRefsName('System'),'getIterator']),
+            [
+                init.createToken(stack.right)
+            ]
+        ));
+        init.declarations.push( init.createIdentifier( res ) );
+        init.declarations.push( object );
+        const condition = ctx.createChunkNode(`${obj} && (${res}=${obj}.next()) && !${res}.done`);
+        node.init = init;
+        node.condition = condition;
+        node.update = null;
+        node.body  = node.createToken(stack.body);
+        return node;
     }
-    emitter(){
-        const left = this.make(this.stack.left);
-        const name = this.stack.left.value();
-        const right = this.make(this.stack.right);
-        const body = this.stack.body && this.make(this.stack.body);
-        const indent = this.getIndent();
-        const refs = this.generatorVarName(this.stack,"_i");
-        const vRefs = this.generatorVarName(this.stack,"_v");
-        this.addDepend( this.getGlobalModuleById('System') );
-        const condition = `${left},${vRefs},${refs}=${this.checkRefsName('System')}.getIterator(${right}); ${refs} && (${vRefs}=${refs}.next()) && !${vRefs}.done;`;
-        if( !this.stack.body ){
-            return this.semicolon(`${indent}for(${condition})`);
-        }
-        if( body ){
-            const assign = this.semicolon(`\t${name}=${vRefs}.value`);
-            return `${indent}for(${condition}){\r\n${assign}\r\n${body}\r\n${indent}}`;
-        }
-        return `${indent}for(${condition}){\r\n${indent}}`;
-    }
+    const node = ctx.createNode(stack);
+    node.left  = node.createToken(stack.left);
+    node.right = node.createToken(stack.right);
+    node.body  = node.createToken(stack.body);
+    return node;
 }
-
-module.exports = ForOfStatement;

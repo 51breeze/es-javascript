@@ -67,13 +67,15 @@ class Token extends events.EventEmitter {
         return method;
     }
 
-    createObjectNode( properties ,stack){
+    createObjectNode(properties ,stack){
         const object = this.createNode(stack,'ObjectExpression');
         object.properties = [];
-        properties.forEach( (value)=>{
-            value.parent = object;
-            object.properties.push( value );
-        });
+        if( properties ){
+            properties.forEach( (value)=>{
+                value.parent = object;
+                object.properties.push( value );
+            });
+        }
         return object;
     }
 
@@ -158,6 +160,15 @@ class Token extends events.EventEmitter {
         const obj = this.createNode(stack,'ExpressionStatement');
         expression.parent = obj;
         obj.expression=expression;
+        return obj;
+    }
+
+    createSequenceNode(items, stack){
+        const obj = this.createNode(stack,'SequenceExpression');
+        obj.expressions = items;
+        items.forEach( item=>{
+            item.parent = obj;
+        });
         return obj;
     }
 
