@@ -1,10 +1,8 @@
-module.exports = function(stack){
+module.exports = function(ctx,stack){
+   const node = ctx.createNode(stack);
+   node.body = [];
    stack.body.forEach( child=>{
-      this.addChild( this.createNode( child ) )
+      node.body.push( node.createToken( child ) );
    });
-   this.make((stream)=>{
-      this.getChildren().forEach( child=>{
-         stream.emitToken( child );
-      });
-   });
+   return node;
 };

@@ -1,8 +1,5 @@
-module.exports = function(stack){
-     this.argument = stack.argument;
-     this.make(stream=>{
-         stream.withString('await')
-         stream.withSpace();
-         this.argument.emit( stream );
-     });
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.argument = node.createToken( stack.argument );
+    return node;
  }

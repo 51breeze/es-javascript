@@ -1,10 +1,5 @@
-module.exports = function(stack){
-    this.label = this.createNode(stack.label);
-    this.make(strem=>{
-        strem.withString('break');
-        if( this.label ){
-            strem.withSpace();
-            this.label.emit( strem );
-        }
-    });
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.label = node.createNode(stack.label);
+    return node;
 }

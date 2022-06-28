@@ -1,4 +1,4 @@
-module.exports = function(stack, ctx){
+module.exports = function(ctx,stack,type){
     const args = stack.getArguments();
     const name = stack.name;
     switch( name ){
@@ -29,10 +29,15 @@ module.exports = function(stack, ctx){
                         ctx.compilation.setPolicy(2, providerModule);
                         const params = annotation.getArguments();
                         const value = params[0] ? params[0].value : action.value;
+                        const node = ctx.createNode(stack,'Literal');
                         if( value.charCodeAt(0)===47 ){
-                            return `'${value}'`;
+                            node.value = value;
+                            node.raw = `"${value}"`;
+                        }else{
+                            node.value = `/${providerModule.id.toLowerCase()}/${value}`;
+                            node.raw = `"/${providerModule.id.toLowerCase()}/${value}"`;
                         }
-                        return `'/${providerModule.id.toLowerCase()}/${value}'`;
+                        return node;
                     }
                 }
             }

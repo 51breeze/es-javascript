@@ -44,6 +44,9 @@ const properties ={
     getToken(name){
         return modules.get(name);
     },
+    getTransform(name){
+        return modules.get(name);
+    },
     start(compilation, done, options){
         if(options)this.config(options);
         const builder = new Builder( compilation.stack );

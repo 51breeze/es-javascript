@@ -1,18 +1,32 @@
 const Token = require("../core/Token");
 const Constant = require("../core/Constant");
 class MemberExpression extends Token{
-    constructor(stack){
-        super(stack)
+    createChildren(stack){
         this.object = this.createToken(stack.object);
         this.property = this.createToken(stack.property);
     }
-    
-    emitter(){
+
+    createSuperGetterExpressionToken(){
+        const callee = this.createSuperMemberToken('get','call');
+        return this.createCalleeToken( callee, [this.createIdentifierToken(null,'ThisExpression')]);
+    }
+
+    createSuperMemberToken( ...args ){
+        const property = this.createMemberToken([this.checkRefsName('Class'),'key']);
+        property.compute = true;
+        return this.createMemberToken([this.object, property, 'members', this.property, ...args]);
+    }
+
+    make(gen){
         const module = this.module;
-        let property = this.stack.property.isIdentifier ? this.stack.property.value() : this.make(this.stack.property);
-        const object = this.make(this.stack.object);
-        const description = this.stack.description();
-        const option = this.getConfig();
+        const description = this.getDescription();
+        if( !description ){
+            this.object.make( gen );
+            gen.withDot();
+            this.property.make( gen );
+            return;
+        }
+
         let isStatic = false;
         if( description && description.isModule && this.compiler.callUtils("isTypeModule",description) ){
             this.addDepend( description );
@@ -29,46 +43,35 @@ class MemberExpression extends Token{
             }
             if( isReflect ){
                 this.addDepend( this.stack.getGlobalTypeById("Reflect") );
-                if( this.stack.computed ){
-                    return `${this.checkRefsName("Reflect")}.get(${module.id},${object},${property})`;
-                }else{
-                    return `${this.checkRefsName("Reflect")}.get(${module.id},${object},'${property}')`;
-                }
+                return this.createCalleeToken(
+                    this.createMemberToken([this.checkRefsName("Reflect"),'get']),
+                    [this.createIdentifierToken(module.id), this.object, this.property]
+                ).make( gen );
             }
-            if( this.stack.computed ){
-                return `${object}[${property}]`;
-            }
-            return `${object}.${property}`;
-        }
-
-        if( option.target === "es5" && description && description.isMethodGetterDefinition ){
-            const name = this.compiler.callUtils("firstToUpper", property);
-            if( this.stack.object.isSuperExpression ){
-                return `${object}.get${name}.call(this)`;
-            }
-            return `${object}.get${name}()`;
         }
 
         if(description && description.isMethodDefinition){
-            const modifier = description.modifier && description.modifier.value() || 'public';
+            const modifier = this.compiler.callUtils('getModifierValue', description);
             const refModule = description.module;
             if(modifier==="private" && refModule.children.length > 0){
-                return `${this.module.id}.prototype.${property}`;
+                return this.createMemberToken(
+                    [this.module.id,'prototype',this.property],
+                ).make( gen );
             }
         }
         
         if( this.compiler.callUtils("isClassType", description) ){
             this.addDepend( description );
-            return this.getModuleReferenceName(description,module);
+            return gen.withString( this.getModuleReferenceName(description,module) );
         }
         
         if( this.stack.object.isSuperExpression ){
             if( description && description.isMethodGetterDefinition ){
-                return `${object}[${this.emitClassAccessKey()}].members.${property}.get.call(this)`;
+                return this.createSuperGetterExpressionToken().make( gen );
             }else if(description && description.isMethodSetterDefinition ){
-                return `${object}[${this.emitClassAccessKey()}].members.${property}.set`;
+                return this.createSuperMemberToken('set').make( gen );
             }else{
-                return `${object}.prototype.${property}`;
+                return this.createMemberToken([this.object,'prototype',this.property]).make( gen );
             }
         }
 

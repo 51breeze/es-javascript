@@ -1,15 +1,5 @@
-module.exports = function(stack){
-    this.elements = stack.elements.map( (item)=>{
-        return this.createNode(item)
-    }); 
-    this.make( (stream)=>{
-        this.withBracketL();
-        stream.emitSequence( this.elements );
-        this.withBracketR();
-        const parent = this.getParent();
-        if( parent.init ){
-            this.withOperator('=');
-            parent.init.emit( stream );
-        }
-    });
+module.exports = function(ctx,stack){
+    const node = ctx.createNode( stack );
+    node.elements = stack.elements.map( item=>node.createToken(item) );
+    return node;
 }

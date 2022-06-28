@@ -1,87 +1,63 @@
-module.exports = function(stack,ctx){
+module.exports = function(ctx,stack){
     const isMember = stack.callee.isMemberExpression;
     const desc = stack.callee.description();
+    const module = stack.module;
+
     if( isMember && desc && desc.isType && desc.isAnyType  ){
-        ctx.addDepend( ctx.getGlobalTypeById("Reflect") );
-        this.callee= this.createNode(stack.callee.object);
-        this.property= this.createToken("Literal", '"'+stack.callee.property.value()+'"', stack.callee.property.node );
-    }else{
-        this.callee= this.createNode(stack.callee);
+        ctx.addDepend( stack.getGlobalTypeById("Reflect") );
+        const propValue = stack.callee.property.value();
+        const property = ctx.createLiteralNode( propValue, `"${propValue}"`, stack.callee.property);
+        return ctx.createCalleeNode(
+            ctx.createMemberNode([ctx.checkRefsName("Reflect"),'call']),
+            [
+                module.id,
+                ctx.createToken(stack.callee.object),
+                property,
+                ctx.createArrayNode( this.arguments.map( item=>ctx.createToken(item) ) )
+            ],
+            stack
+        );
     }
-    this.arguments = stack.arguments.map( item=>this.createNode(item) );
+
+    if( stack.callee.isSuperExpression || isMember && stack.callee.object.isSuperExpression ){
+        return ctx.createCalleeNode(
+            ctx.createMemberNode(
+                [
+                    ctx.createToken(stack.callee),
+                    'call',
+                    ctx.createThisNode()
+                ]
+            ),
+            this.arguments.map( item=>ctx.createToken(item) ),
+            stack
+        );
+    }
+
+
+    if( desc && desc.isMethodDefinition ){
+        const modifier = stack.callUtils('getModifierValue', desc);
+        const refModule = desc.module;
+        if( modifier==="private" && refModule.children.length > 0){
+            return ctx.createCalleeNode(
+                ctx.createMemberNode(
+                    [
+                        ctx.createToken(stack.callee),
+                        'call',
+                        isMember ? ctx.createToken(callee.object) : ctx.createThisNode()
+                    ]
+                ),
+                stack.arguments.map( item=>ctx.createToken(item) ),
+                stack
+            );
+        }
+    }
+
     if( ctx.compiler.callUtils("isTypeModule", desc) ){
         ctx.addDepend( desc );
     }
 
-    this.make( stream=>{
-
-        const module = this.getModule();
-        if( isMember && desc && desc.isType && desc.isAnyType  ){
-            stream.withString('Reflect');
-            stream.withDot();
-            stream.withString('call');
-            stream.withParenthesL();
-            stream.withString( module.id );
-            stream.withComma();
-            this.callee.emit( stream );
-            stream.withComma();
-            this.property.emit( stream );
-            if( this.arguments.length > 0 ){
-                stream.withComma();
-                stream.withBracketL();
-                stream.emitSequence( this.arguments );
-                stream.withBracketR();
-            }
-            stream.withParenthesR(); 
-            return;
-        }
-        
-        if( stack.callee.isSuperExpression || isMember && stack.callee.object.isSuperExpression ){
-            this.callee.emit( stream );
-            stream.withDot();
-            stream.withString('call');
-            stream.withParenthesL();
-            if( stack.callee.object.isMemberExpression ){
-                this.callee.object.emit( stream );
-            }else{
-                stream.withString('this');
-            }
-            if( this.arguments.length > 0 ){
-                stream.withComma();
-                stream.emitSequence( this.arguments );
-            }
-            stream.withParenthesR();
-            return;
-        }
-        
-        if( desc && desc.isMethodDefinition ){
-            const modifier = desc.modifier && desc.modifier.value() || 'public';
-            const refModule = desc.module;
-            if( modifier==="private" && refModule.children.length > 0){
-                this.callee.emit( stream );
-                stream.withDot();
-                stream.withString('call');
-                stream.withParenthesL();
-                if( isMember ){
-                    this.callee.object.emit( stream );
-                }else{
-                    stream.withString('this');
-                }
-                if( this.arguments.length > 0 ){
-                    stream.withComma();
-                    stream.emitSequence( this.arguments );
-                }
-                stream.withParenthesR();
-                return;
-            }
-        }
-
-        this.callee.emit( stream )
-        stream.withParenthesL();
-        if( this.arguments.length > 0 ){
-            stream.emitSequence( this.arguments );
-        }
-        stream.withParenthesR();
-
-    });
+    const node = this.createNode( stack );
+    node.callee = node.createToken( stack.callee );
+    node.arguments = stack.arguments.map( item=>node.createToken(item) );
+    return node;
 }

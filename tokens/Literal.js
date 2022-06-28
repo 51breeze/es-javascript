@@ -1,10 +1,15 @@
 const Token = require("../core/Token");
 class Literal extends Token{
-     emitter(){
-          return this.stack.raw();
+     getValue(){
+          if( this.stack ){
+               return this.stack.raw();
+          }else{
+               return this.value || '';
+          }
      }
-     get value(){
-          return this.stack.raw();
+
+     make( gen ){
+          gen.withString( this.getValue() );
      }
 }
 module.exports = Literal;

@@ -1,26 +1,23 @@
-module.exports = function(stack,ctx){
-     this.left = this.createNode(stack.left);
-     this.right = this.createNode(stack.right);
+module.exports = function(ctx,stack){
      const operator = stack.node.operator;
-     this.make( stream=>{
-          if( operator ==="is" || operator==="instanceof" ){
-               const type = stack.right.type();
-               ctx.addDepend( type );
-               if( operator !== "instanceof" && !this.compiler.callUtils("isGloableModule", type) ){
-                    ctx.addDepend( ctx.getGlobalModuleById('System') );
-                    stream.withString( ctx.checkRefsName('System') );
-                    stream.withDot();
-                    stream.withString('is');
-                    stream.withParenthesL();
-                    this.left.emit( stream );
-                    stream.withComma();
-                    this.right.emit( stream );
-                    stream.withParenthesR();
-                    return;
-               }
+     if( operator ==="is" || operator==="instanceof" ){
+          const type = stack.right.type();
+          ctx.addDepend( type );
+          if( operator === "is" && !stack.compiler.callUtils("isGloableModule", type) ){
+               ctx.addDepend( stack.getGlobalModuleById('System') );
+               return ctx.createCalleeNode(
+                    ctx.createMemberNode([ctx.checkRefsName('System'),'is']),
+                    [
+                         ctx.createToken(stack.left),
+                         ctx.createToken(stack.right)
+                    ],
+                    stack
+               );
           }
-          this.left.emit( stream );
-          stream.withOperator( operator );
-          this.right.emit( stream );
-     });
+     }
+     const node = ctx.createNode(stack);
+     node.left  = node.createToken(stack.left);
+     node.right = node.createToken(stack.right);
+     node.operator = stack.node.operator;
+     return node;
 }

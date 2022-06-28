@@ -1,6 +1,6 @@
-module.exports = function(stack,ctx){
+module.exports = function(ctx,stack){
     const desc = stack.description();
-    const module =  this.getModule();
+    const module = stack.module;
     const isMember = stack.left.isMemberExpression;
     var isReflect = false;
     if( isMember ){
@@ -14,46 +14,31 @@ module.exports = function(stack,ctx){
         }
     }
 
-    this.right = this.createNode( stack.right );
     if(isReflect){
-        this.object = this.createNode(stack.left.object);
-        this.property = this.createNode(stack.left.property);
+        ctx.addDepend( stack.getGlobalTypeById("Reflect") );
+        const callee = ctx.createMemberToken([ctx.checkRefsName("Reflect"),'set']);
+        return ctx.createCalleeNode( callee, [
+            this.createIdentifierNode(module.id),
+            this.createToken(stack.left.object), 
+            this.createToken(stack.left.property),
+            this.createToken(stack.right)
+        ], stack);
+    }else if(desc && isMember && stack.left.object.isSuperExpression){
+        return ctx.createCalleeNode(
+            ctx.createMemberNode([
+                ctx.createToken(stack.left),
+                ctx.createIdentifierNode('call')
+            ]),
+            [
+                ctx.createThisNode(),
+                ctx.createToken(stack.right)
+            ],
+            stack
+        );
     }else{
-        this.left = this.createNode( stack.left );
+        const node = this.createNode( stack );
+        node.left = node.createToken( stack.left );
+        node.right = node.createToken( stack.right );
+        return node;
     }
-
-    this.make( stream=>{
-        
-        if( isReflect ){
-            const reflect = ctx.checkRefsName("Reflect");
-            ctx.addDepend( ctx.getGlobalTypeById("Reflect") );
-            stream.withString(reflect);
-            stream.withDot();
-            stream.withString(`set`);
-            stream.withParenthesL();
-            stream.withString(module.id);
-            stream.withComma();
-            this.object.emit( stream );
-            stream.withComma();
-            this.property.emit( stream );
-            stream.withComma();
-            this.right.emit( stream );
-            stream.withParenthesR();
-        }else if( desc && isMember && stack.left.object.isSuperExpression ){
-            this.left.emit( stream );
-            stream.withDot();
-            stream.withString('call');
-            stream.withParenthesL();
-            stream.withString('this');
-            stream.withComma();
-            this.right.emit( stream );
-            stream.withParenthesR();
-        }else{
-            this.left.emit( stream );
-            stream.withOperator('=');
-            this.right.emit( stream );
-        }
-
-    });
-
 }

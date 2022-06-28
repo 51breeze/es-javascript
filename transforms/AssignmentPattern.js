@@ -1,9 +1,6 @@
-module.exports = function(stack){
-    this.left = this.createNode(stack.left);
-    this.right = this.createNode(stack.right);
-    this.make(stream=>{
-        this.left.emit( stream );
-        stream.withOperator('=');
-        this.right.emit( stream );
-    });
+module.exports = function(ctx,stack){
+    const node = ctx.createNode( stack );
+    node.left  = node.createToken( stack.left );
+    node.right = node.createToken( stack.right );
+    return node;
 }
