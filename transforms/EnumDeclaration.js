@@ -13,19 +13,22 @@ function createStatementMember(ctx, name, members){
     return ctx.createStatementNode( 
         ctx.createDeclarationNode(
             'const',
-            ctx.createDeclaratorNode(
-                name, 
-                ctx.createObjectNode( items )
-            )
+            [
+                ctx.createDeclaratorNode(
+                    name, 
+                    ctx.createObjectNode( items )
+                )
+            ]
         )
     );
 }
 
 module.exports = function(ctx,stack,type){
 
-    if( this.stack.parentStack.isPackageDeclaration ){
+    if( stack.parentStack.isPackageDeclaration ){
         const node = ClassDeclaration.createClassNode(ctx,stack);
-        const module = this.module;
+        const module = stack.module;
+        node.properties = stack.properties.map( item=>node.createToken(item) );
         ClassDeclaration.createDependencies(node,module).forEach( item=> node.body.push(item) );
         ClassDeclaration.createModuleAssets(node,module).forEach( item=> node.body.push(item) );
         node.body.push( ClassDeclaration.createDefaultConstructMethod(node,module.id) );
@@ -34,7 +37,7 @@ module.exports = function(ctx,stack,type){
         node.body.push( ClassDeclaration.createExportExpression(node, module.id ) );
         return node;
     }else{
-        const name = this.stack.value();
+        const name = stack.value();
         const init = ctx.createAssignmentNode( ctx.createIdentifierNode(name), ctx.createObjectNode());
         const properties = stack.properties.map( item =>{
             const initNode = ctx.createMemberNode( [ctx.createIdentifierNode(name), ctx.createLiteralNode(item.key.value(), null, item.key)] );

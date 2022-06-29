@@ -4,7 +4,7 @@ const Builder = require("./core/Builder");
 const Polyfill = require("./core/Polyfill");
 const {merge} = require("lodash");
 const modules = new Map();
-const dirname = path.join(__dirname,"tokens");
+const dirname = path.join(__dirname,"transforms");
 fs.readdirSync( dirname ).forEach( (filename)=>{
     const info = path.parse( filename );
     modules.set(info.name, require( path.join(dirname,filename) ) );
@@ -41,10 +41,7 @@ const properties ={
     getPolyfill(name){
         return Polyfill.modules.get(name);
     },
-    getToken(name){
-        return modules.get(name);
-    },
-    getTransform(name){
+    getStack(name){
         return modules.get(name);
     },
     start(compilation, done, options){

@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const Generator = require("./Generator");
 const Syntax = require("./Syntax");
+const Token = require("./Token");
 class Builder extends Syntax{
 
     emitContent(filesystem, module, content, file, emitFile, flag){
@@ -54,8 +56,16 @@ class Builder extends Syntax{
                     if(stack){
                         const file = this.getModuleFile(module);
                         const content = this.make(stack);
-                        this.emitContent(filesystem, module, content, file, config.emitFile);
-                        this.emitAssets(filesystem,module,config.emitFile);
+
+                        if( content ){
+                           const gen = new Generator(module, compilation);
+                           gen.make( content )
+                           console.log( gen.toString() )
+                        }
+
+
+                        //this.emitContent(filesystem, module, content, file, config.emitFile);
+                        //this.emitAssets(filesystem,module,config.emitFile);
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }
@@ -88,6 +98,27 @@ class Builder extends Syntax{
         }
     }
 
+    createNodes(){
+        const compilation = this.compilation;
+        const compiler    = this.compiler;
+
+        const token = new Token( compilation.stack.toString() );
+        token.compilation = this.compilation;
+        token.compiler = this.compiler;
+        token.stack = compilation.stack;
+        token.scope = compilation.stack.scope;
+        token.builder = this;
+        token.platform = this.platform;
+        token.plugin = this.plugin;
+        token.name = this.name;
+
+        const top = token.createToken( compilation.stack );
+
+       
+        
+        
+    }
+
     build(done){
         const compilation = this.compilation;
         const compiler    = this.compiler;
@@ -98,23 +129,26 @@ class Builder extends Syntax{
         }
         try{
             compilation.completed(this.name,false);
-            if( compilation.modules.size >0 ){
-                compilation.modules.forEach( module =>{
-                    if( this.isNeedBuild(module) ){
-                        const stack = compilation.getStackByModule(module);
-                        if( stack ){
-                            const content = this.make(stack);
-                            const file    = this.getModuleFile(module);
-                            this.emitContent(filesystem, module, content, file, config.emitFile);
-                            this.emitAssets(filesystem,module,config.emitFile);
-                        }else{
-                            throw new Error(`Not found stack by '${module.getName()}'`);
-                        }
-                    }
-                });
-            }else{
-                this.emitContent(filesystem, compilation, this.make(compilation.stack), compilation.file, config.emitFile, true); 
-            }
+            // if( compilation.modules.size >0 ){
+            //     compilation.modules.forEach( module =>{
+            //         if( this.isNeedBuild(module) ){
+            //             const stack = compilation.getStackByModule(module);
+            //             if( stack ){
+            //                 const content = this.make(stack);
+            //                 const file    = this.getModuleFile(module);
+            //                 this.emitContent(filesystem, module, content, file, config.emitFile);
+            //                 this.emitAssets(filesystem,module,config.emitFile);
+            //             }else{
+            //                 throw new Error(`Not found stack by '${module.getName()}'`);
+            //             }
+            //         }
+            //     });
+            // }else{
+            //     this.emitContent(filesystem, compilation, this.make(compilation.stack), compilation.file, config.emitFile, true); 
+            // }
+
+           
+            
             compilation.completed(this.name,true);
             done();
         }catch(e){

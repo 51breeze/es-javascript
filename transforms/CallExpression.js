@@ -35,7 +35,7 @@ module.exports = function(ctx,stack){
 
 
     if( desc && desc.isMethodDefinition ){
-        const modifier = stack.callUtils('getModifierValue', desc);
+        const modifier = stack.compiler.callUtils('getModifierValue', desc);
         const refModule = desc.module;
         if( modifier==="private" && refModule.children.length > 0){
             return ctx.createCalleeNode(
@@ -56,7 +56,7 @@ module.exports = function(ctx,stack){
         ctx.addDepend( desc );
     }
 
-    const node = this.createNode( stack );
+    const node = ctx.createNode( stack );
     node.callee = node.createToken( stack.callee );
     node.arguments = stack.arguments.map( item=>node.createToken(item) );
     return node;

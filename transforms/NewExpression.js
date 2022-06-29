@@ -1,6 +1,6 @@
 module.exports = function(ctx,stack){
     const desc = stack.callee.description();
-    if( this.compiler.callUtils("isTypeModule",desc) ){
+    if( stack.compiler.callUtils("isTypeModule",desc) ){
         ctx.addDepend( desc );
     }
     const node = ctx.createNode( stack );

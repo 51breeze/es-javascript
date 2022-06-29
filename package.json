@@ -6,6 +6,7 @@
   "typings": "./types",
   "scripts": {
     "es": "es -V",
+    "dev":"node ./test/dev.js",
     "dev-test": "jasmine ./test/index.js",
     "dev-run": "jasmine ./test/build/Test.js",
     "dev-test-run": "npm run dev-test & npm run dev-run"

@@ -1,7 +1,7 @@
 const ClassDeclaration = require("./ClassDeclaration");
 module.exports = function(ctx, stack, type){
 
-    const module = this.module;
+    const module = stack.module;
     const polyfillModule = ctx.plugin.getPolyfill( module.getName() );
     if( !polyfillModule ){
         return null;
@@ -21,16 +21,16 @@ module.exports = function(ctx, stack, type){
 
     module.extends.forEach( dep=>{
         if( dep.isClass ){
-            node.addDepend( dep );
+            ctx.addDepend( dep );
         }
     });
 
     if( node.isActiveForModule(module.inherit) ){
-        this.inherit = module.inherit;
+        node.inherit = module.inherit;
     }
 
     if( polyfillModule.id !== 'Class' &&  polyfillModule.createClass !== false ){
-        this.addDepend( this.getGlobalModuleById('Class') );
+        ctx.addDepend( stack.getGlobalTypeById('Class') );
     }
 
     node.body = [];
@@ -39,7 +39,7 @@ module.exports = function(ctx, stack, type){
     ClassDeclaration.createModuleAssets(node, module).forEach( item=>body.push( item ) );
     body.push( node.createChunkNode( content ) );
     if( polyfillModule.id !== 'Class' && polyfillModule.createClass !== false ){
-        body.push( ClassDeclaration.createClassDescriptor(module) );
+        body.push( ClassDeclaration.createClassDescriptor(node, module, null, null, null, null, node.inherit) );
     }
     body.push( ClassDeclaration.createExportExpression(node, polyfillModule.export) );
     return node;

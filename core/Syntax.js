@@ -2,19 +2,18 @@ const Constant = require("./Constant");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const events = require('events');
-const SourceMap = require('./SourceMap');
+const Token = require("./Token");
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createdStackData = new Map();
 const webComponents = new Map();
 const moduleDependencies = new Map();
 
-class Syntax extends events.EventEmitter {
+class Syntax extends Token {
 
     constructor(stack){
-        super();
+        super(stack.toString());
         this.stack = stack;
-        this.parentStack = stack.parentStack;
         this.scope = stack.scope;
         this.compilation = stack.compilation;
         this.compiler = stack.compiler;
@@ -23,20 +22,7 @@ class Syntax extends events.EventEmitter {
         this.name = null;
         this.platform = null;
         this.parent = null;
-    }
-
-    get children(){
-        return this._children || (this._children=[]);
-    }
-
-    addMapping(generatedLine, generatedColumn, name, sourceLine, sourceColumn){
-       const source = SourceMap.create( this.compilation );
-       source.lastGeneratedLine = generatedLine;
-       source.lastGeneratedColumn = generatedColumn;
-       sourceLine = sourceLine === void 0 ? this.stack.node.loc.start.line : sourceLine;
-       sourceColumn = sourceColumn === void 0 ? this.stack.node.loc.start.column : sourceColumn;
-       name = name === void 0 ? this.stack.value() : name;
-       source.addMapping(generatedLine, generatedColumn, this.compilation.file, sourceLine, sourceColumn, name);
+        this.builder = this;
     }
 
     createDataByStack(stack){
@@ -80,13 +66,13 @@ class Syntax extends events.EventEmitter {
     }
 
     checkRefsName(name){
-        if( this.scope.isDefine(name) ){
-            const topStack = this.stack.getParentStack(stack=>!!stack.isClassDeclaration);
-            var classScope = this.scope.getScopeByType("class");
-            var value = this.generatorVarName(topStack,name);
-            classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
-            return value;
-        }
+        // if( this.scope.isDefine(name) ){
+        //     const topStack = this.stack.getParentStack(stack=>!!stack.isClassDeclaration);
+        //     var classScope = this.scope.getScopeByType("class");
+        //     var value = this.generatorVarName(topStack,name);
+        //     classScope.dispatcher("insertTopRefsToClassBefore",{name,value});
+        //     return value;
+        // }
         return name;
     }
 
@@ -365,7 +351,7 @@ class Syntax extends events.EventEmitter {
         if( !this.compiler.callUtils("isTypeModule", depModule) )return;
         var dataset = moduleDependencies.get(ctxModule);
         if( !dataset ){
-            dependencies.set( ctxModule, dataset = new Set() );
+            moduleDependencies.set( ctxModule, dataset = new Set() );
         }
         dataset.add( depModule );
     }
@@ -447,7 +433,7 @@ class Syntax extends events.EventEmitter {
     }
 
     getModuleAssets(module, dataset){
-        if(!module || !(module.assets.size > 0 || module.requires.size > 0) )return;
+        if(!module || !(module.assets.size > 0 || module.requires.size > 0) )return [];
         dataset = dataset || new Map();
         const config = this.getConfig();
         const assets = module.assets;
@@ -669,26 +655,8 @@ class Syntax extends events.EventEmitter {
         return false;
     }
 
-    createToken(stack){
-        const plugin = this.plugin;
-        const type = stack.toString();
-        const stackClass = plugin.getToken( type );
-        if( stackClass ){
-            const obj = new stackClass(type);
-            obj.stack = stack;
-            obj.scope = stack.scope;
-            obj.compilation = stack.compilation;
-            obj.compiler = stack.compiler;
-            obj.module = stack.module;
-            obj.plugin = plugin;
-            obj.name = this.name;
-            obj.platform = this.platform;
-            obj.parent = null;
-            obj.builder = this;
-            obj.createChildren( stack );
-            return obj;
-        }
-        throw new Error(`Stack '${stack.toString()}' is not found.`);
+    make(stack){
+       return super.createToken( stack );
     }
 
     factory(syntaxClass,stack){
@@ -696,18 +664,6 @@ class Syntax extends events.EventEmitter {
         obj.name = this.name
         obj.platform = this.platform;
         return obj;
-    }
-
-    emitter_none( ...args ){
-        return this.emitter( ...args );
-    }
-
-    emitter_es6( ...args ){
-        return this.emitter( ...args );
-    }
-
-    emitter(){
-        return null;
     }
 
     error(message , stack=null){

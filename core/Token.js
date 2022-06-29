@@ -40,9 +40,10 @@ class Token extends events.EventEmitter {
 
     createToken(stack){
         if( !stack )return null;
-        const plugin = this.plugin;
         const type = stack.toString();
-        const creator = plugin.getToken( type );
+        if( type ==='TypeStatement')return null;
+
+        const creator = this.plugin.getStack( type );
         if( creator ){
             return creator(this, stack, type);
         }else{
@@ -51,7 +52,8 @@ class Token extends events.EventEmitter {
     }
 
     createFunctionNode( createChildFun, stack){
-        const expression = method.createNode(stack, 'FunctionExpression');;
+        const expression = this.createNode('FunctionExpression');
+        expression.stack = stack;
         const block = expression.createNode('BlockStatement');
         block.body = [];
         expression.params = [];
@@ -61,14 +63,16 @@ class Token extends events.EventEmitter {
     }
 
     createMethodNode(key, createChildFun,stack){
-        const method = this.createToken(stack, 'MethodDefinition');
-        method.expression = method.createFunctionNode( createChildFun, stack);
+        const method = this.createNode('MethodDefinition');
+        method.stack = stack;
+        method.expression = method.createFunctionNode(createChildFun, stack);
         method.key = method.createIdentifierNode(key);
         return method;
     }
 
     createObjectNode(properties ,stack){
-        const object = this.createNode(stack,'ObjectExpression');
+        const object = this.createNode('ObjectExpression');
+        object.stack = stack;
         object.properties = [];
         if( properties ){
             properties.forEach( (value)=>{
@@ -80,7 +84,8 @@ class Token extends events.EventEmitter {
     }
 
     createArrayNode( elements, stack){
-        const object = this.createNode(stack,'ArrayExpression');
+        const object = this.createNode('ArrayExpression');
+        object.stack = stack;
         object.elements = [];
         elements.forEach( (value)=>{
             value.parent = object;
@@ -90,7 +95,8 @@ class Token extends events.EventEmitter {
     }
 
     createPropertyNode(key, init, stack){
-        const propery = this.createNode(stack,'Property');
+        const propery = this.createNode('Property');
+        propery.stack = stack;
         if( key instanceof Token ){
             key.parent = propery;
             propery.key = key;
@@ -107,11 +113,11 @@ class Token extends events.EventEmitter {
         return propery;
     }
 
-    createMembertNode(items,stack){
+    createMemberNode(items,stack){
         const create = (items, object)=>{
-            const member = (object || this).createtNode(stack,'MemberExpression'); 
+            const member = (object || this).createNode('MemberExpression'); 
             if( typeof items[ items.length-1] === 'string' ){
-                member.property = member.createtNode('Identifier'); 
+                member.property = member.createNode('Identifier'); 
                 member.property.value = items.pop();
             }else{
                 member.property = items.pop();
@@ -120,12 +126,13 @@ class Token extends events.EventEmitter {
                 member.object = object;
             }else{
                 if( typeof items[ items.length-1 ] === 'string' ){
-                    member.object = member.createtNode('Identifier'); 
+                    member.object = member.createNode('Identifier'); 
                     member.object.value = items.pop();
                 }else{
                     member.object = items.pop();
                 }
             }
+
             member.property.parent = member;
             member.object.parent = member;
             if( items.length > 0 ){
@@ -133,11 +140,14 @@ class Token extends events.EventEmitter {
             }
             return member;
         }
-        return create( items.slice(0) );
+        const node = create( items.slice(0) );
+        node.stack = stack;
+        return node;
     }
 
-    createCalleetNode(callee, args, stack){
-        const expression = this.createNode(stack,'CallExpression');
+    createCalleeNode(callee, args, stack){
+        const expression = this.createNode('CallExpression');
+        expression.stack = stack;
         callee.parent = expression;
         expression.callee = callee;
         expression.arguments = args || [];
@@ -148,7 +158,8 @@ class Token extends events.EventEmitter {
     }
 
     createAssignmentNode(left,right,stack){
-        const expression = this.createNode(stack,'AssignmentExpression');
+        const expression = this.createNode('AssignmentExpression');
+        expression.stack = stack;
         left.parent = expression;
         right.parent = expression;
         expression.left = left;
@@ -156,15 +167,17 @@ class Token extends events.EventEmitter {
         return expression;
     }
 
-    createStatementToken( expression, stack){
-        const obj = this.createNode(stack,'ExpressionStatement');
+    createStatementNode( expression, stack){
+        const obj = this.createNode('ExpressionStatement');
+        obj.stack = stack;
         expression.parent = obj;
         obj.expression=expression;
         return obj;
     }
 
     createSequenceNode(items, stack){
-        const obj = this.createNode(stack,'SequenceExpression');
+        const obj = this.createNode('SequenceExpression');
+        obj.stack = stack;
         obj.expressions = items;
         items.forEach( item=>{
             item.parent = obj;
@@ -173,7 +186,8 @@ class Token extends events.EventEmitter {
     }
 
     createDeclarationNode( kind, items, stack){
-        const obj = this.createNode(stack,'VariableDeclaration');
+        const obj = this.createNode('VariableDeclaration');
+        obj.stack = stack;
         obj.kind = kind;
         obj.declarations = items;
         items.forEach( item=>{
@@ -183,7 +197,8 @@ class Token extends events.EventEmitter {
     }
 
     createDeclaratorNode(id, init, stack){
-        const obj = this.createNode(stack,'VariableDeclarator');
+        const obj = this.createNode('VariableDeclarator');
+        obj.stack = stack;
         obj.id = id instanceof Token ? id : obj.createIdentifierNode(id);
         obj.init = init;
         obj.id.parent = obj;
@@ -192,32 +207,38 @@ class Token extends events.EventEmitter {
     }
 
     createLiteralNode(value, raw, stack){
-        const node = this.createNode(stack, 'Literal');
+        const node = this.createNode('Literal');
+        node.stack = stack;
         node.value = value;
         node.raw = raw || `"${value}"`;
         return node;
     }
 
     createIdentifierNode(value, stack){
-        const token = this.createNode(stack, 'Identifier');
+        const token = this.createNode('Identifier');
+        token.stack = stack;
         token.value = value;
         token.raw   = value;
         return token;
     }
 
     createChunkNode(value,stack){
-        const node = this.createNode(stack,'ChunkExpression');
+        const node = this.createNode('ChunkExpression');
+        node.stack = stack;
         node.value = value;
         node.raw = value;
         return node;
     }
 
     createThisNode(stack){
-        return this.createNode(stack,'ThisExpression');
+        const node = this.createNode('ThisExpression');
+        node.stack = stack;
+        return node;
     }
 
     createImportNode(source, specifiers, stack){
-        const obj = this.createNode(stack,'ImportDeclaration');
+        const obj = this.createNode('ImportDeclaration');
+        obj.stack = stack;
         obj.source =  obj.createIdentifierNode( source );
         obj.specifiers = [];
         specifiers.forEach( item=>{
@@ -260,7 +281,7 @@ class Token extends events.EventEmitter {
     }
 
     checkRefsName( name ){
-        this.builder.checkRefsName(name, this);
+        return this.builder.checkRefsName(name, this);
     }
 
     getModuleReferenceName(module,context){

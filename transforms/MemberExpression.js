@@ -1,10 +1,10 @@
 function createSuperGetterExpressionNode(ctx, object, property){
     const callee = createSuperMemberNode(ctx, object, property, 'get','call');
-    return ctx.createCalleeToken( callee, [ctx.createThisNode()]);
+    return ctx.createCalleeNode( callee, [ctx.createThisNode()]);
 }
 
 function createSuperMemberNode(ctx, object, property, ...args ){
-    object = ctx.createMemberNode([object, ctx.createMemberNode([this.checkRefsName('Class'),'key']) ]);
+    object = ctx.createMemberNode([object, ctx.createMemberNode([ctx.checkRefsName('Class'),'key']) ]);
     object.computed = true;
     return ctx.createMemberNode([object, 'members', property, ...args]);
 }
@@ -16,7 +16,7 @@ function MemberExpression(ctx,stack){
     let isStatic = false;
     if( description && description.isModule && stack.compiler.callUtils("isTypeModule",description) ){
         ctx.addDepend( description );
-    }else if( this.compiler.callUtils("isTypeModule", stack.object.description()) ){
+    }else if( stack.compiler.callUtils("isTypeModule", stack.object.description()) ){
         isStatic = true;
         ctx.addDepend( stack.object.description() );
     }
