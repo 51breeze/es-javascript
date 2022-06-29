@@ -1,8 +1,8 @@
-var Class = require("./../core/Class.js");
 function TestInterface(){}
 Class.creator(2,TestInterface,{
-	'id':2,
-	'ns':'com',
-	'name':'TestInterface'
-}, false);
+	id:"1",
+	ns:"com",
+	name:"TestInterface",
+	dynamic:"true"
+});
 module.exports=TestInterface;

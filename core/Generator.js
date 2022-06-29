@@ -11,7 +11,6 @@ class Generator{
 
     newBlock(){
        this.indent++;
-       this.newLine();
        return this;
     }
 
@@ -171,13 +170,14 @@ class Generator{
         return this;
     }
 
-    withSequence( items ){
+    withSequence( items , newLine){
         if( !items )return this;
         const len = items.length-1;
         items.forEach( (item,index)=>{
             this.make( item );
             if( index < len ){
                 this.withString(',');
+                if(newLine)this.newLine();
             }
         });
         return this;
@@ -226,15 +226,16 @@ class Generator{
             case "BlockStatement" :
                 this.withBraceL();
                 this.newBlock();
+                token.body.length > 0 && this.newLine();
                 token.body.forEach( item=>this.make(item) );
                 this.endBlock();
-                this.newLine();
+                token.body.length > 0 && this.newLine();
                 this.withBraceR();
             break;
             case "ChunkExpression" :
                 if( token.value ){
-                    // this.newLine();
-                    // this.withString( token.value );
+                    this.newLine();
+                    this.withString( token.value );
                 }
             break;
             case "CallExpression" :
@@ -281,6 +282,7 @@ class Generator{
                 this.make(token.left);
                 this.withOperator('in');
                 this.make(token.right);
+                this.withParenthesR();
                 this.make(token.body);
                 if( token.body.type !=="BlockStatement" ){
                     this.withSemicolon();
@@ -293,6 +295,7 @@ class Generator{
                 this.make(token.left);
                 this.withOperator('of');
                 this.make(token.right);
+                this.withParenthesR();
                 this.make(token.body);
                 if( token.body.type !=="BlockStatement" ){
                     this.withSemicolon();
@@ -318,8 +321,10 @@ class Generator{
             case "MethodSetterDefinition" :
             case "FunctionDeclaration" :
                 this.withString('function');
-                this.withSpace();
-                this.make( token.key );
+                if( !token.key.computed ){
+                    this.withSpace();
+                    this.make( token.key );
+                }
                 this.withParenthesL();
                 this.withSequence(token.params);
                 this.withParenthesR();
@@ -346,8 +351,10 @@ class Generator{
                     this.withSemicolon();
                 }
                 if( token.alternate ){
-                    this.withString('else')
-                    this.withSpace()
+                    this.withString('else');
+                    if(token.alternate.type==="IfStatement"){
+                        this.withSpace();
+                    }
                     this.make(token.alternate);
                     if( token.alternate.type !=="BlockStatement" ){
                         this.withSemicolon();
@@ -380,8 +387,14 @@ class Generator{
             break;
             case "MemberExpression" :
                 this.make(token.object);
-                this.withString('.');
-                this.make(token.property);
+                if( token.computed){
+                    this.withBracketL();
+                    this.make(token.property);
+                    this.withBracketR();
+                }else{
+                    this.withString('.');
+                    this.make(token.property);
+                }
             break;
             case "NewExpression" :
                 this.make(token.callee);
@@ -390,6 +403,16 @@ class Generator{
                 this.withParenthesR();
             break;
             case "ObjectExpression" :
+                this.withBraceL();
+                if( token.properties.length > 0 ){
+                    this.newBlock();
+                    this.newLine();
+                    this.withSequence( token.properties , true);
+                    this.newLine();
+                    this.endBlock();
+                }
+                this.withBraceR();
+            break;
             case "ObjectPattern" :
                 this.withBraceL();
                 this.withSequence( token.properties );
@@ -401,7 +424,13 @@ class Generator{
                 this.withParenthesR();
             break;
             case "Property" :
-                this.make( token.key );
+                if( token.computed ){
+                    this.withBracketL()
+                    this.make( token.key );
+                    this.withBracketR()
+                }else{
+                    this.make( token.key );
+                }
                 this.withColon()
                 this.make( token.init );
             break;
@@ -437,7 +466,9 @@ class Generator{
                 }
                 this.withSpace();
                 this.withColon();
+                this.newBlock();
                 token.consequent.forEach( item=>this.make(item) );
+                this.endBlock();
             break;
             case "SwitchStatement" :
                 this.newLine();
@@ -461,13 +492,13 @@ class Generator{
                 const end = token.quasis.length-1;
                 token.quasis.map( (item,index)=>{
                     this.make( item );
-                    if(expressions.length > index){
+                    if(index < expressions.length){
                         this.withString(' + ')
                         this.withParenthesL()
                         this.make( expressions[index] );
                         this.withParenthesR()
                     }
-                    if( end < index ){
+                    if( index < end ){
                         this.withString(' + ');
                     }
                 });
@@ -496,8 +527,10 @@ class Generator{
                     this.make( token.finalizer );
                 }
             break;
+            case "TypeAssertExpression" :
+                this.make( token.expression );
+            break;
             case "UnaryExpression" :
-            case "UpdateExpression" :
                 if( token.prefix ){
                     this.withString(token.operator);
                     this.withSpace();
@@ -505,6 +538,15 @@ class Generator{
                 }else{
                     this.make( token.argument )
                     this.withSpace();
+                    this.withString(token.operator);
+                }
+            break;
+            case "UpdateExpression" :
+                if( token.prefix ){
+                    this.withString(token.operator);
+                    this.make( token.argument )
+                }else{
+                    this.make( token.argument )
                     this.withString(token.operator);
                 }
             break;

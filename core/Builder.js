@@ -56,16 +56,13 @@ class Builder extends Syntax{
                     if(stack){
                         const file = this.getModuleFile(module);
                         const content = this.make(stack);
-
                         if( content ){
                            const gen = new Generator(module, compilation);
-                           gen.make( content )
-                           console.log( gen.toString() )
+                           gen.make( content );
+                           this.emitContent(filesystem, module, gen.toString(), file, config.emitFile);
+                           this.emitAssets(filesystem,module,config.emitFile);
                         }
-
-
-                        //this.emitContent(filesystem, module, content, file, config.emitFile);
-                        //this.emitAssets(filesystem,module,config.emitFile);
+                        
                     }else{
                         throw new Error(`Not found stack by '${module.getName()}'`);
                     }

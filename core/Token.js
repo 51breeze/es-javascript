@@ -65,8 +65,10 @@ class Token extends events.EventEmitter {
     createMethodNode(key, createChildFun, stack){
         const node = this.createFunctionNode(createChildFun, stack);
         node.type = "MethodDefinition";
-        node.key = key instanceof Token ? key : node.createIdentifierNode(key);
-        node.key.parent = node;
+        if( key ){
+            node.key = key instanceof Token ? key : node.createIdentifierNode(key);
+            node.key.parent = node;
+        }
         return node;
     }
 
@@ -100,6 +102,7 @@ class Token extends events.EventEmitter {
         if( key instanceof Token ){
             key.parent = propery;
             propery.key = key;
+            propery.computed = key.computed;
         }else{
             propery.key = propery.createIdentifierNode( String(key) );
         }
@@ -114,33 +117,34 @@ class Token extends events.EventEmitter {
     }
 
     createMemberNode(items,stack){
-        const create = (items, object)=>{
-            const member = (object || this).createNode('MemberExpression'); 
-            if( typeof items[ items.length-1] === 'string' ){
-                member.property = member.createNode('Identifier'); 
-                member.property.value = items.pop();
-            }else{
-                member.property = items.pop();
-            }
-            if( object ){
+    
+        const create = (items, object, ctx)=>{
+            const member = ctx.createNode('MemberExpression'); 
+            if( object instanceof Token ){
                 member.object = object;
             }else{
-                if( typeof items[ items.length-1 ] === 'string' ){
-                    member.object = member.createNode('Identifier'); 
-                    member.object.value = items.pop();
-                }else{
-                    member.object = items.pop();
-                }
+                member.object = member.createNode('Identifier'); 
+                member.object.value = object; 
             }
 
-            member.property.parent = member;
-            member.object.parent = member;
+            const property = items.shift();
+            if( property instanceof Token ){
+                member.property = property;
+            }else{
+                member.property = member.createNode('Identifier'); 
+                member.property.value = property;
+            }
+
+            member.object.parent = ctx;
+            member.property.parent = ctx;
             if( items.length > 0 ){
-                return create(items, member);
+                return create(items, member, member);
             }
             return member;
         }
-        const node = create( items.slice(0) );
+
+        items = items.slice(0);
+        const node = create(items, items.shift(), this);
         node.stack = stack;
         return node;
     }
@@ -182,6 +186,14 @@ class Token extends events.EventEmitter {
         items.forEach( item=>{
             item.parent = obj;
         });
+        return obj;
+    }
+
+    createParenthesNode(expression, stack){
+        const obj = this.createNode('ParenthesizedExpression');
+        expression.parent = obj;
+        obj.stack = stack;
+        obj.expression = expression;
         return obj;
     }
 

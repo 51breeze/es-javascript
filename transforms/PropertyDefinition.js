@@ -5,5 +5,6 @@ module.exports = function(ctx,stack){
     node.static = !!stack.static;
     node.kind = stack.kind;
     node.key =  node.declarations[0].id;
+    node.init = node.declarations[0].init;
     return node;
 }

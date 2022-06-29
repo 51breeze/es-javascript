@@ -46,23 +46,25 @@ function createClassNode(ctx,stack){
     node.methods = [];
     node.members = [];
     node.construct = null;
-    const caches = [new Map(), new Map()];
     if( stack.isClassDeclaration ){
+        const cache1 = new Map();
+        const cache2 = new Map();
         stack.body.forEach( item=> {
             const child = node.createToken(item);
             const static = !!(stack.static || child.static);
             const refs  = static ? node.methods : node.members;
-            if( item.isMethodGetterDefinition || item.isMethodGetterDefinition ){
-                const name = item.key.value();
-                const dataset = static ? caches[1] : caches[0];
+            if( item.isMethodSetterDefinition || item.isMethodGetterDefinition ){
+                const name = child.key.value;
+                const dataset = static ? cache1 : cache2;
                 var target = dataset.get( name );
                 if( !target ){
-                    dataset.set( name, target={isAccessor:true,kind:item.kind});
+                    target={isAccessor:true,kind:child.kind, key:child.key, modifier:child.modifier};
+                    dataset.set(name, target);
                     refs.push( target );
                 }
                 if( item.isMethodGetterDefinition ){
                     target.get =child;
-                }else if( item.isMethodGetterDefinition ){
+                }else if( item.isMethodSetterDefinition ){
                     target.set = child;
                 }
             }else if(item.isConstructor && item.isMethodDefinition){
@@ -72,6 +74,8 @@ function createClassNode(ctx,stack){
                 refs.push( child );
             }
         });
+
+
     }
 
     node.addDepend( stack.compilation.getGlobalTypeById('Class') );
@@ -82,7 +86,10 @@ function createClassNode(ctx,stack){
             obj.argument = obj.createThisNode();
             ctx.body.push( obj );
         });
-        method.key.compute = true;
+        method.static = false;
+        method.modifier = 'public';
+        method.kind = 'method';
+        method.key.computed = true;
         node.members.push( method );
     }
 

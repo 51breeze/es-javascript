@@ -6,14 +6,13 @@ function createSuperGetterExpressionNode(ctx, object, property){
 }
 
 function createSuperMemberNode(ctx, object, property, ...args ){
-    object = ctx.createMemberNode([object, ctx.createMemberNode([ctx.checkRefsName('Class'),'key']) ]);
+    object = ctx.createMemberNode([object, ctx.createMemberNode([ctx.createIdentifierNode( ctx.checkRefsName('Class') ), ctx.createIdentifierNode('key')])]);
     object.computed = true;
     return ctx.createMemberNode([object, 'members', property, ...args]);
 }
 
 function MemberExpression(ctx,stack){
-   
-    const module = this.module;
+    const module = stack.module;
     const description = stack.description();
     let isStatic = false;
     if( description && description.isModule && stack.compiler.callUtils("isTypeModule",description) ){
@@ -30,7 +29,7 @@ function MemberExpression(ctx,stack){
             isReflect = true;
         }
         if( isReflect ){
-            this.addDepend( stack.getGlobalTypeById("Reflect") );
+            ctx.addDepend( stack.getGlobalTypeById("Reflect") );
             return ctx.createCalleeNode(
                 ctx.createMemberNode([ctx.checkRefsName("Reflect"),'get']),
                 [ctx.createIdentifierNode(module.id), ctx.createToken(stack.object), ctx.createToken(stack.property)],
@@ -43,8 +42,8 @@ function MemberExpression(ctx,stack){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
         const refModule = description.module;
         if(modifier==="private" && refModule.children.length > 0){
-            return this.createMemberNode(
-                [module.id, 'prototype', ctx.createToken(stack.property)],
+            return ctx.createMemberNode(
+                [ ctx.createIdentifierNode(module.id), ctx.createIdentifierNode('prototype'), ctx.createToken(stack.property)],
                 stack
             );
         }
@@ -57,18 +56,18 @@ function MemberExpression(ctx,stack){
     
     if( stack.object.isSuperExpression ){
         if( description && description.isMethodGetterDefinition ){
-            return createSuperGetterExpressionNode(ctx,stack.object, stack.property);
+            return createSuperGetterExpressionNode(ctx, ctx.createToken(stack.object), ctx.createToken(stack.property) );
         }else if(description && description.isMethodSetterDefinition ){
-            return createSuperMemberNode(ctx,stack.object,stack.property,'set');
+            return createSuperMemberNode(ctx, ctx.createToken(stack.object), ctx.createToken(stack.property) ,'set');
         }else{
-            return ctx.createMemberNode([stack.object,'prototype',stack.property]);
+            return ctx.createMemberNode([ctx.createToken(stack.object), ctx.createIdentifierNode('prototype'), ctx.createToken(stack.property) ]);
         }
     }
 
     if(description && description.isPropertyDefinition && !isStatic && description.modifier && description.modifier.value() === "private"){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
         if( "private" ===modifier ){
-            const object = ctx.createMemberNode([stack.object,ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)]);
+            const object = ctx.createMemberNode([ctx.createToken(stack.object),ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)]);
             object.computed = true;
             return ctx.createMemberNode([object, ctx.createToken(stack.property)]);
         }
@@ -78,13 +77,14 @@ function MemberExpression(ctx,stack){
         const pStack = stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isCallExpression || stack.isExpressionStatement));
         if( pStack && pStack.jsxElement ){
             return ctx.createCalleeNode(
-                ctx.createMemberNode([stack.object, stack.property, 'bind']),
+                ctx.createMemberNode([ ctx.createToken(stack.object), ctx.createToken(stack.property), 'bind']),
                 [ctx.createThisNode()]
             );
         }
     }
 
     const node = ctx.createNode(stack);
+    node.computed = !!stack.computed;
     node.object = node.createToken( stack.object );
     node.property = node.createToken( stack.property );
     return node;

@@ -55,7 +55,7 @@ module.exports = function(ctx,stack,type){
             return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), null, item.key));
         });
         return ctx.createDeclarationNode('const', [
-            ctx.createDeclaratorNode(name, ctx.createSequenceNode([init, ...properties]))
+            ctx.createDeclaratorNode(name, ctx.createParenthesNode(ctx.createSequenceNode([init, ...properties])))
         ]);
     }
 }

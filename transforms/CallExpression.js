@@ -10,10 +10,10 @@ module.exports = function(ctx,stack){
         return ctx.createCalleeNode(
             ctx.createMemberNode([ctx.checkRefsName("Reflect"),'call']),
             [
-                module.id,
+                ctx.createIdentifierNode(module.id),
                 ctx.createToken(stack.callee.object),
                 property,
-                ctx.createArrayNode( this.arguments.map( item=>ctx.createToken(item) ) )
+                ctx.createArrayNode( stack.arguments.map( item=>ctx.createToken(item) ) )
             ],
             stack
         );
@@ -28,7 +28,7 @@ module.exports = function(ctx,stack){
                     ctx.createThisNode()
                 ]
             ),
-            this.arguments.map( item=>ctx.createToken(item) ),
+            stack.arguments.map( item=>ctx.createToken(item) ),
             stack
         );
     }
@@ -43,7 +43,7 @@ module.exports = function(ctx,stack){
                     [
                         ctx.createToken(stack.callee),
                         'call',
-                        isMember ? ctx.createToken(callee.object) : ctx.createThisNode()
+                        isMember ? ctx.createToken(stack.callee.object) : ctx.createThisNode()
                     ]
                 ),
                 stack.arguments.map( item=>ctx.createToken(item) ),

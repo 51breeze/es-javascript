@@ -4,7 +4,7 @@ module.exports = function(ctx,stack){
           const type = stack.right.type();
           ctx.addDepend( type );
           if( operator === "is" && !stack.compiler.callUtils("isGloableModule", type) ){
-               ctx.addDepend( stack.getGlobalModuleById('System') );
+               ctx.addDepend( stack.getGlobalTypeById('System') );
                return ctx.createCalleeNode(
                     ctx.createMemberNode([ctx.checkRefsName('System'),'is']),
                     [

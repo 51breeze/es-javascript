@@ -1,5 +1,4 @@
-var Class = require("./Class.js");
-var System = require("./System.js");
+
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -246,10 +245,9 @@ var _Reflect = (function(_Reflect){
     return Reflect;
 
 }(Reflect));
-Class.creator(8,_Reflect,{
-	'id':1,
-	'global':true,
-	'dynamic':false,
-	'name':'Reflect'
-}, false);
+Class.creator(6,Reflect,{
+	id:"1",
+	ns:"",
+	name:"Reflect"
+});
 module.exports=_Reflect;

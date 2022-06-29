@@ -1,5 +1,4 @@
-var Class = require("./Class.js");
-var EventDispatcher = require("./EventDispatcher.js");
+
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -204,10 +203,9 @@ System.getEventDispatcher=function getEventDispatcher(){
      }
      return null;
  };
-Class.creator(9,System,{
-	'id':1,
-	'global':true,
-	'dynamic':false,
-	'name':'System'
-}, false);
+Class.creator(7,System,{
+	id:"1",
+	ns:"",
+	name:"System"
+});
 module.exports=System;

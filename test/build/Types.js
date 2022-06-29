@@ -1,14 +1,30 @@
-var Class = require("./core/Class.js");
 function Types(){}
-const methods = {};
-methods.ADDRESS={m:3,d:6,value:0};
-methods[0]={m:3,d:5,value:"ADDRESS"};
-methods.NAME={m:3,d:6,value:1};
-methods[1]={m:3,d:5,value:"NAME"};
-Class.creator(6,Types,{
-	'id':3,
-	'ns':'',
-	'name':'Types',
-	'methods':methods
-}, false);
+const methods = {
+	ADDRESS:{
+		m:"3",
+		id:"6",
+		value:0
+	},
+	0:{
+		m:"3",
+		id:"5",
+		value:ADDRESS
+	},
+	NAME:{
+		m:"3",
+		id:"6",
+		value:1
+	},
+	1:{
+		m:"3",
+		id:"5",
+		value:NAME
+	}
+}
+Class.creator(3,Types,{
+	id:"1",
+	ns:"",
+	name:"Types",
+	methods:"methods"
+});
 module.exports=Types;
