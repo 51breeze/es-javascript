@@ -1,3 +1,5 @@
+const Constant = require("../core/Constant");
+
 function createSuperGetterExpressionNode(ctx, object, property){
     const callee = createSuperMemberNode(ctx, object, property, 'get','call');
     return ctx.createCalleeNode( callee, [ctx.createThisNode()]);

@@ -5,9 +5,9 @@ function createStatementMember(ctx, name, members){
     if( !members.length )return;
     const items = [];
     members.forEach( item =>{
-        const property = ClassDeclaration.createMemberDescriptor(item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
+        const property = ClassDeclaration.createMemberDescriptor(ctx, item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
         items.push( property );
-        const key = ClassDeclaration.createMemberDescriptor(item.init, item.key, 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
+        const key = ClassDeclaration.createMemberDescriptor(ctx, item.init, item.key, 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
         items.push( key );
     });
     return ctx.createStatementNode( 

@@ -52,22 +52,22 @@ class Token extends events.EventEmitter {
     }
 
     createFunctionNode( createChildFun, stack){
-        const expression = this.createNode('FunctionExpression');
-        expression.stack = stack;
-        const block = expression.createNode('BlockStatement');
+        const node = this.createNode('FunctionExpression');
+        node.stack = stack;
+        const block = node.createNode('BlockStatement');
         block.body = [];
-        expression.params = [];
-        expression.body = block;
+        node.params = [];
+        node.body = block;
         createChildFun( block );
-        return expression;
+        return node;
     }
 
-    createMethodNode(key, createChildFun,stack){
-        const method = this.createNode('MethodDefinition');
-        method.stack = stack;
-        method.expression = method.createFunctionNode(createChildFun, stack);
-        method.key = method.createIdentifierNode(key);
-        return method;
+    createMethodNode(key, createChildFun, stack){
+        const node = this.createFunctionNode(createChildFun, stack);
+        node.type = "MethodDefinition";
+        node.key = key instanceof Token ? key : node.createIdentifierNode(key);
+        node.key.parent = node;
+        return node;
     }
 
     createObjectNode(properties ,stack){

@@ -228,6 +228,7 @@ class Generator{
                 this.newBlock();
                 token.body.forEach( item=>this.make(item) );
                 this.endBlock();
+                this.newLine();
                 this.withBraceR();
             break;
             case "ChunkExpression" :
@@ -281,6 +282,9 @@ class Generator{
                 this.withOperator('in');
                 this.make(token.right);
                 this.make(token.body);
+                if( token.body.type !=="BlockStatement" ){
+                    this.withSemicolon();
+                }
             break;
             case "ForOfStatement" :
                 this.newLine();
@@ -290,6 +294,9 @@ class Generator{
                 this.withOperator('of');
                 this.make(token.right);
                 this.make(token.body);
+                if( token.body.type !=="BlockStatement" ){
+                    this.withSemicolon();
+                }
             break;
             case "ForStatement" :
                 this.newLine();
@@ -300,7 +307,11 @@ class Generator{
                 this.make(token.condition);
                 this.withSemicolon();
                 this.make(token.update);
+                this.withParenthesR();
                 this.make(token.body);
+                if( token.body.type !=="BlockStatement" ){
+                    this.withSemicolon();
+                }
             break;
             case "MethodDefinition" :
             case "MethodGetterDefinition" :
@@ -402,9 +413,11 @@ class Generator{
                 this.withString( token.value );
             break;
             case "ReturnStatement" :
+                this.newLine();
                 this.withString('return');
                 this.withSpace();
                 this.make( token.argument );
+                this.withSemicolon();
             break;
             case "SequenceExpression" :
                 this.withSequence( token.expressions );
@@ -496,11 +509,14 @@ class Generator{
                 }
             break;
             case "VariableDeclaration" :
-                !token.inFor && this.newLine();
+                if( !token.inFor )this.newLine();
                 this.withString(token.kind);
                 this.withSpace();
                 this.withSequence( token.declarations );
-                !token.inFor && this.withSemicolon();
+                if( !token.inFor ){
+                    this.withSemicolon();
+                    this.newLine();
+                }
             break;
             case "VariableDeclarator" :
                 this.make( token.id );

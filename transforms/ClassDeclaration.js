@@ -5,6 +5,14 @@ const MODIFIER_MAP={
     "private":Constant.MODIFIER_PRIVATE,
 }
 
+const IDENT_MAP={
+    "get":Constant.DECLARE_PROPERTY_ACCESSOR,
+    "set":Constant.DECLARE_PROPERTY_ACCESSOR,
+    "var":Constant.DECLARE_PROPERTY_VAR,
+    "const":Constant.DECLARE_PROPERTY_CONST,
+    "method":Constant.DECLARE_PROPERTY_FUN,
+};
+
 function createClassNode(ctx,stack){
     const module = stack.module;
     const node = ctx.createNode( stack );
@@ -128,7 +136,7 @@ function createDefaultConstructMethod(ctx, name, privateProperties, initProperti
 }
 
 function createMemberDescriptor(ctx, key, node, modifier, kind){
-    kind = kind || node.kind;
+    kind = kind || IDENT_MAP[node.kind];
     modifier = modifier || node.modifier;
     const properties = [];
     properties.push( ctx.createPropertyNode('m', MODIFIER_MAP[ modifier ]) );
