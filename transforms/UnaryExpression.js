@@ -1,35 +1,27 @@
-const Syntax = require("../core/Syntax");
-class UnaryExpression extends Syntax {
-   emitter(){
-       const operator = this.stack.node.operator;
-       const prefix   = this.stack.node.prefix;
-       if( prefix ){
-         if( operator==="typeof"){
-            return `${operator} ${this.make(this.stack.argument)}`;
-         }else if( operator==='delete' && this.stack.argument.isMemberExpression ){
-            const desc = this.stack.argument.description();
-            if( desc && desc.isAnyType ){
-               let isReflect = false
-               const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
-               if( !hasDynamic && !this.compiler.callUtils("isLiteralObjectType", this.stack.argument.object.type() ) ){
-                  isReflect = true;
-               }
-               if( isReflect ){
-                  this.addDepend( this.stack.getGlobalTypeById("Reflect") );
-                  const object = this.make( this.stack.argument.object );
-                  const property = this.make( this.stack.argument.property );
-                  if( this.stack.argument.computed ){
-                     return `${this.checkRefsName("Reflect")}.deleteProperty(${object},${property})`;
-                  }else{
-                     return `${this.checkRefsName("Reflect")}.deleteProperty(${object},'${property}')`;
-                  }
-               }
-            }
+module.exports = function(ctx,stack){
+   const operator = stack.node.operator;
+   const prefix   = stack.node.prefix;
+   if( operator==='delete' && stack.argument.isMemberExpression ){
+      const desc = stack.argument.description();
+      if( desc && desc.isAnyType ){
+         const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
+         if( !hasDynamic && !stack.compiler.callUtils("isLiteralObjectType", stack.argument.object.type() ) ){
+            ctx.addDepend( stack.getGlobalTypeById("Reflect") );
+            const property =  stack.argument.computed ? ctx.createToken(stack.argument.property) : 
+                              ctx.createLiteralNode(stack.argument.property.value(), null, stack.argument.property);
+            return ctx.createCalleeNode(
+               ctx.createMemberNode(['Reflect','deleteProperty']),
+               [
+                  ctx.createToken(stack.argument.object),
+                  property
+               ]
+            );
          }
-         return `${operator} ${this.make(this.stack.argument)}`;
-       }
-       return `${this.make(this.stack.argument)}${operator}`;
+      }
    }
+   const node = ctx.createNode(stack);
+   node.argument = node.createToken(stack.argument);
+   node.operator = operator;
+   node.prefix = prefix;
+   return node;
 }
-
-module.exports = UnaryExpression;

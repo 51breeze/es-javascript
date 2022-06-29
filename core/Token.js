@@ -140,8 +140,8 @@ class Token extends events.EventEmitter {
         const expression = this.createNode(stack,'CallExpression');
         callee.parent = expression;
         expression.callee = callee;
-        expression.arguments = args;
-        args.forEach( item=>{
+        expression.arguments = args || [];
+        expression.arguments.forEach( item=>{
             item.parent = expression;
         });
         return expression;

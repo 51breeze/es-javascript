@@ -1,11 +1,6 @@
-const Syntax = require("../core/Syntax");
-class TemplateLiteral extends Syntax{
-    emitter(){
-        const expressions = this.stack.expressions.map( item=>this.make(item) );
-        return this.stack.quasis.map( (item,index)=>{
-            const value = item.value().replace(/\u0022/g,'\\"')
-            return expressions.length > index ? `"${value}" + (${expressions[index]})` : `"${value}"`;
-        }).join(" + ");
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.quasis = stack.quasis.map( item=>node.createToken(item) );
+    node.expressions = stack.expressions.map( item=>node.createToken(item) );
+    return node;
 }
-module.exports = TemplateLiteral;

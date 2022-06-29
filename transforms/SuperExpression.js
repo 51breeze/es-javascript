@@ -1,13 +1,7 @@
-const Syntax = require("../core/Syntax");
-class SuperExpression  extends Syntax {
-    emitter(){
-        const parent = this.module.extends[0];
-        const fnScope = this.scope.getScopeByType("function");
-        if( fnScope.isConstructor && !this.parentStack.isMemberExpression ){
-            return this.getModuleReferenceName(parent);
-        }
-        return this.getModuleReferenceName(parent);
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack, 'Identifier');
+    const parent = stack.module.inherit;
+    node.value = ctx.getModuleReferenceName(parent);
+    node.raw = node.value;
+    return node;
 }
-
-module.exports = SuperExpression;

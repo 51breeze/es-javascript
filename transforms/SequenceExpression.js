@@ -1,12 +1,5 @@
-const Syntax = require("../core/Syntax");
-class SequenceExpression extends Syntax{
-    emitter(){
-         const expressions = this.make(this.stack.expressions.map( item=>item) );
-         if( expressions.length > 1 ){
-             return '('+expressions.join(",")+')';
-         }
-         return '('+expressions.join(",")+')';
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.expressions = stack.expressions.map( item=>node.createToken(item) );
+    return node;
 }
-
-module.exports = SequenceExpression;

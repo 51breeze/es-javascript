@@ -1,12 +1,5 @@
-const Syntax = require("../core/Syntax");
-class ReturnStatement extends Syntax{
-    emitter(){
-        const argument = this.stack.argument && this.make( this.stack.argument);
-        if( this.stack.fnScope.async ){
-            return this.semicolon(`return [2, ${argument}]`);
-        }
-        return this.semicolon(`return ${argument}`);
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.argument = ctx.createToken(stack.argument);
+    return node;
 }
-
-module.exports = ReturnStatement;

@@ -1,7 +1,5 @@
-const Syntax = require("../core/Syntax");
-class TypeTransformExpression extends Syntax{
-     emitter(){
-          return this.make(this.stack.referExpression);
-     }
+module.exports = function(ctx,stack){
+     const node = ctx.createNode(stack);
+     node.expression = node.createToken(stack.referExpression);
+     return node;
 }
-module.exports = TypeTransformExpression;

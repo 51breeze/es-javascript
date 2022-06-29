@@ -1,14 +1,9 @@
-const Syntax = require("../core/Syntax");
-class UpdateExpression extends Syntax {
-    emitter(){
-        const argument = this.make(this.stack.argument);
-        const operator = this.stack.node.operator;
-        const prefix = this.stack.node.prefix;
-        if( prefix ){
-            return `${operator}${argument}`;
-        }
-        return `${argument}${operator}`;
-    }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    const operator = stack.node.operator;
+    const prefix = stack.node.prefix;
+    node.argument = node.createToken(stack.argument);
+    node.operator = operator;
+    node.prefix = prefix;
+    return node;
 }
-
-module.exports = UpdateExpression;

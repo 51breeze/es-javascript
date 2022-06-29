@@ -1,32 +1,19 @@
-const Syntax = require("../core/Syntax");
-class Program extends Syntax{
-    buildExternal(){
-        const stack = this.stack;
-        if( stack && stack.externals.length > 0 ){
-            const externals = stack.externals.map( item=>this.make(item) ).filter(item=>!!item);
-            if( externals.length > 0 ){
-                const refs = [];
-                this.addDepend( this.getGlobalModuleById('Class') );
-                this.createDependencies(null,refs)
-                return refs.concat([ 
-                    this.semicolon('/*externals code*/'),
-                    this.semicolon(`(function(){\r\n\t${externals.join("\r\n\t")}\r\n}())`)
-                ]).join("\r\n");
-            }
-        }
-        return null;
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.body = [];
+    stack.body.forEach( item=>{
+        node.body.push( node.createToken(item) );
+    });
+    if( stack.externals.length > 0 ){
+        const parenthes = ctx.createNode('ParenthesizedExpression');
+        parenthes.expression = parenthes.createCalleeNode(parenthes.createFunctionNode((ctx)=>{
+            stack.externals.forEach( item=>{
+                ctx.body.push( ctx.createToken(item) );
+            });
+        }));
+        const external = ctx.createStatementNode( parenthes );
+        external.comment = '/*externals code*/';
+        node.body.push( external );
     }
-    buildJsx(){
-        const root = this.stack.body[0];
-        return this.make(root, 0);
-    }
-    emitter(){
-        if( this.compilation.JSX ){
-            return this.buildJsx();
-        }else{
-            return this.buildExternal();
-        }
-    }
+    return node;
 }
-
-module.exports = Program;

@@ -1,7 +1,5 @@
-const Syntax = require("../core/Syntax");
-class TypeAssertExpression extends Syntax{
-     emitter(){
-          return this.make(this.stack.left);
-     }
+module.exports = function(ctx,stack){
+     const node = ctx.createNode(stack);
+     node.expression = node.createToken(stack.left);
+     return node;
 }
-module.exports = TypeAssertExpression;
