@@ -1,6 +1,26 @@
+import Reflect from "./core/Reflect.js";
+import Http from "./Request.js";
+import System from "./core/System.js";
+import Person from "./Person.js";
+import TestInterface from "./com/TestInterface.js";
+import EventDispatcher from "./core/EventDispatcher.js";
+import Event from "./core/Event.js";
+import Param from "./unit/Param.js";
+import Types from "./Types.js";
+import Class from "./core/Class.js";
+const Reflect1 = Reflect;
+const _private = Symbol("private");
 function Test(name,age){
-	Person.call.this(name);
-	Person.prototype.setType.call.this('1');
+	Person.call(this,name);
+	Object.defineProperty(this,_private,{
+		value:{
+			bbss:'bbss',
+			age:40,
+			len:5,
+			currentIndex:0
+		}
+	});
+	Person.prototype.setType.call(this,'1');
 	this.target;
 	Http();
 	const map = Map();
@@ -9,8 +29,8 @@ function Test(name,age){
 }
 const methods = {
 	getClass:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getClass(){
 			var a = Test;
 			var buname = {
@@ -26,8 +46,8 @@ const methods = {
 		}
 	},
 	getClassObject:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getClassObject(){
 			var a = Test;
 			var b = {
@@ -38,29 +58,29 @@ const methods = {
 		}
 	},
 	getObject:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getObject(){
 			return Test('1','2');
 		}
 	},
 	uuName:{
-		m:"3",
-		id:"4",
-		enumerable:"true",
+		m:3,
+		id:4,
+		enumerable:true,
 		get:function uuName(){
 			return 'uuName';
 		}
 	},
 	iiu:{
-		m:"1",
-		id:"1",
-		writable:"true",
+		m:1,
+		id:1,
+		writable:true,
 		value:Test
 	},
 	main:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function main(){
 			(Test('Test')).start();
 		}
@@ -68,19 +88,19 @@ const methods = {
 }
 const members = {
 	bbss:{
-		m:"1",
-		id:"1",
-		writable:"true",
+		m:1,
+		id:1,
+		writable:true,
 		value:'bbss'
 	},
 	age:{
-		m:"1",
-		id:"2",
+		m:1,
+		id:2,
 		value:40
 	},
 	start:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function start(){
 			it("static get uuName accessor",()=>{
 				expect(Test.getClassObject().uuName).toBe("uuName");
@@ -194,8 +214,8 @@ const members = {
 		}
 	},
 	testEnumerableProperty:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testEnumerableProperty(){
 			it("for( var name in this) should is this or object ",()=>{
 				var labels = ["name","data","target","addressName","iuuu",'dynamic','dynamicName'];
@@ -207,8 +227,8 @@ const members = {
 		}
 	},
 	testComputeProperty:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testComputeProperty(){
 			var bname = "123";
 			var o = {
@@ -230,8 +250,8 @@ const members = {
 		}
 	},
 	testLabel:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testLabel(){
 			var num = 0;
 			start:
@@ -249,8 +269,8 @@ const members = {
 		}
 	},
 	testEnum:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testEnum(){
 			const Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name");
 			const s = Types;
@@ -267,8 +287,8 @@ const members = {
 		}
 	},
 	testIterator:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testIterator(){
 			var array = [];
 			for(var val,_v,_i=System.getIterator(this);
@@ -284,8 +304,8 @@ const members = {
 		}
 	},
 	testGenerics:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testGenerics(){
 			const ddee = this.map();
 			const dd = ddee;
@@ -303,6 +323,7 @@ const members = {
 				[types]:1
 			}
 			bds[types]=99;
+			var Reflect = 555;
 			it("Generics should is true",()=>{
 				expect(typeof this.avg("test")).toBe('string');
 				expect(ccc.name.toFixed(2)).toBe("1.00");
@@ -312,7 +333,7 @@ const members = {
 				let obj = this.getTestObject(true);
 				var bd = obj;
 				var bs = obj.getNamess(1);
-				expect(Reflect.call(Test,bs,"toFixed",[2])).toBe("1.00");
+				expect(Reflect1.call(Test,bs,"toFixed",[2])).toBe("1.00");
 			});
 			var bsint = this.getTestGenerics('sssss');
 			var bsstring = this.getTestGenerics("ssss",'age');
@@ -378,31 +399,31 @@ const members = {
 		}
 	},
 	testKeyof:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testKeyof(t,k){
 			return t[k];
 		}
 	},
 	getClassTestGenerics:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function getClassTestGenerics(name,age){
 			var a = [age,name];
 			return a;
 		}
 	},
 	getTestGenerics:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function getTestGenerics(name,age){
 			var t = Test('name',name);
 			return age;
 		}
 	},
 	getTestObject:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function getTestObject(flag){
 			const factor = ()=>{
 				const o = {}
@@ -415,15 +436,15 @@ const members = {
 		}
 	},
 	getNamess:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getNamess(s){
 			return s;
 		}
 	},
 	testAwait:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function testAwait(){
 			it("test Await",(done)=>{
 				const res = this.loadRemoteData(1);
@@ -508,8 +529,8 @@ const members = {
 		}
 	},
 	getJson:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getJson(){
 			return {
 				name:123
@@ -517,8 +538,8 @@ const members = {
 		}
 	},
 	testTuple:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function testTuple(){
 			const data = this.method("end",9);
 			it("test tuple",()=>{
@@ -527,19 +548,19 @@ const members = {
 		}
 	},
 	len:{
-		m:"1",
-		id:"2",
+		m:1,
+		id:2,
 		value:5
 	},
 	currentIndex:{
-		m:"1",
-		id:"1",
-		writable:"true",
+		m:1,
+		id:1,
+		writable:true,
 		value:0
 	},
 	next:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function next(){
 			if(! (this[_private].currentIndex < this[_private].len)){
 				return {
@@ -555,22 +576,22 @@ const members = {
 		}
 	},
 	rewind:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function rewind(){
 			this[_private].currentIndex=0;
 		}
 	},
 	restFun:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function restFun(...types){
 			return types;
 		}
 	},
 	tetObject:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function tetObject(){
 			var t = Test('1',1);
 			var b = t;
@@ -581,14 +602,14 @@ const members = {
 		}
 	},
 	loadData:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function loadData(){}
 	},
 	iuuu:{
-		m:"3",
-		id:"4",
-		enumerable:"true",
+		m:3,
+		id:4,
+		enumerable:true,
 		get:function iuuu(){
 			var ii = this.name;
 			if(6){
@@ -599,9 +620,9 @@ const members = {
 		}
 	},
 	data:{
-		m:"3",
-		id:"4",
-		enumerable:"true",
+		m:3,
+		id:4,
+		enumerable:true,
 		get:function data(){
 			var b = [];
 			if(4){
@@ -620,8 +641,8 @@ const members = {
 		}
 	},
 	fetchApi:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function fetchApi(name,data,delay){
 			return Promise((resolve,reject)=>{
 				setTimeout(()=>{
@@ -631,16 +652,16 @@ const members = {
 		}
 	},
 	loadRemoteData2:{
-		m:"3",
-		id:"3",
-		value:function loadRemoteData2(){
+		m:3,
+		id:3,
+		value:async function loadRemoteData2(){
 			return await this.fetchApi("one",1,800);
 		}
 	},
 	loadRemoteData:{
-		m:"3",
-		id:"3",
-		value:function loadRemoteData(type,index=1){
+		m:3,
+		id:3,
+		value:async function loadRemoteData(type,index=1){
 			if(type === 5){
 				try{
 					return index == 1 ? await this.fetchApi("one-9999",1,800) : index == 2 ? ["two-9999",2] : await this.fetchApi("three-9999",3,800);
@@ -677,10 +698,10 @@ const members = {
 		}
 	},
 	method:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function method(name,age){
-			Person.prototype.method.call.this(name,age);
+			Person.prototype.method.call(this,name,age);
 			var str = ["a","b"];
 			var b = ["one",["one",1]];
 			var cc = [1];
@@ -692,9 +713,9 @@ const members = {
 		}
 	},
 	name:{
-		m:"3",
-		id:"4",
-		enumerable:"true",
+		m:3,
+		id:4,
+		enumerable:true,
 		get:function name(){
 			return Person[Class.key].members.name.get.call(this);
 		},
@@ -703,8 +724,8 @@ const members = {
 		}
 	},
 	avg:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function avg(yy,bbc){
 			var ii = ()=>1;
 			var bb = ['1'];
@@ -733,8 +754,8 @@ const members = {
 		}
 	},
 	map:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function map(){
 			const ddss = {
 				name:function(c,b){
@@ -746,8 +767,8 @@ const members = {
 		}
 	},
 	address:{
-		m:"1",
-		id:"3",
+		m:1,
+		id:3,
 		value:function address(){
 			const dd = [];
 			const bb = {
@@ -759,9 +780,9 @@ const members = {
 		}
 	},
 	loadRemoteData3:{
-		m:"3",
-		id:"3",
-		value:function loadRemoteData3(index=1){
+		m:3,
+		id:3,
+		value:async function loadRemoteData3(index=1){
 			if(index < 5){
 				try{
 					if(index == 4){
@@ -777,21 +798,21 @@ const members = {
 		}
 	},
 	[Symbol.iterator]:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function(){
 			return this;
 		}
 	}
 }
-Class.creator("0",Test,{
-	id:"1",
-	ns:"",
+Class.creator(0,Test,{
+	id:1,
 	name:"Test",
-	dynamic:"true",
+	dynamic:true,
+	private:_private,
 	imps:[TestInterface],
-	inherit:"Person",
-	methods:"methods",
-	members:"members"
+	inherit:Person,
+	methods:methods,
+	members:members
 });
 module.exports=Test;

@@ -1,5 +1,23 @@
 const events = require('events');
+const TOP_SCOPE = ["ClassDeclaration","EnumDeclaration","DeclaratorDeclaration","Program"];
+const FUNCTION_SCOPE = ["MethodDefinition","MethodGetterDefinition","MethodSetterDefinition","FunctionExpression"];
+const SCOPE_MAP = new Map();
 class Token extends events.EventEmitter {
+
+    static createRootNode(stack, builder){
+        const obj = new Token();
+        obj.stack = stack;
+        obj.scope = stack.scope;
+        obj.compilation = stack.compilation;
+        obj.compiler = stack.compiler;
+        obj.module =  stack.module;
+        obj.plugin = builder.plugin;
+        obj.name = builder.name;
+        obj.platform = builder.platform;
+        obj.parent = null;
+        obj.builder = builder;
+        return obj.createToken( stack );
+    }
 
     constructor(type){
         super();
@@ -42,7 +60,6 @@ class Token extends events.EventEmitter {
         if( !stack )return null;
         const type = stack.toString();
         if( type ==='TypeStatement')return null;
-
         const creator = this.plugin.getStack( type );
         if( creator ){
             return creator(this, stack, type);
@@ -222,7 +239,15 @@ class Token extends events.EventEmitter {
         const node = this.createNode('Literal');
         node.stack = stack;
         node.value = value;
-        node.raw = raw || `"${value}"`;
+        if( raw === void 0){
+            if( typeof value === 'string'){
+                node.raw = `"${value}"`;
+            }else{
+                node.raw = String(value); 
+            }
+        }else{
+            node.raw = raw;
+        }
         return node;
     }
 
@@ -251,7 +276,7 @@ class Token extends events.EventEmitter {
     createImportNode(source, specifiers, stack){
         const obj = this.createNode('ImportDeclaration');
         obj.stack = stack;
-        obj.source =  obj.createIdentifierNode( source );
+        obj.source = source instanceof Token ? source : obj.createLiteralNode( source );
         obj.specifiers = [];
         specifiers.forEach( item=>{
             if( Array.isArray(item) ){
@@ -261,6 +286,7 @@ class Token extends events.EventEmitter {
                 obj.specifiers.push( item );
             }
         });
+        return obj;
     }
 
     createImportSpecifierNode(local, imported=null, hasAs=false){
@@ -289,23 +315,69 @@ class Token extends events.EventEmitter {
     }
 
     isActiveForModule(module, ctxModule){
-        return this.builder.isDependModule(module, ctxModule || this.module);
+        return this.builder.isActiveForModule(module, ctxModule || this.module);
     }
 
-    checkRefsName( name ){
-        return this.builder.checkRefsName(name, this);
+    getParentByType( type ){
+        var parent = this.parent;
+        var invoke = typeof type === 'function' ? type : item=>item.type === type;
+        while( parent && !invoke(parent) ){
+            parent = parent.parent;
+        }
+        return parent;
+    }
+
+    checkRefsName(name,top=true,scopeContext=null){
+
+        const context = this.getParentByType(parent=>{
+            if( top ){
+                return TOP_SCOPE.includes( parent.type );
+            }else{
+                return FUNCTION_SCOPE.includes( parent.type );
+            }
+        });
+
+        if( !context )return name;
+        var scope = scopeContext;
+        if( !scopeContext ){
+            scope = this.scope || context.scope;
+        }
+
+        var dataset = SCOPE_MAP.get(scope);
+        if( !dataset ){
+            SCOPE_MAP.set(scope, dataset={
+                scope,
+                cached:new Set(),
+                result:new Map(),
+                check( name ){
+                    return this.scope.isDefine(name) || this.cached.has(name);
+                }
+            });
+        }else if( dataset.result.has(name) ){
+            return dataset.result.get(name);
+        }
+
+        if( dataset.check(name) ){
+            var index = 1;
+            while( dataset.check( name+index ) && index++ );
+            var value = name+index;
+            dataset.cached.add( name );
+            dataset.result.set(name,value);
+            const block = top ? context : context.body;
+            (block.beforeBody || block.body).splice(0,0,block.createDeclarationNode('const', [
+                block.createDeclaratorNode(
+                    block.createIdentifierNode(value),
+                    block.createIdentifierNode(name),
+                )
+            ]));
+            return value;
+        }
+        return name;
     }
 
     getModuleReferenceName(module,context){
         context = context || this.module;
         return this.builder.getModuleReferenceName(module,context);
-    }
-
-    getDescription(){
-        if( this.stack ){
-            return this.stack.description();
-        }
-        return null;
     }
 
     error(message , stack=null){

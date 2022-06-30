@@ -1,4 +1,5 @@
-
+import Class from "./Class.js";
+import EventDispatcher from "./EventDispatcher.js";
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -203,9 +204,8 @@ System.getEventDispatcher=function getEventDispatcher(){
      }
      return null;
  };
-Class.creator(7,System,{
-	id:"1",
-	ns:"",
+Class.creator(2,System,{
+	id:1,
 	name:"System"
 });
 module.exports=System;

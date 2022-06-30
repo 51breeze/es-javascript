@@ -1,4 +1,3 @@
-
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.

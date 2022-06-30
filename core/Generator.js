@@ -1,12 +1,10 @@
 class Generator{
-    constructor(module,compilation){
-        this.module = module;
-        this.compilation = compilation;
+    constructor(file){
         this.code = '';
         this.line = 0;
         this.column = 0;
         this.indent = 0;
-        this.file = compilation.file;
+        this.file = file;
     }
 
     newBlock(){
@@ -20,7 +18,9 @@ class Generator{
     }
 
     newLine(){
-        const char = this.code.charCodeAt( this.code.length-1 );
+        const len = this.code.length;
+        if(!len)return;
+        const char = this.code.charCodeAt( len-1 );
         if( char === 10 || char ===13 ){
             return this;
         }
@@ -89,67 +89,6 @@ class Generator{
 
     withColon(){
         this.withString(':');
-    }
-
-    withKeyValue(name, value, compute=false){
-        if( typeof name === 'string' ){
-            if(compute){
-                this.withString(`[${name}]`);
-            }else{
-                this.withString(`"${name}"`);
-            }
-        }else{
-            if(compute){
-                name.make( this );
-            }else{
-                if( name.type ==="Identifier"){
-                    this.withString(`"`);
-                    name.make( this );
-                    this.withString(`"`);
-                }else{
-                    name.make( this );
-                }
-            }
-        }
-        this.withColon();
-        if( Array.isArray(value) ){
-            this.withBraceL();
-            const len = value.length-1;
-            value.forEach( (item,index)=>{
-                this.withKeyValue(item.name,item.value, item.name.compute );
-                if(index < len ){
-                    this.withComma();
-                }
-            });
-            this.withBraceR();
-        }else{
-            if( typeof value === 'string' ){
-                this.withString(value);
-            }else if(value){
-                value.emit(this);
-            }else{
-                this.withString(`null`);
-            }
-        }
-    }
-
-    withObject( properties ){
-        this.withBraceL();
-        const len = properties.length-1;
-        properties.forEach( (item,index)=>{
-            this.withKeyValue(item.name,item.value,item.name.compute);
-            if(index < len ){
-                this.withComma();
-            }
-        });
-        this.withBraceR();
-    }
-
-    withCall(callee, args){
-        callee.make( this );
-        this.withParenthesL();
-        this.withSequence( args );
-        this.withParenthesR();
     }
 
     withOperator( value ){
@@ -320,6 +259,10 @@ class Generator{
             case "MethodGetterDefinition" :
             case "MethodSetterDefinition" :
             case "FunctionDeclaration" :
+                if(token.async){
+                    this.withString('async');
+                    this.withSpace();
+                }
                 this.withString('function');
                 if( !token.key.computed ){
                     this.withSpace();
@@ -365,11 +308,34 @@ class Generator{
                 this.newLine();
                 this.withString('import');
                 this.withSpace();
-                this.make( token.local );
+                this.withSequence( token.specifiers );
                 this.withSpace();
                 this.withString('from');
+                this.withSpace();
                 this.make( token.source );
                 this.withSemicolon();
+                this.newLine();
+            break;
+            case "ImportSpecifier" :
+                this.make( token.imported );
+                this.withOperator('as');
+                this.make( token.local );
+            break;
+            case "ImportNamespaceSpecifier" :
+                this.withString('*');
+                this.withOperator('as');
+                this.make( token.local );
+            break;
+            case "ImportDefaultSpecifier" :
+                this.make( token.local );
+            break;
+            case "ImportExpression" :
+                this.newLine();
+                this.withString('import');
+                this.withParenthesL();
+                this.make( token.local );
+                this.withParenthesR();
+                this.newLine();
             break;
             case "LabeledStatement" :
                 this.newLine();
@@ -455,6 +421,9 @@ class Generator{
                 this.withString('...' );
                 this.make( token.argument );
             break;
+            case "SuperExpression" :
+                this.withString(token.value);
+            break;
             case "SwitchCase" :
                 this.newLine();
                 if( token.condition ){
@@ -526,9 +495,6 @@ class Generator{
                     this.withString('finally');
                     this.make( token.finalizer );
                 }
-            break;
-            case "TypeAssertExpression" :
-                this.make( token.expression );
             break;
             case "UnaryExpression" :
                 if( token.prefix ){

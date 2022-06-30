@@ -1,4 +1,5 @@
-
+import Class from "./Class.js";
+import System from "./System.js";
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -245,9 +246,8 @@ var _Reflect = (function(_Reflect){
     return Reflect;
 
 }(Reflect));
-Class.creator(6,Reflect,{
-	id:"1",
-	ns:"",
+Class.creator(1,Reflect,{
+	id:1,
 	name:"Reflect"
 });
 module.exports=_Reflect;

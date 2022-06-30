@@ -53,6 +53,14 @@ function createClassNode(ctx,stack){
             const child = node.createToken(item);
             const static = !!(stack.static || child.static);
             const refs  = static ? node.methods : node.members;
+            if( child.type ==="PropertyDefinition" ){
+                if( !static && child.modifier === "private"){
+                    node.privateProperties.push(
+                        ctx.createPropertyNode( child.key.value, child.init )
+                    );
+                }
+            }
+
             if( item.isMethodSetterDefinition || item.isMethodGetterDefinition ){
                 const name = child.key.value;
                 const dataset = static ? cache1 : cache2;
@@ -74,8 +82,6 @@ function createClassNode(ctx,stack){
                 refs.push( child );
             }
         });
-
-
     }
 
     node.addDepend( stack.compilation.getGlobalTypeById('Class') );
@@ -97,12 +103,26 @@ function createClassNode(ctx,stack){
         node.privateName = node.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
         node.beforeBody.push( node.createDeclarationNode(
             'const',
-            ctx.createDeclaratorNode(
-                node.privateName,
-                ctx.createChunkNode('Symbol("private")')
-            )
+            [
+                ctx.createDeclaratorNode(
+                    node.privateName,
+                    ctx.createCalleeNode( 
+                        ctx.createIdentifierNode('Symbol'),
+                        [ctx.createLiteralNode('private')]
+                    )
+                )
+            ]
         ));
         node.privateName = node.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+        if( node.construct ){
+            const index = node.construct.body.body.findIndex( item=>{
+                if( item.type ==='ExpressionStatement' && item.expression.type==="CallExpression" ){
+                    return item.expression.callee.object.type==="SuperExpression";
+                }
+                return false;
+            });
+            node.construct.body.body.splice(index+1,0,createConstructInitPrivateObject(node, node.privateName, node.privateProperties) )
+        }
     }
 
     if( !node.construct && (node.privateProperties.length + node.initProperties.length) > 0){
@@ -116,22 +136,27 @@ function createClassNode(ctx,stack){
     return node;
 }
 
+function createConstructInitPrivateObject(ctx, privateName, privateProperties){
+    return ctx.createStatementNode( 
+        ctx.createCalleeNode( 
+            ctx.createMemberNode(['Object','defineProperty']),
+            [
+                ctx.createThisNode(),
+                ctx.createIdentifierNode( privateName ),
+                ctx.createObjectNode([
+                    ctx.createPropertyNode('value', ctx.createObjectNode( privateProperties ))
+                ])
+            ]
+        )
+    )
+}
 
 function createDefaultConstructMethod(ctx, name, privateProperties, initProperties){
     const privateName = ctx.privateName;
     return ctx.createMethodNode( ctx.createIdentifierNode(name), (ctx)=>{
         if( privateProperties && privateProperties.length && privateName ){
             ctx.body.push(
-                ctx.createStatementNode( 
-                    ctx.createCalleeNode( 
-                        ctx.createMemberNode(['Object','defineProperty']),
-                        [
-                            ctx.createThisNode(),
-                            ctx.createIdentifierNode( privateName ),
-                            ctx.createObjectNode( Object.entries({value:ctx.createObjectNode( privateProperties )}) )
-                        ]
-                    )
-                )
+                createConstructInitPrivateObject(ctx, privateName, privateProperties)
             );
         }
         if( initProperties && initProperties.length ){
@@ -146,13 +171,13 @@ function createMemberDescriptor(ctx, key, node, modifier, kind){
     kind = kind || IDENT_MAP[node.kind];
     modifier = modifier || node.modifier;
     const properties = [];
-    properties.push( ctx.createPropertyNode('m', MODIFIER_MAP[ modifier ]) );
-    properties.push( ctx.createPropertyNode('id', kind) );
+    properties.push( ctx.createPropertyNode('m', ctx.createLiteralNode( MODIFIER_MAP[ modifier ] ) ) );
+    properties.push( ctx.createPropertyNode('id', ctx.createLiteralNode(kind) ) );
     if( kind === Constant.DECLARE_PROPERTY_VAR ){
-        properties.push( ctx.createPropertyNode('writable', true) );
+        properties.push( ctx.createPropertyNode('writable', ctx.createLiteralNode(true) ) );
     }
     if( (node.isAccessor || kind === Constant.DECLARE_PROPERTY_VAR || kind === Constant.DECLARE_PROPERTY_CONST) && modifier==="public" ){
-        properties.push( ctx.createPropertyNode('enumerable', true) );
+        properties.push( ctx.createPropertyNode('enumerable', ctx.createLiteralNode(true) ) );
     }
     if( node.isAccessor ){
         if( node.get ){
@@ -169,14 +194,17 @@ function createMemberDescriptor(ctx, key, node, modifier, kind){
 
 function createClassDescriptor(ctx, module, _private, methods, members, imps, inherit){
     const description = [];
-    description.push(ctx.createPropertyNode('id', Constant.DECLARE_CLASS));
-    description.push(ctx.createPropertyNode('ns', ctx.createLiteralNode( module.namespace.toString() ) ) );
-    description.push(ctx.createPropertyNode('name', module.id));
+    description.push(ctx.createPropertyNode('id', ctx.createLiteralNode( Constant.DECLARE_CLASS ) ));
+    const ns = module.namespace.toString();
+    if( ns ){
+        description.push(ctx.createPropertyNode('ns', ctx.createLiteralNode( module.namespace.toString() ) ) );
+    }
+    description.push(ctx.createPropertyNode('name', ctx.createLiteralNode( module.id ) ));
     if( module.dynamic ){
-        description.push(ctx.createPropertyNode('dynamic',String(true)));
+        description.push(ctx.createPropertyNode('dynamic', ctx.createLiteralNode(true) ));
     }
     if( _private ){
-        description.push(ctx.createPropertyNode('private',_private));
+        description.push(ctx.createPropertyNode('private',  ctx.createIdentifierNode(_private) ));
     }
     if( imps && imps.length > 0 ){
         description.push(ctx.createPropertyNode('imps', ctx.createArrayNode(
@@ -184,17 +212,17 @@ function createClassDescriptor(ctx, module, _private, methods, members, imps, in
         )));
     }
     if( inherit ){
-        description.push(ctx.createPropertyNode('inherit',ctx.getModuleReferenceName(module.inherit, module)));
+        description.push(ctx.createPropertyNode('inherit', ctx.createIdentifierNode( ctx.getModuleReferenceName(module.inherit, module) ) ) );
     }
     if( methods && methods.length ){
-        description.push(ctx.createPropertyNode('methods', 'methods'));
+        description.push(ctx.createPropertyNode('methods', ctx.createIdentifierNode('methods') ));
     }
     if( members && members.length ){
-        description.push(ctx.createPropertyNode('members', 'members'));
+        description.push(ctx.createPropertyNode('members', ctx.createIdentifierNode('members') ) );
     }
     const id = ctx.builder.getIdByModule(module);
     const args = [
-        ctx.createLiteralNode(id, id ), 
+        ctx.createLiteralNode(id), 
         ctx.createIdentifierNode(module.id), 
         ctx.createObjectNode(description)
     ]
@@ -235,7 +263,7 @@ function createDependencies(ctx, module){
         if( ctx.isActiveForModule( depModule ) ){
             const name = ctx.builder.getModuleReferenceName(depModule, module);
             const source = ctx.builder.getModuleImportSource(depModule, module);
-            items.push( ctx.createImportNode( source, [[null,name]]) );
+            items.push( ctx.createImportNode( source, [[name]]) );
         }
     });
     return items;

@@ -1,8 +1,8 @@
-
+import Class from "./../core/Class.js";
 const members = {
 	start:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function start(){
 			const en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age");
 			var b = en.age;
@@ -14,8 +14,8 @@ const members = {
 		}
 	},
 	getList:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function getList({name1000:name1000,age:age=9},[index,id=20]){
 			var args = [index,id];
 			it("test call",()=>{
@@ -26,24 +26,24 @@ const members = {
 		}
 	},
 	call:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function call(index,id){
 			return id;
 		}
 	},
 	ave:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function ave(age){
 			return age;
 		}
 	}
 }
-Class.creator(4,Param,{
-	id:"1",
+Class.creator(8,Param,{
+	id:1,
 	ns:"unit",
 	name:"Param",
-	members:"members"
+	members:members
 });
 module.exports=Param;

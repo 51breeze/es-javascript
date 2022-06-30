@@ -103,6 +103,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
    
     start(){
+
         it(`static get uuName accessor`, ()=>{
         
             expect( Test.getClassObject().uuName ).toBe( "uuName" );
@@ -335,6 +336,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         };
 
         bds[ types ] = 99;
+
+        var Reflect = 555
 
         
 

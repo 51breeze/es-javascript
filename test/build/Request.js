@@ -1,14 +1,14 @@
-
+import Class from "./core/Class.js";
 const methods = {
 	_init:{
-		m:"1",
-		id:"1",
-		writable:"true",
+		m:1,
+		id:1,
+		writable:true,
 		value:null
 	},
 	init:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function init(){
 			if(Request._init){
 				return Request._init;
@@ -26,17 +26,16 @@ const methods = {
 		}
 	},
 	post:{
-		m:"3",
-		id:"3",
+		m:3,
+		id:3,
 		value:function post(url,data){
 			Request.init().post(url,data).then((value)=>{});
 		}
 	}
 }
 Class.creator(5,Request,{
-	id:"1",
-	ns:"",
+	id:1,
 	name:"Request",
-	methods:"methods"
+	methods:methods
 });
 module.exports=Request;

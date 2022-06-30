@@ -8,7 +8,7 @@ module.exports = function(ctx,stack){
          if( !hasDynamic && !stack.compiler.callUtils("isLiteralObjectType", stack.argument.object.type() ) ){
             ctx.addDepend( stack.getGlobalTypeById("Reflect") );
             const property =  stack.argument.computed ? ctx.createToken(stack.argument.property) : 
-                              ctx.createLiteralNode(stack.argument.property.value(), null, stack.argument.property);
+                              ctx.createLiteralNode(stack.argument.property.value(), void 0, stack.argument.property);
             return ctx.createCalleeNode(
                ctx.createMemberNode(['Reflect','deleteProperty']),
                [

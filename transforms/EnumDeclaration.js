@@ -7,7 +7,7 @@ function createStatementMember(ctx, name, members){
     members.forEach( item =>{
         const property = ClassDeclaration.createMemberDescriptor(ctx, item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
         items.push( property );
-        const key = ClassDeclaration.createMemberDescriptor(ctx, item.init, item.key, 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
+        const key = ClassDeclaration.createMemberDescriptor(ctx, item.init, ctx.createLiteralNode(item.key.value), 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
         items.push( key );
     });
     return ctx.createStatementNode( 
@@ -40,7 +40,7 @@ module.exports = function(ctx,stack,type){
         const name = stack.value();
         const init = ctx.createAssignmentNode( ctx.createIdentifierNode(name), ctx.createObjectNode());
         const properties = stack.properties.map( item =>{
-            const initNode = ctx.createMemberNode( [ctx.createIdentifierNode(name), ctx.createLiteralNode(item.key.value(), null, item.key)] );
+            const initNode = ctx.createMemberNode( [ctx.createIdentifierNode(name), ctx.createLiteralNode(item.key.value(), void 0, item.key)] );
             initNode.computed = true;
             const initAssignmentNode = ctx.createAssignmentNode(
                 initNode, 
@@ -52,7 +52,7 @@ module.exports = function(ctx,stack,type){
             );
             const left = ctx.createMemberNode( [ctx.createIdentifierNode(name), initAssignmentNode]);
             left.computed = true;
-            return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), null, item.key));
+            return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), void 0, item.key));
         });
         return ctx.createDeclarationNode('const', [
             ctx.createDeclaratorNode(name, ctx.createParenthesNode(ctx.createSequenceNode([init, ...properties])))

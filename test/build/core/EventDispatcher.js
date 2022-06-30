@@ -1,4 +1,5 @@
-
+import Class from "./Class.js";
+import Event from "./Event.js";
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -212,9 +213,8 @@ Listener.prototype.type=null;
 Listener.prototype.proxyHandle = null;
 Listener.prototype.proxyTarget = null;
 Listener.prototype.proxyType = null;
-Class.creator(8,EventDispatcher,{
-	id:"1",
-	ns:"",
+Class.creator(3,EventDispatcher,{
+	id:1,
 	name:"EventDispatcher"
 });
 module.exports=EventDispatcher;
