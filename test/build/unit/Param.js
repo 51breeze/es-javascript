@@ -5,7 +5,7 @@ const members = {
 		m:3,
 		id:3,
 		value:function start(){
-			var en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age");
+			var en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age",en);
 			var b = en.age;
 			var result = this.getList(en,[9,5]);
 			it("test getList",()=>{
@@ -17,7 +17,7 @@ const members = {
 	getList:{
 		m:3,
 		id:3,
-		value:function getList({name1000:name1000,age:age=9},[index,id=20]){
+		value:function getList({name1000,age=9},[index,id=20]){
 			var args = [index,id];
 			it("test call",()=>{
 				var b = this.call(...args);

@@ -32,7 +32,7 @@ function MemberExpression(ctx,stack){
             ctx.addDepend( stack.getGlobalTypeById("Reflect") );
             return ctx.createCalleeNode(
                 ctx.createMemberNode([ctx.checkRefsName("Reflect"),'get']),
-                [ctx.createIdentifierNode(module.id), ctx.createToken(stack.object), ctx.createToken(stack.property)],
+                [ctx.createIdentifierNode(module.id), ctx.createToken(stack.object), ctx.createLiteralNode(stack.property.value(), void 0, stack.property)],
                 stack
             );
         }

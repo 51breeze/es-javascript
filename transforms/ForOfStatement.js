@@ -14,10 +14,22 @@ module.exports = function(ctx,stack){
         init.declarations.push( init.createIdentifierNode( res ) );
         init.declarations.push( object );
         const condition = ctx.createChunkNode(`${obj} && (${res}=${obj}.next()) && !${res}.done`);
+        condition.newLine = false;
         node.init = init;
         node.condition = condition;
         node.update = null;
         node.body  = node.createToken(stack.body);
+        const block = node.body; 
+        const assignment = block.createStatementNode(
+            block.createAssignmentNode(
+                block.createIdentifierNode( init.declarations[0].id.value ),
+                block.createMemberNode([
+                    block.createIdentifierNode( res ),
+                    block.createIdentifierNode('value')
+                ])
+            )
+        );
+        block.body.splice(0,0,assignment);
         return node;
     }
     const node = ctx.createNode(stack);

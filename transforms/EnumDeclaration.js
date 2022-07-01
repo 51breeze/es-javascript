@@ -54,6 +54,7 @@ module.exports = function(ctx,stack,type){
             left.computed = true;
             return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), void 0, item.key));
         });
+        properties.push( ctx.createIdentifierNode(name) );
         return ctx.createDeclarationNode('var', [
             ctx.createDeclaratorNode(name, ctx.createParenthesNode(ctx.createSequenceNode([init, ...properties])))
         ]);

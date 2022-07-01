@@ -60,7 +60,7 @@ const members = {
 			var c = - 1968;
 			var bs = 22.366;
 			var bssd = - 22.366;
-			Person.prototype.address.call.this.target();
+			Person.prototype.address.call(this.target);
 			return "sssss";
 		}
 	},

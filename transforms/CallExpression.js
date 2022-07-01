@@ -41,11 +41,10 @@ module.exports = function(ctx,stack){
                 ctx.createMemberNode(
                     [
                         ctx.createToken(stack.callee),
-                        'call',
-                        isMember ? ctx.createToken(stack.callee.object) : ctx.createThisNode()
+                        ctx.createIdentifierNode('call'),
                     ]
                 ),
-                stack.arguments.map( item=>ctx.createToken(item) ),
+                [ isMember ? ctx.createToken(stack.callee.object) : ctx.createThisNode() ].concat( stack.arguments.map( item=>ctx.createToken(item) ) ),
                 stack
             );
         }

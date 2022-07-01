@@ -28,11 +28,17 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         var buname = {a:1}
         buname.test = a;
         buname.person = Person;
-        var {test} = buname;
-
+        var {test=Test} = buname;
+    
         expect( Test ).toBe( test );
         expect( Test ).toBe( test.getClassObject() );
         expect( Test ).toBe( Reflect.call(Test, test, 'getClassObject' ) )
+
+        var [aa,bb=9] = [1,6];
+
+           expect( aa ).toBe( 1 );
+           expect( bb ).toBe( 6 );
+
            
         return buname
     }
@@ -242,6 +248,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
        this.next();
        var param = new Param();
        param.start();
+
+
     }
 
     private testEnumerableProperty(){

@@ -194,8 +194,13 @@ class Generator{
             break;
             case "ChunkExpression" :
                 if( token.value ){
-                    this.newLine();
+                    if(token.newLine !== false){
+                        this.newLine();
+                    }
                     this.withString( token.value );
+                    if(token.newLine !== false){
+                        this.newLine();
+                    }
                 }
             break;
             case "CallExpression" :
@@ -413,7 +418,16 @@ class Generator{
             break;
             case "ObjectPattern" :
                 this.withBraceL();
-                this.withSequence( token.properties );
+                token.properties.forEach( (item,index)=>{
+                    if( item.init && item.init.type ==="AssignmentPattern" ){
+                        this.make( item.init );
+                    }else{
+                        this.make( item.key );
+                    }
+                    if( index < token.properties.length-1 ){
+                        this.withComma();
+                    }
+                });
                 this.withBraceR();
             break;
             case "ParenthesizedExpression" :

@@ -38,10 +38,13 @@ const methods = {
 			}
 			buname.test=a;
 			buname.person=Person;
-			var test = buname;
+			var {test=Test} = buname;
 			expect(Test).toBe(test);
 			expect(Test).toBe(test.getClassObject());
 			expect(Test).toBe(Reflect.call(Test,test,'getClassObject'));
+			var [aa,bb=9] = [1,6];
+			expect(aa).toBe(1);
+			expect(bb).toBe(6);
 			return buname;
 		}
 	},
@@ -258,7 +261,7 @@ const members = {
 			for(var i = 0;i < 5;i++){
 				for(var j = 0;j < 5;j++){
 					if(i == 3 && j == 3){
-						break 
+						break start;
 					}
 					num++;
 				}
@@ -272,7 +275,7 @@ const members = {
 		m:1,
 		id:3,
 		value:function testEnum(){
-			var Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name");
+			var Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name",Type);
 			const s = Types;
 			const t = Type.address;
 			const b = Types.ADDRESS;
@@ -291,8 +294,8 @@ const members = {
 		id:3,
 		value:function testIterator(){
 			var array = [];
-			for(var val,_v,_i=System.getIterator(this);
-			_i && (_v=_i.next()) && !_v.done;){
+			for(var val,_v,_i=System.getIterator(this);_i && (_v=_i.next()) && !_v.done;){
+				val=_v.value;
 				array.push(val);
 			}
 			it("impls iterator should is [0,1,2,3,4]",()=>{
@@ -525,7 +528,7 @@ const members = {
 					done();
 				});
 			});
-			Reflect.get(Test,this.getJson(),name);
+			Reflect.get(Test,this.getJson(),"name");
 		}
 	},
 	getJson:{
@@ -741,7 +744,7 @@ const members = {
 			const bbb = name(person);
 			name(person);
 			var dd = [1,1,"2222","66666","8888"];
-			var a1,a2,a3 = dd;
+			var [a1,a2,a3] = dd;
 			expect(1).toEqual(a1);
 			expect(1).toEqual(a2);
 			expect("2222").toEqual(a3);

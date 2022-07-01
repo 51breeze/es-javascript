@@ -1,1 +1,1 @@
-{"version":3,"sources":["D:/workspace/tools/es-javascript/test/src/Types.es"],"names":["ADDRESS","NAME"],"mappings":";;;EAGQA;;;;;;;;;;EACAC","sourcesContent":["package{\r\n\r\n    public enum Types {\r\n        ADDRESS,\r\n        NAME\r\n    }\r\n\r\n}"]}
+{"version":3,"sources":["D:/workspace/es-javascript/test/src/Types.es"],"names":["ADDRESS","NAME"],"mappings":";;;EAGQA;;;;;;;;;;EACAC","sourcesContent":["package{\r\n\r\n    public enum Types {\r\n        ADDRESS,\r\n        NAME\r\n    }\r\n\r\n}"]}
