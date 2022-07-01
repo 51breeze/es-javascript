@@ -213,8 +213,8 @@ Listener.prototype.type=null;
 Listener.prototype.proxyHandle = null;
 Listener.prototype.proxyTarget = null;
 Listener.prototype.proxyType = null;
-Class.creator(3,EventDispatcher,{
+Class.creator(7,EventDispatcher,{
 	id:1,
 	name:"EventDispatcher"
 });
-module.exports=EventDispatcher;
+export default EventDispatcher;

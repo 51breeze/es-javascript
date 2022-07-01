@@ -1,10 +1,31 @@
 class Generator{
-    constructor(file){
+    constructor(file, sourceMap){
         this.code = '';
-        this.line = 0;
+        this.line = 1;
         this.column = 0;
         this.indent = 0;
         this.file = file;
+        this.sourceMap = sourceMap;
+    }
+
+    addMapping( node ){
+        if( this.sourceMap ){
+            const loc = node.stack && node.stack.node.loc;
+            if( loc ){
+                this.sourceMap.addMapping({
+                    generated: {
+                        line: this.line,
+                        column: this.getStartColumn()
+                    },
+                    source: this.file,
+                    original: {
+                        line: loc.start.line,
+                        column:loc.start.column
+                    },
+                    name: node.type ==='Identifier' ? node.value : null
+                });
+            }
+        }
     }
 
     newBlock(){
@@ -214,6 +235,12 @@ class Generator{
                 this.make(token.expression);
                 this.withSemicolon();
             break;
+            case "ExportDefaultDeclaration" :
+                this.newLine();
+                this.withString('export default ');
+                this.make(token.declaration);
+                this.withSemicolon();
+            break;
             case "ForInStatement" :
                 this.newLine();
                 this.withString('for');
@@ -281,6 +308,7 @@ class Generator{
                 this.make(token.body);
             break;
             case "Identifier" :
+                this.addMapping( token );
                 this.withString( token.value );
             break;
             case "IfStatement" :
@@ -307,10 +335,12 @@ class Generator{
             case "ImportDeclaration" :
                 this.newLine();
                 this.withString('import');
-                this.withSpace();
-                this.withSequence( token.specifiers );
-                this.withSpace();
-                this.withString('from');
+                if( token.specifiers.length > 0 ){
+                    this.withSpace();
+                    this.withSequence( token.specifiers );
+                    this.withSpace();
+                    this.withString('from');
+                }
                 this.withSpace();
                 this.make( token.source );
                 this.withSemicolon();
@@ -448,6 +478,7 @@ class Generator{
                 this.withBraceL();
                 this.newBlock();
                 token.cases.forEach( item=>this.make(item) );
+                this.newLine();
                 this.endBlock();
                 this.withBraceR();
             break;
@@ -547,6 +578,8 @@ class Generator{
             case "InterfaceDeclaration" :
             case "EnumDeclaration" :
             case "DeclaratorDeclaration" :
+            case "PackageDeclaration" :
+            case "Program" :
                 token.body.forEach( item=>this.make(item) )
         }
     }

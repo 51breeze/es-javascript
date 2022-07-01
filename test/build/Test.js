@@ -8,7 +8,8 @@ import Event from "./core/Event.js";
 import Param from "./unit/Param.js";
 import Types from "./Types.js";
 import Class from "./core/Class.js";
-const Reflect1 = Reflect;
+import "./assets/style.css";
+import img from "./assets/ss.css";
 const _private = Symbol("private");
 function Test(name,age){
 	Person.call(this,name);
@@ -16,6 +17,7 @@ function Test(name,age){
 		value:{
 			bbss:'bbss',
 			age:40,
+			img:img,
 			len:5,
 			currentIndex:0
 		}
@@ -97,6 +99,12 @@ const members = {
 		m:1,
 		id:2,
 		value:40
+	},
+	img:{
+		m:1,
+		id:1,
+		writable:true,
+		value:img
 	},
 	start:{
 		m:3,
@@ -200,13 +208,13 @@ const members = {
 				expect('Test').toEqual(System.getQualifiedClassName(Test));
 				expect('[Class Test]').toEqual(Test + '');
 			});
-			this.testEnumerableProperty();
-			this.testComputeProperty();
-			this.testLabel();
-			this.testEnum();
-			this.testIterator();
-			this.testGenerics();
-			this.testAwait();
+			Test.prototype.testEnumerableProperty.call.this();
+			Test.prototype.testComputeProperty.call.this();
+			Test.prototype.testLabel.call.this();
+			Test.prototype.testEnum.call.this();
+			Test.prototype.testIterator.call.this();
+			Test.prototype.testGenerics.call.this();
+			Test.prototype.testAwait.call.this();
 			this.testTuple();
 			this.next();
 			var param = Param();
@@ -330,17 +338,17 @@ const members = {
 				expect(cccww.age).toBe(30);
 			});
 			it("class Generics",()=>{
-				let obj = this.getTestObject(true);
+				let obj = Test.prototype.getTestObject.call.this(true);
 				var bd = obj;
 				var bs = obj.getNamess(1);
 				expect(Reflect1.call(Test,bs,"toFixed",[2])).toBe("1.00");
 			});
-			var bsint = this.getTestGenerics('sssss');
-			var bsstring = this.getTestGenerics("ssss",'age');
+			var bsint = Test.prototype.getTestGenerics.call.this('sssss');
+			var bsstring = Test.prototype.getTestGenerics.call.this("ssss",'age');
 			var bd = bsstring;
-			let obj = this.getTestObject(true);
+			let obj = Test.prototype.getTestObject.call.this(true);
 			var bsddd = obj.getNamess(1);
-			var sss = obj.getClassTestGenerics(1,1);
+			var sss = Test.prototype.getClassTestGenerics.call.obj(1,1);
 			var type = this;
 			type instanceof Number;
 			System.is(type,Number);
@@ -367,16 +375,16 @@ const members = {
 				this['dynamic']='[1]';
 				var v16 = this['dynamic'];
 				expect('[1]').toEqual(v16);
-				var bh = this.testKeyof(bt,'a');
-				var fs = this.testKeyof(bt,'b');
+				var bh = Test.prototype.testKeyof.call.this(bt,'a');
+				var fs = Test.prototype.testKeyof.call.this(bt,'b');
 				expect('sss').toEqual(bh);
 				expect(99).toEqual(fs);
 				var bfd = {
 					name:'6699'
 				}
-				var fdb = this.testKeyof(bfd,'name');
+				var fdb = Test.prototype.testKeyof.call.this(bfd,'name');
 				expect('6699').toEqual(fdb);
-				var getNamessFun = this.testKeyof(this,'getNamess');
+				var getNamessFun = Test.prototype.testKeyof.call.this(this,'getNamess');
 				expect(this.getNamess).toEqual(getNamessFun);
 				var bdfs4 = getNamessFun('sssss');
 			});
@@ -688,7 +696,8 @@ const members = {
 						return b;
 					case 4 :
 						const bb = await this.fetchApi("five",5,1200);
-						list.push(bb);}
+						list.push(bb);
+				}
 				for(var i = 0;i < 5;i++){
 					list.push(await this.fetchApi(i + '',i,100));
 				}
@@ -815,4 +824,24 @@ Class.creator(0,Test,{
 	methods:methods,
 	members:members
 });
-module.exports=Test;
+export default Test;
+const Test2 = (function(){
+	function Test2(){
+		Test.call(this);
+	}
+	const members = {
+		test:{
+			m:3,
+			id:3,
+			value:function test(){}
+		}
+	}
+	Class.creator(1,Test2,{
+		id:1,
+		name:"Test2",
+		inherit:Test,
+		members:members
+	});
+	return Test2;
+}());
+Test.main();

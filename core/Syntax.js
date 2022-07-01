@@ -3,8 +3,6 @@ const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const Token = require("./Token");
 const moduleIdMap=new Map();
-const namespaceMap=new Map();
-const createdStackData = new Map();
 const webComponents = new Map();
 const moduleDependencies = new Map();
 
@@ -147,13 +145,6 @@ class Syntax extends Token {
             moduleIdMap.set(file,moduleIdMap.size);
         }
         return moduleIdMap.get(file);
-    }
-
-    getIdByNamespace( namespace ){
-        if( !namespaceMap.has(namespace) ){
-            namespaceMap.set(namespace,namespaceMap.size);
-        }
-        return namespaceMap.get(namespace);
     }
 
     addDepend( depModule, ctxModule ){

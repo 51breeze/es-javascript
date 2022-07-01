@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const SourceMap = require("source-map");
 const Generator = require("./Generator");
 const Token = require("./Token");
 const Polyfill = require("./Polyfill");
@@ -8,7 +9,6 @@ const webComponents = new Map();
 const moduleDependencies = new Map();
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
-
 class Builder extends Token{
 
     constructor(stack){
@@ -25,34 +25,31 @@ class Builder extends Token{
         this.parent = null;
     }
 
-    emitContent(filesystem, module, content, file, emitFile, flag){
-        if( content ){
+    emitContent(filesystem, module, gen, file, emitFile, flag){
+        if( gen ){
             filesystem.mkdirpSync( path.dirname(file) );
-            filesystem.writeFileSync(file, content );
+            filesystem.writeFileSync(file, gen.toString() );
             if( emitFile ){
                 this.emitFile( this.getOutputAbsolutePath(module, flag), filesystem.readFileSync(file) );
-            } 
+                if( gen.sourceMap ){
+                    this.emitFile( this.getOutputAbsolutePath(module, flag)+'.map', gen.sourceMap.toString() );
+                }
+            }
         }
     }
 
-    emitAssets(filesystem,module,emitFile){
-        if( !module )return;
-        var assets = module.assets;
-        const compilation = module.compilation;
-        if( compilation.assets.size > 0 ){
-            assets = Array.from( assets.values() );
-            assets = assets.concat( Array.from( compilation.assets.values() ) );
-        }
+    emitAssets(assets, filesystem, module, emitFile){
+        if( !module || !assets )return;
         assets.forEach( asset=>{
+            const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
             if( !asset.file && asset.type ==="style" ){
-                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
-                this.emitContent(filesystem, module, asset.content, file);
+                this.emitContent(filesystem, file, asset.content, file);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
                     const content = fs.readFileSync( asset.resolve );
-                    this.emitContent(filesystem, module, content, asset.resolve);
+                    this.emitContent(filesystem, file, content, asset.resolve);
                     if( emitFile ){
-                        this.emitFile( this.getOutputAbsolutePath(asset.resolve, true), content );
+                        this.emitFile( this.getOutputAbsolutePath(asset.resolve), content );
                     }
                 }else{
                     console.warn( `Assets file the '${asset.file}' is not emit.`);
@@ -83,43 +80,67 @@ class Builder extends Token{
             const buildModules = new Set();
             const filesystem  = compiler.getOutputFileSystem( this.name );
             const config      = this.getConfig();
-            const builder = ( module )=>{
-                if( this.isNeedBuild(module) && !module.compilation.completed(this.name) ){
-                    const stack = compilation.getStackByModule(module);
-                    if(stack){
-                        const file = this.getModuleFile(module);
-                        const content = this.genCode( stack );
-                        this.emitContent(filesystem, module, content, file, config.emitFile);
-                        this.emitAssets(filesystem, module, config.emitFile); 
-                    }else{
-                        throw new Error(`Not found stack by '${module.getName()}'`);
+
+            this.make(compilation, compilation.stack, null, filesystem, config.emitFile);
+            compilation.modules.forEach( module =>{
+                this.getDependencies(module).forEach( depModule=>{
+                    if( this.isNeedBuild(depModule) && !buildModules.has(depModule) ){
+                        buildModules.add(depModule);
+                        const compilation = depModule.compilation;
+                        if( depModule.isDeclaratorModule ){
+                            const stack = compilation.getStackByModule(depModule);
+                            if( stack ){
+                                this.make(stack.compilation, stack, depModule, filesystem, config.emitFile);
+                            }else{
+                                throw new Error(`Not found stack by '${depModule.getName()}'`);
+                            }
+                        }else{
+                            this.make(compilation, compilation.stack, depModule, filesystem, config.emitFile);
+                        }
                     }
-                }
-            };
+                });
+            });
 
-            const builderAll=(module)=>{
-                if( !buildModules.has(module) ){
-                    buildModules.add(module);
-                    builder(module);
-                    this.getDependencies(module).forEach( depModule=>{
-                        builderAll(depModule);
-                    });
-                }
-            }
-
-            compilation.completed(this.name,false);
-            if( compilation.modules.size >0 ){
-                compilation.modules.forEach( module =>builderAll(module) );
-            }else{
-                this.emitContent(filesystem, compilation.file, this.make(compilation.stack), compilation.file, config.emitFile, true);
-            }
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
             });
+
             compilation.completed(this.name,true);
             done();
+
         }catch(e){
             done(e);
+        }
+    }
+
+    make(compilation, stack, module, filesystem, emitFile){
+        if(compilation.completed(this.name))return;
+        const ast = this.createAstToken(stack);
+        const gen = ast ? this.createGenerator(ast, compilation) : null;
+        const isRoot = compilation.stack === stack;
+        if( gen ){
+            const file = isRoot ? compilation.file : this.getModuleFile( module );
+            const content = gen.toString();
+            if( content ){
+                filesystem.mkdirpSync( path.dirname(file) );
+                filesystem.writeFileSync(file, content );
+                if( emitFile ){
+                    const output = isRoot ? this.getOutputAbsolutePath(compilation.file) : this.getOutputAbsolutePath(module);
+                    this.emitFile( output, content );
+                    if( gen.sourceMap ){
+                        this.emitFile( output+'.map', gen.sourceMap.toString() );
+                    }
+                }
+            } 
+        }
+
+        if( isRoot ){
+            compilation.modules.forEach( module=>{
+                this.emitAssets(module.assets, filesystem, module, emitFile)
+            });
+            this.emitAssets(compilation.assets, filesystem, compilation, emitFile);
+        }else if( module ){
+            this.emitAssets(module.assets, filesystem, module, emitFile);
         }
     }
 
@@ -128,6 +149,15 @@ class Builder extends Token{
         const compiler    = this.compiler;
         const config      = this.getConfig();
         const filesystem  = compiler.getOutputFileSystem( this.name );
+        const make = (compilation, stack, module, file, flag )=>{
+            const ast = this.createAstToken(stack);
+            if( ast ){
+                this.emitContent(filesystem, module, this.createGenerator(ast,compilation), file, config.emitFile, flag);
+                if( module ){
+                    this.emitAssets(filesystem, module, config.emitFile);
+                }
+            }
+        }
         if( compilation.completed(this.name) ){
             return done();
         }
@@ -138,17 +168,14 @@ class Builder extends Token{
                     if( this.isNeedBuild(module) ){
                         const stack = compilation.getStackByModule(module);
                         if( stack ){
-                            const content = this.genCode(stack);
-                            const file    = this.getModuleFile(module);
-                            this.emitContent(filesystem, module, content, file, config.emitFile);
-                            this.emitAssets(filesystem,module,config.emitFile);
+                            make(stack.compilation, stack, module, this.getModuleFile(module) );
                         }else{
                             throw new Error(`Not found stack by '${module.getName()}'`);
                         }
                     }
                 });
             }else{
-                this.emitContent(filesystem, compilation, this.make(compilation.stack), compilation.file, config.emitFile, true); 
+                make(compilation, compilation.stack, null, compilation.file, true);
             }
             compilation.completed(this.name,true);
             done();
@@ -168,10 +195,10 @@ class Builder extends Token{
     isUsed(module, ctxModule){
         ctxModule = ctxModule || this.module;
         if( !module )return false;
-        if( moduleDependencies.has(ctxModule) && moduleDependencies.get(ctxModule).has(module) ){
+        if( ctxModule && moduleDependencies.has(ctxModule) && moduleDependencies.get(ctxModule).has(module) ){
             return true;
         }
-        return module.compilation === this.compilation || module.compilation.isMain;
+        return module.compilation === this.compilation;
     }
 
     getModuleById( id, flag=false ){
@@ -487,14 +514,21 @@ class Builder extends Token{
         return false;
     }
 
-    genCode(stack){
-        const token = this.createToken( stack );
-        if( token ){
-            const gen = new Generator(this.compilation.file);
-            gen.make( token );
-            return gen.toString();
+    createAstToken( stack ){
+        return this.createToken( stack );
+    }
+
+    createGenerator(ast, compilation ){
+        var sourceMap = this.getConfig('sourceMap');
+        if( sourceMap ){
+            if( sourceMap === true ){
+                sourceMap = new SourceMap.SourceMapGenerator();
+                sourceMap.setSourceContent(compilation.file, compilation.source);
+            }
         }
-        return null;
+        const gen = new Generator(compilation.file, sourceMap);
+        gen.make( ast );
+        return gen;
     }
 
 }

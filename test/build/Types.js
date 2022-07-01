@@ -1,5 +1,5 @@
 import Class from "./core/Class.js";
-function Types(){}
+function (){}
 const methods = {
 	ADDRESS:{
 		m:3,
@@ -22,9 +22,9 @@ const methods = {
 		value:"NAME"
 	}
 }
-Class.creator(9,Types,{
+Class.creator(10,Types,{
 	id:1,
 	name:"Types",
 	methods:methods
 });
-module.exports=Types;
+export default Types;

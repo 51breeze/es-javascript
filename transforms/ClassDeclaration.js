@@ -32,20 +32,10 @@ function createClassNode(ctx,stack){
         return !impModule.isDeclaratorModule && impModule.isInterface;
     });
 
-    this.imports = stack.imports.filter( 
-        item=>{
-            const dep = item.getModuleById( item.value() );
-            if( node.isActiveForModule( dep ) ){
-                node.addDepend( dep );
-                return true;
-            }
-            return false;
-        }
-    ).map( item=>node.createToken(item) );
-
     node.methods = [];
     node.members = [];
     node.construct = null;
+    var mainEnterMethods = null;
     if( stack.isClassDeclaration ){
         const cache1 = new Map();
         const cache2 = new Map();
@@ -79,6 +69,18 @@ function createClassNode(ctx,stack){
                 node.construct = child;
             }
             else{
+
+                if(static && child.modifier ==="public" &&  item.isMethodDefinition && item.isEnterMethod && !mainEnterMethods ){
+                    mainEnterMethods = ctx.createStatementNode(ctx.createCalleeNode(
+                        ctx.createMemberNode([
+                            ctx.createIdentifierNode(module.id),
+                            ctx.createIdentifierNode(child.key.value)
+                        ])
+                    ));  
+                    const program = ctx.getParentByType('Program');
+                    program.afterBody.push( mainEnterMethods );
+                }
+
                 refs.push( child );
             }
         });
@@ -126,11 +128,11 @@ function createClassNode(ctx,stack){
     }
 
     if( !node.construct && (node.privateProperties.length + node.initProperties.length) > 0){
-        node.construct = createDefaultConstructMethod(node, module.id, node.privateProperties, node.initProperties);
+        node.construct = createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties);
     }
 
-    if( !node.construct && stack.isInterfaceDeclaration ){
-        node.construct = createDefaultConstructMethod(node, module.id);
+    if( !node.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration) ){
+        node.construct = createDefaultConstructMethod(node, module);
     }
 
     return node;
@@ -151,9 +153,28 @@ function createConstructInitPrivateObject(ctx, privateName, privateProperties){
     )
 }
 
-function createDefaultConstructMethod(ctx, name, privateProperties, initProperties){
+function createDefaultConstructMethod(ctx, module, privateProperties, initProperties){
     const privateName = ctx.privateName;
-    return ctx.createMethodNode( ctx.createIdentifierNode(name), (ctx)=>{
+    const inherit = ctx.inherit;
+    return ctx.createMethodNode( ctx.createIdentifierNode(module.id), (ctx)=>{
+        if( inherit ){
+            const se = ctx.createNode('SuperExpression');
+            se.value =  ctx.getModuleReferenceName(module.inherit);
+            ctx.body.push( 
+                ctx.createStatementNode(
+                    ctx.createCalleeNode( 
+                        ctx.createMemberNode(
+                            [
+                                se,
+                                ctx.createIdentifierNode('call')
+                            ]
+                        ),[
+                            ctx.createThisNode()
+                        ]
+                    )
+                )
+            );
+        }
         if( privateProperties && privateProperties.length && privateName ){
             ctx.body.push(
                 createConstructInitPrivateObject(ctx, privateName, privateProperties)
@@ -233,12 +254,16 @@ function createClassDescriptor(ctx, module, _private, methods, members, imps, in
 }
 
 function createExportExpression(ctx, id ){
-    return ctx.createStatementNode( 
-        ctx.createAssignmentNode(
-            ctx.createMemberNode(['module','exports']), 
-            ctx.createIdentifierNode(id) 
-        )
-    );
+
+    const node = ctx.createNode('ExportDefaultDeclaration');
+    node.declaration = node.createIdentifierNode( id );
+    return node;
+    // return ctx.createStatementNode( 
+    //     ctx.createAssignmentNode(
+    //         ctx.createMemberNode(['module','exports']), 
+    //         ctx.createIdentifierNode(id) 
+    //     )
+    // );
 }
 
 function createStatementMember(ctx, name, members){
@@ -256,11 +281,16 @@ function createStatementMember(ctx, name, members){
     );
 }
 
-function createDependencies(ctx, module){
+function createDependencies(ctx, module, multiModule=false, mainModule=null){
     const items = [];
     const dependencies = ctx.builder.getDependencies(module);
+    var excludes = null;
+    if( multiModule && mainModule && mainModule !== module ){
+        excludes = ctx.builder.getDependencies(mainModule);
+        excludes.push( mainModule );
+    }
     dependencies.forEach( depModule =>{
-        if( ctx.isActiveForModule( depModule ) ){
+        if( ctx.isActiveForModule( depModule ) && !(excludes && excludes.includes( depModule )) ){
             const name = ctx.builder.getModuleReferenceName(depModule, module);
             const source = ctx.builder.getModuleImportSource(depModule, module);
             items.push( ctx.createImportNode( source, [[name]]) );
@@ -269,9 +299,19 @@ function createDependencies(ctx, module){
     return items;
 }
 
-function createModuleAssets(ctx, module){
+function createModuleAssets(ctx, module, multiModule=false, mainModule=null){
+    var excludes = null;
+    if( multiModule && mainModule && mainModule !== module ){
+        excludes = ctx.builder.getModuleAssets(mainModule);
+    }
     const assets = ctx.builder.getModuleAssets( module ).map( item=>{
-        return ctx.createImportNode( item.source, [[item.imported,item.local]]);
+        if( excludes ){
+           const res = excludes.find( value=>value.source ===item.source && item.local===value.local );
+           if( res ){
+                return;
+           }
+        }
+        return ctx.createImportNode(item.source, item.local ? [[item.local,item.imported]] : []);
     });
     return assets;
 }
@@ -280,8 +320,15 @@ function ClassDeclaration(ctx,stack,type){
     const classNode = createClassNode(ctx,stack,type);
     const module = stack.module;
     const body = classNode.body;
-    createDependencies(classNode, module).forEach( item=>body.push( item ) );
-    createModuleAssets(classNode, module).forEach( item=>body.push( item ) );
+    const multiModule = stack.compilation.modules.size > 1;
+    var mainModule = module;
+    if( multiModule ){
+        mainModule = Array.from( stack.compilation.modules.values() )[0];
+    }
+
+    createDependencies(classNode, module, multiModule, mainModule).forEach( item=>body.push( item ) );
+    createModuleAssets(classNode, module, multiModule, mainModule).forEach( item=>body.push( item ) );
+
     classNode.beforeBody.forEach( item=>item && body.push( item ) );
     body.push( classNode.construct );
     body.push( createStatementMember(classNode,'methods', classNode.methods ) );
@@ -296,7 +343,26 @@ function ClassDeclaration(ctx,stack,type){
         classNode.isActiveForModule(module.inherit) ? module.inherit : null
     ));
     classNode.afterBody.forEach( item=>item && body.push( item ) );
-    body.push( createExportExpression(classNode, module.id ) );
+
+    if( multiModule ){
+        if( mainModule === module ){
+            body.push( createExportExpression(classNode, module.id ) );
+        }else{
+            const parenthes = ctx.createNode("ParenthesizedExpression");
+            parenthes.expression = parenthes.createCalleeNode(ctx.createFunctionNode((ctx)=>{
+                classNode.parent = ctx;
+                ctx.body.push( classNode );
+                const stat = ctx.createNode('ReturnStatement');
+                stat.argument = stat.createIdentifierNode( module.id  );
+                ctx.body.push(stat);
+            }));
+            return ctx.createDeclarationNode('const',[
+                ctx.createDeclaratorNode( module.id,  parenthes)
+            ]);
+        }
+    }else{
+        body.push( createExportExpression(classNode, module.id ) );
+    }
     return classNode;
 }
 

@@ -93,7 +93,7 @@ const members = {
 		value:function addressNamesss(){}
 	}
 }
-Class.creator(6,Person,{
+Class.creator(5,Person,{
 	id:1,
 	name:"Person",
 	dynamic:true,
@@ -101,4 +101,4 @@ Class.creator(6,Person,{
 	imps:[TestInterface],
 	members:members
 });
-module.exports=Person;
+export default Person;

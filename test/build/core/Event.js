@@ -236,9 +236,9 @@ Event.fix.hooks[ Event.READY ]=function (listener, dispatcher){
     id = window.setInterval(handle,50);
     return true;
 }
-Class.creator(4,Event,{
+Class.creator(8,Event,{
 	id:1,
 	name:"Event",
 	dynamic:true
 });
-module.exports=Event;
+export default Event;

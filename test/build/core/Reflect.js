@@ -246,8 +246,8 @@ var _Reflect = (function(_Reflect){
     return Reflect;
 
 }(Reflect));
-Class.creator(1,Reflect,{
+Class.creator(2,Reflect,{
 	id:1,
 	name:"Reflect"
 });
-module.exports=_Reflect;
+export default _Reflect;

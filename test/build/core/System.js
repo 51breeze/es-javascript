@@ -204,8 +204,8 @@ System.getEventDispatcher=function getEventDispatcher(){
      }
      return null;
  };
-Class.creator(2,System,{
+Class.creator(4,System,{
 	id:1,
 	name:"System"
 });
-module.exports=System;
+export default System;

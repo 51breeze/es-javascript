@@ -1,4 +1,5 @@
 import Class from "./core/Class.js";
+function Request(){}
 const methods = {
 	_init:{
 		m:1,
@@ -33,9 +34,9 @@ const methods = {
 		}
 	}
 }
-Class.creator(5,Request,{
+Class.creator(3,Request,{
 	id:1,
 	name:"Request",
 	methods:methods
 });
-module.exports=Request;
+export default Request;

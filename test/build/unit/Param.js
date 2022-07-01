@@ -1,4 +1,5 @@
 import Class from "./../core/Class.js";
+function Param(){}
 const members = {
 	start:{
 		m:3,
@@ -40,10 +41,10 @@ const members = {
 		}
 	}
 }
-Class.creator(8,Param,{
+Class.creator(9,Param,{
 	id:1,
 	ns:"unit",
 	name:"Param",
 	members:members
 });
-module.exports=Param;
+export default Param;

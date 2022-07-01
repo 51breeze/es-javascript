@@ -1,8 +1,11 @@
 module.exports = function(ctx,stack){
     const node = ctx.createNode(stack);
     node.body = [];
+    node.afterBody = [];
     stack.body.forEach( item=>{
-        node.body.push( node.createToken(item) );
+        if( item.isClassDeclaration || item.isDeclaratorDeclaration || item.isEnumDeclaration || item.isInterfaceDeclaration || item.isPackageDeclaration ){
+            node.body.push( node.createToken(item) );
+        }
     });
     if( stack.externals.length > 0 ){
         const parenthes = ctx.createNode('ParenthesizedExpression');
@@ -15,5 +18,9 @@ module.exports = function(ctx,stack){
         external.comment = '/*externals code*/';
         node.body.push( external );
     }
+    node.afterBody.forEach( item=>{
+        node.body.push( item );
+    });
+    delete node.afterBody;
     return node;
 }
