@@ -1,4 +1,4 @@
-import Class from "./core/Class.js";
+const Class = require("./core/Class.js");
 function Request(){}
 const methods = {
 	_init:{
@@ -34,9 +34,9 @@ const methods = {
 		}
 	}
 }
-Class.creator(3,Request,{
+Class.creator(2,Request,{
 	id:1,
 	name:"Request",
 	methods:methods
 });
-export default Request;
+module.exports=Request;

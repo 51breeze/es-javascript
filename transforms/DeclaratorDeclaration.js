@@ -39,9 +39,9 @@ module.exports = function(ctx, stack, type){
     ClassDeclaration.createModuleAssets(node, module).forEach( item=>body.push( item ) );
     body.push( node.createChunkNode( content ) );
     if( polyfillModule.id !== 'Class' && polyfillModule.createClass !== false ){
-        body.push( ClassDeclaration.createClassDescriptor(node, module, null, null, null, null, node.inherit) );
+        body.push( ClassDeclaration.createClassDescriptor(node, module, null, null, null, null, node.inherit, polyfillModule.export) );
     }
-    body.push( ClassDeclaration.createExportExpression(node, polyfillModule.export) );
+    body.push( ClassDeclaration.createExportDeclaration(node, polyfillModule.export) );
     return node;
 
 }

@@ -1,15 +1,14 @@
-import Reflect from "./core/Reflect.js";
-import Http from "./Request.js";
-import System from "./core/System.js";
-import Person from "./Person.js";
-import TestInterface from "./com/TestInterface.js";
-import EventDispatcher from "./core/EventDispatcher.js";
-import Event from "./core/Event.js";
-import Param from "./unit/Param.js";
-import Types from "./Types.js";
-import Class from "./core/Class.js";
-import "./assets/style.css";
-import img from "./assets/ss.css";
+const Reflect = require("./core/Reflect.js");
+const Http = require("./Request.js");
+const System = require("./core/System.js");
+const Person = require("./Person.js");
+const TestInterface = require("./com/TestInterface.js");
+const EventDispatcher = require("./core/EventDispatcher.js");
+const Event = require("./core/Event.js");
+const Param = require("./unit/Param.js");
+const Types = require("./Types.js");
+const Class = require("./core/Class.js");
+const Reflect1 = Reflect;
 const _private = Symbol("private");
 function Test(name,age){
 	Person.call(this,name);
@@ -17,15 +16,14 @@ function Test(name,age){
 		value:{
 			bbss:'bbss',
 			age:40,
-			img:img,
 			len:5,
 			currentIndex:0
 		}
 	});
 	Person.prototype.setType.call(this,'1');
 	this.target;
-	Http();
-	const map = Map();
+	new Http();
+	const map = new Map();
 	map.set('name',[]);
 	map.forEach((item)=>{});
 }
@@ -63,7 +61,7 @@ const methods = {
 		m:3,
 		id:3,
 		value:function getObject(){
-			return Test('1','2');
+			return new Test('1','2');
 		}
 	},
 	uuName:{
@@ -84,7 +82,7 @@ const methods = {
 		m:3,
 		id:3,
 		value:function main(){
-			(Test('Test')).start();
+			(new Test('Test')).start();
 		}
 	}
 }
@@ -99,12 +97,6 @@ const members = {
 		m:1,
 		id:2,
 		value:40
-	},
-	img:{
-		m:1,
-		id:1,
-		writable:true,
-		value:img
 	},
 	start:{
 		m:3,
@@ -138,7 +130,7 @@ const members = {
 				expect(Test.getClass().person).toBe(Person);
 			});
 			it("'new (Test.getClass().person)('')' should is true",()=>{
-				const o = (Test.getClass().person)('name');
+				const o = new (Test.getClass().person)('name');
 				expect(o instanceof Person).toBeTrue();
 			});
 			it("'this.bbss=\"666666\"' should is '666666' ",()=>{
@@ -190,13 +182,13 @@ const members = {
 				expect(res).toEqual([1,"s","test"]);
 			});
 			it("test Event Dispatcher",()=>{
-				const d = EventDispatcher();
+				const d = new EventDispatcher();
 				d.addEventListener('eee',(e)=>{
 					e.data={
 						name:'event'
 					}
 				});
-				const event = Event('eee');
+				const event = new Event('eee');
 				d.dispatchEvent(event);
 				expect({
 					name:'event'
@@ -204,20 +196,20 @@ const members = {
 			});
 			it("test System.getQualifiedObjectName",()=>{
 				expect('Test').toEqual(System.getQualifiedObjectName(this));
-				expect('String').toEqual(System.getQualifiedObjectName(String('')));
+				expect('String').toEqual(System.getQualifiedObjectName(new String('')));
 				expect('Test').toEqual(System.getQualifiedClassName(Test));
 				expect('[Class Test]').toEqual(Test + '');
 			});
-			Test.prototype.testEnumerableProperty.call.this();
-			Test.prototype.testComputeProperty.call.this();
-			Test.prototype.testLabel.call.this();
-			Test.prototype.testEnum.call.this();
-			Test.prototype.testIterator.call.this();
-			Test.prototype.testGenerics.call.this();
-			Test.prototype.testAwait.call.this();
+			this.testEnumerableProperty();
+			this.testComputeProperty();
+			this.testLabel();
+			this.testEnum();
+			this.testIterator();
+			this.testGenerics();
+			this.testAwait();
 			this.testTuple();
 			this.next();
-			var param = Param();
+			var param = new Param();
 			param.start();
 		}
 	},
@@ -280,7 +272,7 @@ const members = {
 		m:1,
 		id:3,
 		value:function testEnum(){
-			const Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name");
+			var Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name");
 			const s = Types;
 			const t = Type.address;
 			const b = Types.ADDRESS;
@@ -338,17 +330,17 @@ const members = {
 				expect(cccww.age).toBe(30);
 			});
 			it("class Generics",()=>{
-				let obj = Test.prototype.getTestObject.call.this(true);
+				let obj = this.getTestObject(true);
 				var bd = obj;
 				var bs = obj.getNamess(1);
 				expect(Reflect1.call(Test,bs,"toFixed",[2])).toBe("1.00");
 			});
-			var bsint = Test.prototype.getTestGenerics.call.this('sssss');
-			var bsstring = Test.prototype.getTestGenerics.call.this("ssss",'age');
+			var bsint = this.getTestGenerics('sssss');
+			var bsstring = this.getTestGenerics("ssss",'age');
 			var bd = bsstring;
-			let obj = Test.prototype.getTestObject.call.this(true);
+			let obj = this.getTestObject(true);
 			var bsddd = obj.getNamess(1);
-			var sss = Test.prototype.getClassTestGenerics.call.obj(1,1);
+			var sss = obj.getClassTestGenerics(1,1);
 			var type = this;
 			type instanceof Number;
 			System.is(type,Number);
@@ -375,16 +367,16 @@ const members = {
 				this['dynamic']='[1]';
 				var v16 = this['dynamic'];
 				expect('[1]').toEqual(v16);
-				var bh = Test.prototype.testKeyof.call.this(bt,'a');
-				var fs = Test.prototype.testKeyof.call.this(bt,'b');
+				var bh = this.testKeyof(bt,'a');
+				var fs = this.testKeyof(bt,'b');
 				expect('sss').toEqual(bh);
 				expect(99).toEqual(fs);
 				var bfd = {
 					name:'6699'
 				}
-				var fdb = Test.prototype.testKeyof.call.this(bfd,'name');
+				var fdb = this.testKeyof(bfd,'name');
 				expect('6699').toEqual(fdb);
-				var getNamessFun = Test.prototype.testKeyof.call.this(this,'getNamess');
+				var getNamessFun = this.testKeyof(this,'getNamess');
 				expect(this.getNamess).toEqual(getNamessFun);
 				var bdfs4 = getNamessFun('sssss');
 			});
@@ -401,7 +393,7 @@ const members = {
 				var b10 = tNames;
 				var b11 = b10();
 				expect(1).toEqual(1);
-				var bst9 = Test('111','11111');
+				var bst9 = new Test('111','11111');
 				expect('111').toEqual(bst9.getNamess('111'));
 			});
 		}
@@ -425,7 +417,7 @@ const members = {
 		m:1,
 		id:3,
 		value:function getTestGenerics(name,age){
-			var t = Test('name',name);
+			var t = new Test('name',name);
 			return age;
 		}
 	},
@@ -435,7 +427,7 @@ const members = {
 		value:function getTestObject(flag){
 			const factor = ()=>{
 				const o = {}
-				o.test=Test('name',1);
+				o.test=new Test('name',1);
 				o.name="test";
 				return o.test;
 			}
@@ -601,7 +593,7 @@ const members = {
 		m:3,
 		id:3,
 		value:function tetObject(){
-			var t = Test('1',1);
+			var t = new Test('1',1);
 			var b = t;
 			var ii = {
 				bb:b
@@ -638,7 +630,7 @@ const members = {
 			}
 			b=this.avg;
 			const dd = ()=>{
-				var bs = Promise((resolve,reject)=>{
+				var bs = new Promise((resolve,reject)=>{
 					setTimeout(()=>{
 						resolve([]);
 					},100);
@@ -652,7 +644,7 @@ const members = {
 		m:3,
 		id:3,
 		value:function fetchApi(name,data,delay){
-			return Promise((resolve,reject)=>{
+			return new Promise((resolve,reject)=>{
 				setTimeout(()=>{
 					resolve([name,data]);
 				},delay);
@@ -744,7 +736,7 @@ const members = {
 				i.method('',1);
 				return b;
 			}
-			const person = Person('');
+			const person = new Person('');
 			name(person);
 			const bbb = name(person);
 			name(person);
@@ -795,7 +787,7 @@ const members = {
 			if(index < 5){
 				try{
 					if(index == 4){
-						throw Error("Invalid index " + (index) + "");
+						throw new Error("Invalid index " + (index) + "");
 					}
 					return index == 1 ? await this.fetchApi("one-9999",1,800) : await this.fetchApi("two-9999",2,300);
 				}catch(e){
@@ -824,24 +816,5 @@ Class.creator(0,Test,{
 	methods:methods,
 	members:members
 });
-export default Test;
-const Test2 = (function(){
-	function Test2(){
-		Test.call(this);
-	}
-	const members = {
-		test:{
-			m:3,
-			id:3,
-			value:function test(){}
-		}
-	}
-	Class.creator(1,Test2,{
-		id:1,
-		name:"Test2",
-		inherit:Test,
-		members:members
-	});
-	return Test2;
-}());
+module.exports=Test;
 Test.main();

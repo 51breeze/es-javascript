@@ -31,10 +31,10 @@ module.exports = function(ctx,stack,type){
         node.properties = stack.properties.map( item=>node.createToken(item) );
         ClassDeclaration.createDependencies(node,module).forEach( item=> node.body.push(item) );
         ClassDeclaration.createModuleAssets(node,module).forEach( item=> node.body.push(item) );
-        node.body.push( ClassDeclaration.createDefaultConstructMethod(node,module.id) );
+        node.body.push( node.construct );
         node.body.push( createStatementMember(node, 'methods', node.properties) );
         node.body.push( ClassDeclaration.createClassDescriptor(node, module,  null, node.properties, null, null, node.inherit) );
-        node.body.push( ClassDeclaration.createExportExpression(node, module.id ) );
+        node.body.push( ClassDeclaration.createExportDeclaration(node, module.id ) );
         return node;
     }else{
         const name = stack.value();
@@ -54,7 +54,7 @@ module.exports = function(ctx,stack,type){
             left.computed = true;
             return ctx.createAssignmentNode(left, ctx.createLiteralNode(item.key.value(), void 0, item.key));
         });
-        return ctx.createDeclarationNode('const', [
+        return ctx.createDeclarationNode('var', [
             ctx.createDeclaratorNode(name, ctx.createParenthesNode(ctx.createSequenceNode([init, ...properties])))
         ]);
     }

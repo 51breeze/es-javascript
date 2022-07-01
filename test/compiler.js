@@ -18,7 +18,7 @@ class Creator {
         compiler.initialize();
         this._compiler = compiler;
         this.plugin = compiler.getPlugin( plugin );
-        this.plugin.config({pack:false,emitFile:true,module:"commonjs"});
+        this.plugin.config({pack:false,emitFile:true,module:"cjs"});
     }
 
     get compiler(){

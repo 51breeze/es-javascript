@@ -393,6 +393,8 @@ class Generator{
                 }
             break;
             case "NewExpression" :
+                this.withString('new');
+                this.withSpace();
                 this.make(token.callee);
                 this.withParenthesL();
                 this.withSequence( token.arguments );

@@ -1,5 +1,5 @@
-import Class from "./Class.js";
-import Event from "./Event.js";
+const Class = require("./Class.js");
+const Event = require("./Event.js");
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -213,8 +213,8 @@ Listener.prototype.type=null;
 Listener.prototype.proxyHandle = null;
 Listener.prototype.proxyTarget = null;
 Listener.prototype.proxyType = null;
-Class.creator(7,EventDispatcher,{
+Class.creator(6,EventDispatcher,{
 	id:1,
 	name:"EventDispatcher"
 });
-export default EventDispatcher;
+module.exports=EventDispatcher;

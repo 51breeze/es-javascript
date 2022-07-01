@@ -1,11 +1,11 @@
-import Class from "./../core/Class.js";
+const Class = require("./../core/Class.js");
 function Param(){}
 const members = {
 	start:{
 		m:3,
 		id:3,
 		value:function start(){
-			const en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age");
+			var en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age");
 			var b = en.age;
 			var result = this.getList(en,[9,5]);
 			it("test getList",()=>{
@@ -41,10 +41,10 @@ const members = {
 		}
 	}
 }
-Class.creator(9,Param,{
+Class.creator(8,Param,{
 	id:1,
 	ns:"unit",
 	name:"Param",
 	members:members
 });
-export default Param;
+module.exports=Param;

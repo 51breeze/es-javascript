@@ -1,5 +1,5 @@
-import Class from "./core/Class.js";
-function (){}
+const Class = require("./core/Class.js");
+function Types(){}
 const methods = {
 	ADDRESS:{
 		m:3,
@@ -22,9 +22,9 @@ const methods = {
 		value:"NAME"
 	}
 }
-Class.creator(10,Types,{
+Class.creator(9,Types,{
 	id:1,
 	name:"Types",
 	methods:methods
 });
-export default Types;
+module.exports=Types;

@@ -1,5 +1,5 @@
-import Class from "./Class.js";
-import System from "./System.js";
+const Class = require("./Class.js");
+const System = require("./System.js");
 /*
  * EaseScript
  * Copyright © 2017 EaseScript All rights reserved.
@@ -246,8 +246,8 @@ var _Reflect = (function(_Reflect){
     return Reflect;
 
 }(Reflect));
-Class.creator(2,Reflect,{
+Class.creator(1,_Reflect,{
 	id:1,
 	name:"Reflect"
 });
-export default _Reflect;
+module.exports=_Reflect;

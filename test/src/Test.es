@@ -11,7 +11,7 @@ import unit.Param;
 import Request as Http;
 
 //@Embed(Types='img.png');
-@Embed('assets/style.css');
+//@Embed('assets/style.css');
 
 /**
 * Test a class
@@ -76,8 +76,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     */
     private const age:int=40;
 
-    @Embed('./assets/ss.css');
-    private img:string;
+    //@Embed('./assets/ss.css');
+    //private img:string;
     
     /**
     * a constructor method
@@ -830,15 +830,6 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
 
 }
-
-
-
-class Test2 extends Test<string,string> {
-     test(){
-
-     }
-}
-
 
 
 

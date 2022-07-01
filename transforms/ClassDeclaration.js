@@ -131,7 +131,7 @@ function createClassNode(ctx,stack){
         node.construct = createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties);
     }
 
-    if( !node.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration) ){
+    if( !node.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration || stack.isEnumDeclaration) ){
         node.construct = createDefaultConstructMethod(node, module);
     }
 
@@ -213,7 +213,7 @@ function createMemberDescriptor(ctx, key, node, modifier, kind){
     return ctx.createPropertyNode(key, ctx.createObjectNode( properties ));
 }
 
-function createClassDescriptor(ctx, module, _private, methods, members, imps, inherit){
+function createClassDescriptor(ctx, module, _private, methods, members, imps, inherit, exportName){
     const description = [];
     description.push(ctx.createPropertyNode('id', ctx.createLiteralNode( Constant.DECLARE_CLASS ) ));
     const ns = module.namespace.toString();
@@ -244,26 +244,13 @@ function createClassDescriptor(ctx, module, _private, methods, members, imps, in
     const id = ctx.builder.getIdByModule(module);
     const args = [
         ctx.createLiteralNode(id), 
-        ctx.createIdentifierNode(module.id), 
+        ctx.createIdentifierNode( exportName || module.id), 
         ctx.createObjectNode(description)
     ]
     if( module && module.isFragment ){
-        args[0] = 'null';
+        args[0] = ctx.createIdentifierNode('null');
     }
     return ctx.createStatementNode( ctx.createCalleeNode( ctx.createMemberNode([ctx.checkRefsName('Class'),'creator']), args) );
-}
-
-function createExportExpression(ctx, id ){
-
-    const node = ctx.createNode('ExportDefaultDeclaration');
-    node.declaration = node.createIdentifierNode( id );
-    return node;
-    // return ctx.createStatementNode( 
-    //     ctx.createAssignmentNode(
-    //         ctx.createMemberNode(['module','exports']), 
-    //         ctx.createIdentifierNode(id) 
-    //     )
-    // );
 }
 
 function createStatementMember(ctx, name, members){
@@ -293,7 +280,7 @@ function createDependencies(ctx, module, multiModule=false, mainModule=null){
         if( ctx.isActiveForModule( depModule ) && !(excludes && excludes.includes( depModule )) ){
             const name = ctx.builder.getModuleReferenceName(depModule, module);
             const source = ctx.builder.getModuleImportSource(depModule, module);
-            items.push( ctx.createImportNode( source, [[name]]) );
+            items.push( createImportDeclaration(ctx, source, [[name]]) );
         }
     });
     return items;
@@ -311,9 +298,48 @@ function createModuleAssets(ctx, module, multiModule=false, mainModule=null){
                 return;
            }
         }
-        return ctx.createImportNode(item.source, item.local ? [[item.local,item.imported]] : []);
+        return createImportDeclaration(ctx, item.source, item.local ? [[item.local,item.imported]] : []);
     });
     return assets;
+}
+
+function createImportDeclaration(ctx, source, specifiers){
+    const type = ctx.builder.getConfig('module');
+    if( type ==='cjs'){
+        const specifier = specifiers[0];
+        if( specifier ){
+            const name = specifier[0];
+            return ctx.createDeclarationNode('const',[
+                ctx.createDeclaratorNode( name,  ctx.createCalleeNode( 
+                    ctx.createIdentifierNode('require'),
+                    [ctx.createLiteralNode( source )]
+                ))
+            ]);
+        }else{
+            return ctx.createStatementNode( ctx.createCalleeNode( 
+                ctx.createIdentifierNode('require'),
+                [ctx.createLiteralNode( source )]
+            ));
+        }
+    }else{
+        return ctx.createImportNode( source, specifiers);
+    }
+}
+
+function createExportDeclaration(ctx, id ){
+    const type = ctx.builder.getConfig('module');
+    if( type ==='cjs'){
+        return ctx.createStatementNode( 
+            ctx.createAssignmentNode(
+                ctx.createMemberNode(['module','exports']), 
+                ctx.createIdentifierNode(id) 
+            )
+        );   
+    }else{
+        const node = ctx.createNode('ExportDefaultDeclaration');
+        node.declaration = node.createIdentifierNode( id );
+        return node;
+    }
 }
 
 function ClassDeclaration(ctx,stack,type){
@@ -346,7 +372,7 @@ function ClassDeclaration(ctx,stack,type){
 
     if( multiModule ){
         if( mainModule === module ){
-            body.push( createExportExpression(classNode, module.id ) );
+            body.push( createExportDeclaration(classNode, module.id ) );
         }else{
             const parenthes = ctx.createNode("ParenthesizedExpression");
             parenthes.expression = parenthes.createCalleeNode(ctx.createFunctionNode((ctx)=>{
@@ -361,7 +387,7 @@ function ClassDeclaration(ctx,stack,type){
             ]);
         }
     }else{
-        body.push( createExportExpression(classNode, module.id ) );
+        body.push( createExportDeclaration(classNode, module.id ) );
     }
     return classNode;
 }
@@ -370,7 +396,7 @@ ClassDeclaration.createClassNode = createClassNode;
 ClassDeclaration.createDefaultConstructMethod = createDefaultConstructMethod;
 ClassDeclaration.createMemberDescriptor = createMemberDescriptor;
 ClassDeclaration.createClassDescriptor = createClassDescriptor;
-ClassDeclaration.createExportExpression = createExportExpression;
+ClassDeclaration.createExportDeclaration = createExportDeclaration;
 ClassDeclaration.createStatementMember = createStatementMember;
 ClassDeclaration.createDependencies = createDependencies;
 ClassDeclaration.createModuleAssets = createModuleAssets;

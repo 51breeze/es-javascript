@@ -75,4 +75,4 @@ Class.CONSTANT ={
     PROPERTY_ENUM_KEY:5,
     PROPERTY_ENUM_VALUE:6,
 }
-export default Class;
+module.exports=Class;

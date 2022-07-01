@@ -1,5 +1,5 @@
-import Class from "./core/Class.js";
-import TestInterface from "./com/TestInterface.js";
+const Class = require("./core/Class.js");
+const TestInterface = require("./com/TestInterface.js");
 const _private = Symbol("private");
 function Person(name){
 	Object.call(this);
@@ -93,7 +93,7 @@ const members = {
 		value:function addressNamesss(){}
 	}
 }
-Class.creator(5,Person,{
+Class.creator(4,Person,{
 	id:1,
 	name:"Person",
 	dynamic:true,
@@ -101,4 +101,4 @@ Class.creator(5,Person,{
 	imps:[TestInterface],
 	members:members
 });
-export default Person;
+module.exports=Person;

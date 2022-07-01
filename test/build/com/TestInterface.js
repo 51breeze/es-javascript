@@ -1,9 +1,9 @@
-import Class from "./../core/Class.js";
-function (){}
-Class.creator(6,TestInterface,{
+const Class = require("./../core/Class.js");
+function TestInterface(){}
+Class.creator(5,TestInterface,{
 	id:1,
 	ns:"com",
 	name:"TestInterface",
 	dynamic:true
 });
-export default TestInterface;
+module.exports=TestInterface;
