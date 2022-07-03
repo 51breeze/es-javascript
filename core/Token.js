@@ -68,19 +68,31 @@ class Token extends events.EventEmitter {
         }
     }
 
-    createFunctionNode( createChildFun, stack){
+    createFunctionNode( createChildFun, params){
         const node = this.createNode('FunctionExpression');
-        node.stack = stack;
         const block = node.createNode('BlockStatement');
         block.body = [];
         node.params = [];
+        if(params){
+            params.forEach( item=>{
+                item.parent = node;
+                node.params.push( item );
+            });
+        }
         node.body = block;
         createChildFun( block );
         return node;
     }
 
-    createMethodNode(key, createChildFun, stack){
-        const node = this.createFunctionNode(createChildFun, stack);
+    createReturnNode( argument ){
+        const node = this.createNode('ReturnStatement');
+        node.argument = argument;
+        argument.parent = node;
+        return node;
+    }
+
+    createMethodNode(key, createChildFun, params){
+        const node = this.createFunctionNode(createChildFun, params);
         node.type = "MethodDefinition";
         if( key ){
             node.key = key instanceof Token ? key : node.createIdentifierNode(key);
@@ -106,10 +118,12 @@ class Token extends events.EventEmitter {
         const object = this.createNode('ArrayExpression');
         object.stack = stack;
         object.elements = [];
-        elements.forEach( (value)=>{
-            value.parent = object;
-            object.elements.push( value );
-        });
+        if(elements){
+            elements.forEach( (value)=>{
+                value.parent = object;
+                object.elements.push( value );
+            });
+        }
         return object;
     }
 
@@ -231,7 +245,9 @@ class Token extends events.EventEmitter {
         obj.id = id instanceof Token ? id : obj.createIdentifierNode(id);
         obj.init = init;
         obj.id.parent = obj;
-        obj.init.parent = obj;
+        if( init ){
+            obj.init.parent = obj;
+        }
         return obj;
     }
 

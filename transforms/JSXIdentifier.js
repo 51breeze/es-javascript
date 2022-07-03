@@ -1,7 +1,6 @@
-const Syntax = require("../core/Syntax");
-class JSXIdentifier extends Syntax{
-    emitter(){
-        return this.stack.value();
-    }
+module.exports = function(ctx,stack){
+   const node = ctx.createNode( stack );
+   node.value = stack.value();
+   node.raw = node.value;
+   return node;
 }
-module.exports = JSXIdentifier;

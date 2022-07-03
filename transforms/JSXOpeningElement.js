@@ -1,24 +1,19 @@
-const Syntax = require("../core/Syntax");
-class JSXOpeningElement extends Syntax{
-    emitter(){
-        if( this.stack.parentStack.isComponent ){
-            const desc = this.stack.parentStack.description();
-            if( this.stack.hasNamespaced ){
-                if( desc ){
-                    if( desc.isFragment ){
-                        return desc.id;
-                    }else{
-                        return this.getModuleReferenceName( desc );
-                    }
-                }
+module.exports = function(ctx,stack){
+    const node = ctx.createNode(stack);
+    node.attributes = stack.attributes.forEach( attr=>node.createToken( attr ) );
+    if( stack.parentStack.isComponent ){
+        const desc = stack.parentStack.description();
+        if( desc ){
+            if( stack.hasNamespaced && desc.isFragment){
+                node.name = node.createIdentifierNode(desc.id, stack.name);  
+            }else{
+                node.name = node.createIdentifierNode( ctx.builder.getModuleReferenceName( desc ), stack.name);
             }
-            if( desc ){
-                return this.getModuleReferenceName( desc );
-            }
-            return this.stack.name.value();
         }else{
-            return `'${this.stack.name.value()}'`;
+            node.name = node.createIdentifierNode( stack.name.value(), stack.name);
         }
+    }else{
+        node.name = node.createLiteralNode( stack.name.value() , void 0,  stack.name);
     }
+    return node;
 }
-module.exports = JSXOpeningElement;

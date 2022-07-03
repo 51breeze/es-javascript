@@ -1,8 +1,3 @@
-const Syntax = require("../core/Syntax");
-class JSXOpeningFragment extends Syntax{
-    emitter(){
-        return this.stack.value();
-    }
+module.exports = function(ctx,stack){
+    return ctx.createNode(stack);
 }
-
-module.exports = JSXOpeningFragment;

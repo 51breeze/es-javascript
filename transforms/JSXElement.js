@@ -69,37 +69,8 @@ class JSXElement extends Syntax{
         return element.replace(/^[\s\r\n\t]+/g,'');
     }
 
-    makeIterationFun(name, refs, refName, element, indent,  item, key, index){
-        element = this.cleanWhitespace(element.replace(/([\t]+)/g,'$1\t'));
-        if( name ==="each"){
-            const args = [item];
-            if(key)args.push(key);
-            return `${refs}.map((function(${args.join(',')}){\r\n${indent}\treturn ${element};\r\n${indent}}).bind(this))`;
-        }else{
-            let dec = index ? `${indent}\t\t${index}++;` : '';
-            let code = [`(function(${refName}){`];
-            if( !key ){
-                key = `_${item}Key`;
-            }
-            code.push(`${indent}\tvar _${refName} = [];`);
-            code.push(`${indent}\tif( typeof ${refName} ==='number' ){`);
-            code.push(`${indent}\t\t${refName} = Array.from({length:${refName}}, function(v,i){return i;});`);
-            code.push(`${indent}\t}`);
-            if( dec ){
-                code.push( `${indent}\tvar ${index}=0;` );
-            }
-            code.push(`${indent}\tfor(var ${key} in ${refName}){`);
-            code.push(`${indent}\t\tvar ${item} = ${refName}[${key}];`);
-            code.push(`${indent}\t\t_${refName}.push(${element});`);
-            if( dec ){
-                code.push(dec);
-            }
-            code.push(`${indent}\t}`);
-            code.push(`${indent}\treturn _${refName};`);
-            code.push(`${indent}}).call(this,${refs})`);
-            return code.join("\r\n");
-        }
-    }
+    
+    
 
     makeDirectives(child, element, prevResult, level){
         const cmd=[];
@@ -665,5 +636,592 @@ class JSXElement extends Syntax{
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+function makeDirectives(ctx, child, element, prevResult){
+    const cmd=[];
+    let content = [];
+    if( !child.directives || !(child.directives.length > 0) ){
+        return {cmd,child,content:[element]};
+    }
+    const directives = child.directives.slice(0).sort( (a,b)=>{
+        return b.name.value() === 'each' ? -1 : 0;
+    });
+   
+    while( directives.length > 0){
+        const directive = directives.shift();
+        const name = directive.name.value();
+        const valueArgument = directive.valueArgument;
+        if( name ==="each" || name ==="for" ){
+            let refs = ctx.crateToken(valueArgument.expression);
+            let item = valueArgument.declare.item;
+            let key = valueArgument.declare.key;
+            let index = valueArgument.declare.index;
+            if( cmd.includes('if') ){
+                cmd.pop();
+                content.push( ctx.createLiteralNode('null','null')  );
+                element = cascadeConditionalNode( content ) ;   
+            }
+           
+            if( name ==="each"){
+                content.push( createIterationNode(ctx,  name, refs , ctx.checkRefsName('_refs'), element, item, key) );
+            }else{
+                content.push(createIterationNode(ctx, name, refs , ctx.checkRefsName('_refs'), element, item, key, index ));
+            }
+            cmd.push(name);
+
+        }else if( name ==="if" ){
+            const node = ctx.createNode('ConditionalExpression');
+            node.test = ctx.crateToken(valueArgument.expression);
+            node.consequent = element;
+            content.push( node );
+            cmd.push(name);
+        }else if( name ==="elseif" ){
+            if( !prevResult || !(prevResult.cmd.includes('if') || prevResult.cmd.includes('elseif')) ){
+                directive.name.error(1114, name);
+            }else{
+                cmd.push(name);
+            }
+            const node = ctx.createNode('ConditionalExpression');
+            node.test = ctx.crateToken(valueArgument.expression);
+            node.consequent = element;
+            content.push( node );
+           
+        }else if( name ==="else"){
+            if( !prevResult || !(prevResult.cmd.includes('if') || prevResult.cmd.includes('elseif')) ){
+                directive.name.error(1114, name);
+            }else{
+                cmd.push(name);
+            }
+            content.push( element );
+        }else{
+            content.push( element );
+        }
+    }
+    return {cmd,child,content};
+}
+
+
+function cascadeConditionalNode( elements ){
+    let lastElement = elements.pop();
+    while( elements.length > 0 ){
+        const _last = elements.pop();
+        if( _last.type ==="ConditionalExpression" ){
+            _last.alternate = lastElement;
+            lastElement = _last;
+        }else{
+            throw new Error('Invaild expression');
+        }
+    }
+    return lastElement;
+}
+
+
+function makeChildren(ctx,children,data){
+    const content = [];
+    const part = [];
+    let len = children.length;
+    let index = 0;
+    let last = null;
+    let result = null;
+    const next = ()=>{
+        if( index<len ){
+            const child = children[index++];
+            const elem = makeDirectives(ctx, child, ctx.createToken(child) , last);
+            if( child.isSlot && !child.isSlotDeclared ){
+                const name = child.openingElement.name.value();
+                if( child.attributes.length > 0 ){
+                    data.scopedSlots[ name ] = elem.content[0];
+                    return next();
+                }
+            }else if( child.isDirective ){
+                let last = elem;
+                let valueGroup = [];
+                last.cmd.push( child.openingElement.name.value() )
+                while(true){
+                    const maybeChild = index < len && children[index].isDirective ? children[index++] : null;
+                    const maybe=  maybeChild ? makeDirectives(ctx, maybeChild, ctx.createToken(maybeChild) , last) : null;
+                    const hasIf = last.cmd.includes('if');
+                    const isDirective = maybe && maybe.child.isDirective;
+                    if( isDirective ){
+                        maybe.cmd.push( maybeChild.openingElement.name.value() );
+                    }
+                    if( hasIf ){
+                        if( isDirective && maybe.cmd.includes('elseif') ){
+                            maybe.cmd = last.cmd.concat( maybe.cmd );
+                            maybe.content = last.content.concat( maybe.content );
+                        }else if( isDirective && maybe.cmd.includes('else') ){
+                            valueGroup.push( cascadeConditionalNode( last.content.concat( maybe.content ) ) );
+                            maybe.ifEnd = true;
+                        }else{
+                            if(maybe)maybe.ifEnd = true;
+                            last.content.push( ctx.createLiteralNode('null','null') );
+                            valueGroup.push( cascadeConditionalNode( last.content ) );
+                        }
+                    }else if( !last.ifEnd ){
+                        valueGroup.push.apply(valueGroup, last.content);
+                    }
+                    if( maybe ){
+                        last = maybe;
+                    }
+                    if( !isDirective ){
+                        break;
+                    }
+                }
+                last.content = valueGroup.slice(0);
+                last.cmd.length = 0;
+                delete last.ifEnd;
+                return last;
+            }
+            return elem;
+        }
+        return null;
+    }
+    
+    while(true){
+        result = next();
+        if( last ){
+            let value = null;
+            const hasIf = last.cmd.includes('if');
+            if( hasIf ){
+                if( result && result.cmd.includes('elseif') ){
+                    result.cmd = last.cmd.concat( result.cmd );
+                    result.content = last.content.concat( result.content );
+                }else if(result && result.cmd.includes('else') ){
+                    value = cascadeConditionalNode( last.content.concat( result.content ) );
+                    result.ifEnd = true;
+                }else{
+                    if(result)result.ifEnd = true;
+                    last.content.push( ctx.createLiteralNode('null','null') );
+                    value = cascadeConditionalNode( last.content );
+                }
+            }else if( !last.ifEnd ){
+                value = last.content;
+            }
+            const complex = last.child.isJSXExpressionContainer ? !!(last.child.expression.isMemberExpression || last.child.expression.isCallExpression) : false;
+            if( last.cmd.includes('each') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective || complex ){
+                if( part.length > 0 ){
+                    content.push( part.splice(0, part.length) );
+                }
+                if( value ){
+                    content.push( value );
+                }
+            }else{
+                if( value ){
+                    part.push( value );
+                }
+            }
+        }
+        last = result;
+        if( !result )break;
+    }
+
+    if( part.length > 0 ){
+        content.push( part.splice(0, part.length) );
+    }
+
+    const segments = []
+    content.forEach( item=>{
+        if( Array.isArray(item) && item.length > 0 ){
+            segments.push( ctx.createArrayNode( item ) );
+        }else{
+            segments.push( item );
+        }
+    });
+
+    if( segments.length > 1 ){
+        return ctx.createCalleeNode( 
+            ctx.createMemberNode([
+                ctx.createArrayNode(),
+                ctx.createIdentifierNode('concat')
+            ]),
+            segments
+        );
+    }
+    return segments[0];
+}
+
+
+function createIterationNode(ctx, name, refs, refName, element, item, key, index){
+  
+    if( name ==="each"){
+        const args = [ ctx.createIdentifierNode(item) ];
+        if(key){
+            args.push( ctx.createIdentifierNode(key) );
+        }
+        return ctx.createCalleeNode( 
+            ctx.createMemberNode([
+                ctx.createIdentifierNode(refs),
+                ctx.createIdentifierNode('map')
+            ]),
+            [
+                ctx.createCalleeNode(
+                    ctx.createMemberNode([
+                        createParenthesNode(ctx,ctx.createFunctionNode(ctx=>{
+                            ctx.body.push( ctx.createReturnNode( element ) );
+                        }, args)),
+                        ctx.createIdentifierNode('bind')
+                    ]),
+                    [ctx.createThisNode()]
+                )
+            ] 
+        );
+    }else{
+        
+        const funNode = ctx.createFunctionNode(ctx=>{
+            const refArray = `_${refName}`;
+            ctx.body.push(
+                ctx.createDeclarationNode('var',[
+                    ctx.createDeclaratorNode( ctx.createIdentifierNode(refArray) , ctx.createArrayNode() )
+                ])
+            );
+
+            const ifNode = ctx.createNode('IfStatement');
+            const logical = ifNode.createNode('LogicalExpression');
+            ifNode.condition = logical;
+            ctx.body.push( ifNode );
+
+            logical.left = ifNode.createNode('UnaryExpression');
+            logical.left.operator = 'typeof';
+            logical.left.prefix = true;
+            logical.left.argument = logical.left.createIdentifierNode(refName);
+            logical.right = logical.left.createLiteralNode('number')
+            
+            var block = ifNode.body = ifNode.createNode('BlockStatement'); 
+            block.body = [];
+            block.body.push( 
+                block.createStatementNode(
+                    block.createAssignmentNode(
+                        block.createDeclaratorNode(refName),
+                        block.createCalleeNode(
+                            block.createMemberNode([
+                                block.createIdentifierNode('Array'),
+                                block.createIdentifierNode('from'),
+                            ]),
+                            [
+                                block.createObjectNode([
+                                    block.createPropertyNode(
+                                        block.createIdentifierNode('length'),
+                                        block.createIdentifierNode(refName),
+                                    )
+                                ]),
+                                block.createFunctionNode((ctx)=>{
+                                    ctx.body.push(
+                                        ctx.createReturnNode( ctx.createIdentifierNode('i') )
+                                    )
+                                },[
+                                    block.createIdentifierNode('v'),
+                                    block.createIdentifierNode('i'),
+                                ])
+                            ]
+                        )
+                    )
+                )
+            );
+
+            if( index ){
+                ctx.body.push(
+                    ctx.createDeclarationNode('var',[
+                        ctx.createDeclaratorNode(
+                            ctx.createIdentifierNode(index), 
+                            ctx.createLiteralNode(0,0) )
+                    ])
+                );
+            }
+
+            var _key = key || `_${item}Key`;
+            const forNode = ctx.createNode('ForInStatement');
+            forNode.left = forNode.createDeclarationNode('var', [
+                forNode.createDeclaratorNode( _key )
+            ]);
+            forNode.right = forNode.createIdentifierNode(refName);
+
+            var forBlock = forNode.body = forNode.createNode('BlockStatement'); 
+            var forBody = forBlock.body = [];
+            var refValueNode = forBlock.createMemberNode([
+                forNode.createIdentifierNode(refName),
+                forNode.createIdentifierNode(_key),
+            ]);
+            refValueNode.computed = true;
+
+            forBody.push( 
+                forBlock.createDeclarationNode( 'var', [
+                    forBlock.createDeclaratorNode(
+                        forBlock.createIdentifierNode(item),
+                        refValueNode
+                    )
+                ])
+            )
+
+            forBody.push( 
+                forBlock.createCalleeNode( 
+                    forBlock.createMemberNode([
+                        forBlock.createIdentifierNode(refArray),
+                        forBlock.createIdentifierNode('push'),
+                    ]),
+                    [
+                        element 
+                    ]
+                )
+            );
+
+            if( index ){
+                const dec = forBlock.createNode('UpdateExpression');
+                dec.argument = dec.createIdentifierNode(index);
+                forBody.push( dec );
+            }
+
+            ctx.body.push( ctx.createReturnNode( ctx.createIdentifierNode(refArray) ) );
+
+        }, [ ctx.createIdentifierNode(refName) ]);
+
+        return ctx.createCalleeNode(
+            ctx.createMemberNode([ctx.createParenthesNode( funNode ), ctx.createIdentifierNode('call')]),
+            [
+                ctx.createThisNode(),
+                ctx.createIdentifierNode(refs)
+            ]
+        );
+    }
+}
+
+
+
+
+function getElementConfig(){
+    return {
+        props:{},
+        attrs:{},
+        on:{},
+        nativeOn:{},
+        slot:void 0,
+        scopedSlots:{},
+        domProps:{},
+        key:void 0,
+        ref:void 0,
+        refInFor:void 0,
+        tag:void 0,
+        staticClass:void 0,
+        class:void 0,
+        show:void 0,
+        staticStyle:{},
+        style:{},
+        staticStyle:{},
+        hook:{},
+        model:{},
+        transition:{},
+        directives:[]
+    };
+}
+
+function createElementDeclarationNode(ctx){
+    return ctx.createDeclarationNode('const', [ 
+        ctx.createDeclaratorNode( 
+            ctx.createIdentifierNode('createElement'),
+            ctx.createCalleeNode(
+                ctx.createMemberNode([
+                    ctx.createThisNode(),
+                    ctx.createIdentifierNode('createElement'),
+                    ctx.createIdentifierNode('bind'),
+                ]),
+                [
+                    ctx.createThisNode()
+                ]
+            )
+        ) 
+    ]);
+}
+
+function createElementRefsNode(ctx){
+    return ctx.createIdentifierNode('createElement');
+}
+
+function createElementNode(ctx, ...args){
+    return ctx.createCalleeNode(
+        createElementRefsNode(ctx),
+        args
+    );
+}
+
+function createParenthesNode(ctx, expression){
+   const node = ctx.createNode('ParenthesizedExpression');
+   node.expression = expression;
+   expression.parent = node;
+   return node;
+}
+
+function createSlotCalleeNode(ctx, child, ...args){
+    const node = ctx.createNode('LogicalExpression');
+    node.left = createParenthesNode(node,node.createCalleeNode(
+        node.createMemberNode([
+            node.createThisNode(), 
+            node.createIdentifierNode('slot')
+        ]),
+        args
+    ));
+    node.right = child;
+    node.operator = '||';
+    return node;
+}
+
+function createSlotElement( ctx, stack , children){
+    const openingElement = ctx.createToken(stack.openingElement);
+    if( stack.isSlotDeclared ){
+        if( openingElement.attributes.length > 0 ){
+            return createSlotCalleeNode(
+                ctx, 
+                children,
+                openingElement.name, 
+                ctx.createLiteralNode(true,true), 
+                ctx.createLiteralNode(true,true), 
+                ctx.createObjectNode( openingElement.attributes) 
+            );
+        }else{
+            return createSlotCalleeNode(
+                ctx, 
+                children || ctx.createArrayNode(),
+                openingElement.name,  
+            );
+        }
+    }else{
+        if( openingElement.attributes.length > 0 ){
+            const scope = openingElement.attributes.find( attr=>attr.name.value === 'scope' );
+            const scopeName = scope && scope.value ? scope.value.value : 'scope';
+            return createSlotCalleeNode(ctx,
+                ctx.createCalleeNode(
+                    ctx.createMemberNode([
+                        createParenthesNode(ctx,ctx.createFunctionNode((ctx)=>{
+                            const node = ctx.createNode('ReturnStatement');
+                            node.argument = children;
+                            children.parent = node;
+                            ctx.body.push( node )
+                        },[
+                            ctx.createIdentifierNode(scopeName)
+                        ])),
+                        ctx.createIdentifierNode('bind')
+                    ]),
+                    [
+                        ctx.createThisNode()
+                    ]
+                ),
+                openingElement.name, 
+                ctx.createLiteralNode(true,true),
+            );
+        }else{
+            return createSlotCalleeNode(
+                ctx, 
+                children || ctx.createArrayNode(),
+                openingElement.name,  
+            );
+        }
+    }
+}
+
+function createDirectiveElement(ctx,stack,children){
+
+    const openingElement = this.stack.openingElement;
+    switch( openingElement.name.value ){
+        case 'show' :
+            return childItems;
+        case 'if' :
+        case 'elseif' :
+            const condition = this.make( this.stack.attributes[0].parserAttributeValueStack() )
+            return `${condition} ? ${childItems} `;
+        case 'else' :
+            return childItems;
+        case 'for' :
+        case 'each' :
+            const attrs = this.stack.openingElement.attributes;
+            const argument = {};
+            attrs.forEach( attr=>{
+                if( attr.name.value()==='name'){
+                    argument[ 'refs' ] = this.make( attr.parserAttributeValueStack() );
+                }else{
+                    argument[attr.name.value()] = attr.value.value();
+                }
+            });
+            const fun = this.makeIterationFun( name, 
+                argument.refs, 
+                this.generatorVarName(this.stack,'_refs'),
+                childItems, 
+                this.getIndent( level ), 
+                argument.item || 'item', 
+                argument.key || 'key', 
+                argument.index
+            );
+            return `${fun}.reduce(function(acc, val){return acc.concat(val)}, [])`
+    } 
+    return null;
+}
+
+function createHTMLElement(ctx,stack,children){
+
+}
+
+function JSXElement(ctx, stack){
+
+    const node = ctx.createNode(stack);
+    node.openingElement = node.createToken(stack.openingElement);
+
+    const data = getElementConfig();
+    const children = stack.children.filter(child=>!( (child.isJSXScript && child.isScriptProgram) || child.isJSXStyle) );
+
+    if( stack.parentStack.isSlot ){
+        const name = stack.parentStack.openingElement.name.value();
+        data.slot = ctx.createLiteralNode(name);
+    }else if(stack.parentStack && stack.parentStack.isDirective ){
+        let dName = stack.parentStack.openingElement.name.value();
+        if( dName === 'show' ){
+            const condition= this.stack.parentStack.openingElement.attributes[0];
+            data.directives.push(
+                ctx.createObjectNode([
+                    ctx.createPropertyNode(ctx.createIdentifierNode('name'), ctx.createLiteralNode('show') ),
+                    ctx.createPropertyNode(ctx.createIdentifierNode('value'), ctx.createToken( condition.parserAttributeValueStack() ) ),
+                ])
+            );
+        }
+    }
+    const spreadAttributes = [];
+    createAttributes(data, spreadAttributes);
+    createProperties(children,data);
+
+    if( spreadAttributes.length > 0 ){
+        const props = Object.entries(data.props);
+        if( props.length > 0 ){
+            const objectProps = props.map( item=>{
+                return `'${item[0]}':${item[1]}`;
+            });
+            data.props = `Object.assign({},${spreadAttributes.join(',')}, {${objectProps.join(',')}})`;
+        }else{
+            if( spreadAttributes.length > 1 ){
+                data.props = `Object.assign({},${spreadAttributes.join(',')})`
+            }else{
+                data.props = spreadAttributes[0];
+            } 
+        }
+    }
+
+
+    if(stack.isSlot){
+        return createSlotElement(ctx,stack, makeChildren(ctx, children, data ) );
+    }else if(stack.isDirective){
+        return createDirectiveElement(ctx,stack, makeChildren( tx, children, data ) );
+    }else{
+        return createHTMLElement(ctx,stack, makeChildren( tx, children, data ) );
+    }
+}
+
+JSXElement.createElementNode= createElementNode;
+JSXElement.createElementRefsNode= createElementRefsNode;
+JSXElement.createElementDeclarationNode= createElementDeclarationNode;
+JSXElement.getElementConfig= getElementConfig;
 
 module.exports = JSXElement;

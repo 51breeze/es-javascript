@@ -1,14 +1,19 @@
-const Syntax = require("../core/Syntax");
-class JSXExpressionContainer extends Syntax{
-    emitter(level){
-        if( this.stack.parentStack.isSlot && this.stack.expression && !this.stack.expression.isJSXElement){
-            const result = this.make( this.stack.expression );
-            const handle = this.getJsxCreateElementHandle();
-            const name = this.stack.parentStack.openingElement.name.value();
-            return `${handle}('span',{"slot":'${name}'},${result})`;
-        }
-        return this.make( this.stack.expression );
+const JSXElement = require('./JSXElement');
+module.exports = function(ctx, stack){
+    if( stack.parentStack.isSlot && stack.expression && !stack.expression.isJSXElement){
+        const name = stack.parentStack.openingElement.name.value();
+        return JSXElement.createElementNode(ctx, 
+            ctx.createLiteralNode('span'), 
+            ctx.createObjectNode([
+                ctx.createPropertyNode(
+                    ctx.createIdentifier('slot'),
+                    ctx.createLiteralNode(name)
+                )
+            ]), 
+            ctx.createToken( stack.expression )
+        );
     }
+    const node = ctx.createNode( stack );
+    node.expression = node.createToken( stack.expression );
+    return node;
 }
-
-module.exports = JSXExpressionContainer;

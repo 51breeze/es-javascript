@@ -1,8 +1,13 @@
-const Syntax = require("../core/Syntax");
-class JSXNamespacedName extends Syntax{
-    emitter(){
-        return this.stack.value();
+module.exports = function(ctx,stack){
+    const node = ctx.createNode( stack );
+    node.namespace = node.createToken(stack.namespace);
+    node.name = node.createToken(stack.name);
+    const xmlns = stack.getXmlNamespace();
+    if( xmlns ){
+        node.value = xmlns.value.value();
+    }else {
+        const ops = ctx.builder.getOptions();
+        node.value = ops.jsx.xmlns.default[ stack.namespace.value() ] || null;
     }
+    return node;
 }
-
-module.exports = JSXNamespacedName;
