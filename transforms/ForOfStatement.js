@@ -13,8 +13,7 @@ module.exports = function(ctx,stack){
         ));
         init.declarations.push( init.createIdentifierNode( res ) );
         init.declarations.push( object );
-        const condition = ctx.createChunkNode(`${obj} && (${res}=${obj}.next()) && !${res}.done`);
-        condition.newLine = false;
+        const condition = ctx.createChunkNode(`${obj} && (${res}=${obj}.next()) && !${res}.done`, false);
         node.init = init;
         node.condition = condition;
         node.update = null;

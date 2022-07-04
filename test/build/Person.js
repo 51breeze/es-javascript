@@ -93,7 +93,7 @@ const members = {
 		value:function addressNamesss(){}
 	}
 }
-Class.creator(4,Person,{
+Class.creator(6,Person,{
 	id:1,
 	name:"Person",
 	dynamic:true,

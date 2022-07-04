@@ -34,7 +34,7 @@ const methods = {
 		}
 	}
 }
-Class.creator(2,Request,{
+Class.creator(5,Request,{
 	id:1,
 	name:"Request",
 	methods:methods

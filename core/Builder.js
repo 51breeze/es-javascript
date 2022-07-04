@@ -9,6 +9,7 @@ const webComponents = new Map();
 const moduleDependencies = new Map();
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
+const createAstStackCached = new WeakSet();
 class Builder extends Token{
 
     constructor(stack){
@@ -81,8 +82,8 @@ class Builder extends Token{
             const filesystem  = compiler.getOutputFileSystem( this.name );
             const config      = this.getConfig();
 
-            this.make(compilation, compilation.stack, null, filesystem, config.emitFile);
-            compilation.modules.forEach( module =>{
+            const build = (compilation, stack, module)=>{
+                this.make(compilation, stack, module, filesystem, config.emitFile);
                 this.getDependencies(module).forEach( depModule=>{
                     if( this.isNeedBuild(depModule) && !buildModules.has(depModule) ){
                         buildModules.add(depModule);
@@ -90,16 +91,18 @@ class Builder extends Token{
                         if( depModule.isDeclaratorModule ){
                             const stack = compilation.getStackByModule(depModule);
                             if( stack ){
-                                this.make(stack.compilation, stack, depModule, filesystem, config.emitFile);
+                                build( compilation, stack, depModule );
                             }else{
                                 throw new Error(`Not found stack by '${depModule.getName()}'`);
                             }
                         }else{
-                            this.make(compilation, compilation.stack, depModule, filesystem, config.emitFile);
+                            build(compilation, compilation.stack, depModule);
                         }
                     }
                 });
-            });
+            }
+
+            build(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
 
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
@@ -114,6 +117,8 @@ class Builder extends Token{
     }
 
     make(compilation, stack, module, filesystem, emitFile){
+        if(createAstStackCached.has(stack))return;
+        createAstStackCached.add( stack );
         if(compilation.completed(this.name))return;
         const ast = this.createAstToken(stack);
         const gen = ast ? this.createGenerator(ast, compilation) : null;
@@ -131,7 +136,7 @@ class Builder extends Token{
                         this.emitFile( output+'.map', gen.sourceMap.toString() );
                     }
                 }
-            } 
+            }
         }
 
         if( isRoot ){

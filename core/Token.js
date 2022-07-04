@@ -62,7 +62,11 @@ class Token extends events.EventEmitter {
         if( type ==='TypeStatement')return null;
         const creator = this.plugin.getStack( type );
         if( creator ){
+            try{
             return creator(this, stack, type);
+            }catch(e){
+                console.log(e)
+            }
         }else{
             throw new Error(`Token class '${stack.toString()}' is not exists.`);
         }
@@ -275,9 +279,10 @@ class Token extends events.EventEmitter {
         return token;
     }
 
-    createChunkNode(value,stack){
+    createChunkNode(value, newLine=true, semicolon=false){
         const node = this.createNode('ChunkExpression');
-        node.stack = stack;
+        node.newLine = newLine;
+        node.semicolon = semicolon;
         node.value = value;
         node.raw = value;
         return node;

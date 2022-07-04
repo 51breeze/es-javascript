@@ -1,3 +1,4 @@
+const Jsx = require("./Jsx.js");
 const Class = require("./../core/Class.js");
 function Param(){}
 const members = {
@@ -12,6 +13,8 @@ const members = {
 				expect(6).toBe(result);
 			});
 			this.ave(2.3660);
+			var jsx = new Jsx();
+			jsx.start();
 		}
 	},
 	getList:{

@@ -1,6 +1,6 @@
 const Class = require("./../core/Class.js");
 function TestInterface(){}
-Class.creator(5,TestInterface,{
+Class.creator(7,TestInterface,{
 	id:1,
 	ns:"com",
 	name:"TestInterface",

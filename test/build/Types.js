@@ -22,7 +22,7 @@ const methods = {
 		value:"NAME"
 	}
 }
-Class.creator(9,Types,{
+Class.creator(10,Types,{
 	id:1,
 	name:"Types",
 	methods:methods
