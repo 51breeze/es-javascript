@@ -149,7 +149,17 @@ class Generator{
             case "ArrayExpression" :
             case "ArrayPattern" :
                 this.withBracketL();
-                this.withSequence(token.elements);
+                if( token.elements.length > 0 ){
+                    if(token.newLine===true){
+                        this.newLine();
+                        this.newBlock();
+                    }
+                    this.withSequence(token.elements, !!token.newLine);
+                    if(token.newLine===true){
+                        this.newLine();
+                        this.endBlock();
+                    }
+                }
                 this.withBracketR();
             break;
             case "ArrowFunctionExpression" :
@@ -323,8 +333,8 @@ class Generator{
                 this.make(token.condition);
                 this.withParenthesR();
                 this.make(token.consequent);
-                if( token.consequent.type !=="BlockStatement" ){
-                    this.withSemicolon();
+                if( !token.consequent ){
+                    console.log( token.parent.compilation.file )
                 }
                 if( token.alternate ){
                     this.withString('else');

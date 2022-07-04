@@ -13,8 +13,11 @@ function makeConfigObject(ctx, data){
                     }
                 }
             }else{
-                console.log(key, value )
-                items.push( ctx.createPropertyNode( ctx.createIdentifierNode(key), value) );
+                if( value.type ==="Property"){
+                    items.push( value );
+                }else{
+                    items.push( ctx.createPropertyNode( ctx.createIdentifierNode(key), value) );
+                }
             }
         }
     });
@@ -87,7 +90,7 @@ function createAttributes(ctx, stack, data, spreadAttributes ){
             name = ctx.createMemberNode([
                 ctx.createIdentifierNode( moduleClass ),
                 name
-            ]);
+            ], name);
         }
 
         if( ns ==="@events" ){
@@ -142,12 +145,12 @@ function createAttributes(ctx, stack, data, spreadAttributes ){
                 }
             }
             if( !isDOMAttribute ){
-                data.props.push( ctx.createPropertyNode( ctx.createIdentifierNode(propName), value.value ) );
+                data.props.push( ctx.createPropertyNode( ctx.createIdentifierNode(propName, value.name.stack ), value.value ) );
                 return;
             }
         }
 
-        const property = ctx.createPropertyNode( ctx.createIdentifierNode(propName), value.value );
+        const property = ctx.createPropertyNode( ctx.createIdentifierNode(propName, value.name.stack), value.value );
         switch(name){
             case "class" :
             case "style" :
@@ -170,16 +173,16 @@ function createAttributes(ctx, stack, data, spreadAttributes ){
 }
 
 function createProperties(ctx, children, data ){
-    // children && children.forEach( child=>{
-    //     if( child.isProperty ){
-    //         const node = ctx.createToken( child );
-    //         data.props[ node.name.value ] = node.value;
-    //     }else if( child.isSlot ){
-    //         // const name = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='name' );
-    //         // const scope = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='scope' );
-    //         // const children = child.children.map( child=>this.make(child) );
-    //     }
-    // });
+    children.forEach( child=>{
+        if( child.isProperty ){
+            const node = ctx.createToken( child );
+            data.props.push( ctx.createPropertyNode( node.name,  node.value ) );
+        }else if( child.isSlot ){
+            // const name = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='name' );
+            // const scope = child.attributes.find( attr=>attr.name.value().toLowerCase() ==='scope' );
+            // const children = child.children.map( child=>this.make(child) );
+        }
+    });
 }
 
 function makeDirectives(ctx, child, element, prevResult){
@@ -197,7 +200,7 @@ function makeDirectives(ctx, child, element, prevResult){
         const name = directive.name.value();
         const valueArgument = directive.valueArgument;
         if( name ==="each" || name ==="for" ){
-            let refs = ctx.crateToken(valueArgument.expression);
+            let refs = ctx.createToken(valueArgument.expression);
             let item = valueArgument.declare.item;
             let key = valueArgument.declare.key;
             let index = valueArgument.declare.index;
@@ -302,7 +305,7 @@ function makeChildren(ctx,children,data){
                             valueGroup.push( cascadeConditionalNode( last.content ) );
                         }
                     }else if( !last.ifEnd ){
-                        valueGroup.push.apply(valueGroup, last.content);
+                        valueGroup.push( ...last.content );
                     }
                     if( maybe ){
                         last = maybe;
@@ -347,11 +350,19 @@ function makeChildren(ctx,children,data){
                     content.push( part.splice(0, part.length) );
                 }
                 if( value ){
-                    content.push( value );
+                    if( Array.isArray(value) ){
+                        content.push( ...value );
+                    }else{
+                        content.push( value );
+                    }
                 }
             }else{
                 if( value ){
-                    part.push( value );
+                    if( Array.isArray(value) ){
+                        part.push( ...value );
+                    }else{
+                        part.push( value );
+                    }
                 }
             }
         }
@@ -362,26 +373,42 @@ function makeChildren(ctx,children,data){
     if( part.length > 0 ){
         content.push( part.splice(0, part.length) );
     }
+
+    if( !content.length )return null;
    
     const segments = []
     content.forEach( item=>{
-        if( Array.isArray(item) && item.length > 0 ){
-            segments.push( ctx.createArrayNode( item ) );
+        if( Array.isArray(item) ){
+            if( item.length > 1 ){
+                const node = ctx.createArrayNode( item );
+                node.newLine = true;
+                segments.push( node );
+            }else{
+                segments.push( item[0] );
+            }
         }else{
             segments.push( item );
         }
     });
 
     if( segments.length > 1 ){
+        const base = segments.shift();
         return ctx.createCalleeNode( 
             ctx.createMemberNode([
-                ctx.createArrayNode(),
+                ctx.createParenthesNode(base),
                 ctx.createIdentifierNode('concat')
             ]),
             segments
         );
     }
-    return segments[0];
+
+    if( segments.length===1 && segments[0].type ==='ArrayExpression' ){
+        return segments[0];
+    }
+
+    const node = ctx.createArrayNode( segments );
+    node.newLine = true;
+    return node;
 }
 
 
@@ -394,7 +421,7 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
         }
         return ctx.createCalleeNode( 
             ctx.createMemberNode([
-                ctx.createIdentifierNode(refs),
+                refs,
                 ctx.createIdentifierNode('map')
             ]),
             [
@@ -421,6 +448,7 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
 
             const ifNode = ctx.createNode('IfStatement');
             const logical = ifNode.createNode('LogicalExpression');
+            logical.operator = '===';
             ifNode.condition = logical;
             ctx.body.push( ifNode );
 
@@ -428,9 +456,10 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
             logical.left.operator = 'typeof';
             logical.left.prefix = true;
             logical.left.argument = logical.left.createIdentifierNode(refName);
+
             logical.right = logical.left.createLiteralNode('number')
-            
-            var block = ifNode.body = ifNode.createNode('BlockStatement'); 
+
+            var block =  ifNode.consequent = ifNode.createNode('BlockStatement'); 
             block.body = [];
             block.body.push( 
                 block.createStatementNode(
@@ -474,9 +503,13 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
 
             var _key = key || `_${item}Key`;
             const forNode = ctx.createNode('ForInStatement');
+            ctx.body.push( forNode );
+
             forNode.left = forNode.createDeclarationNode('var', [
                 forNode.createDeclaratorNode( _key )
             ]);
+            forNode.left.inFor = true;
+
             forNode.right = forNode.createIdentifierNode(refName);
 
             var forBlock = forNode.body = forNode.createNode('BlockStatement'); 
@@ -497,14 +530,16 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
             )
 
             forBody.push( 
-                forBlock.createCalleeNode( 
-                    forBlock.createMemberNode([
-                        forBlock.createIdentifierNode(refArray),
-                        forBlock.createIdentifierNode('push'),
-                    ]),
-                    [
-                        element 
-                    ]
+                forBlock.createStatementNode(
+                    forBlock.createCalleeNode( 
+                        forBlock.createMemberNode([
+                            forBlock.createIdentifierNode(refArray),
+                            forBlock.createIdentifierNode('push'),
+                        ]),
+                        [
+                            element 
+                        ]
+                    )
                 )
             );
 
@@ -522,7 +557,7 @@ function createIterationNode(ctx, name, refs, refName, element, item, key, index
             ctx.createMemberNode([ctx.createParenthesNode( funNode ), ctx.createIdentifierNode('call')]),
             [
                 ctx.createThisNode(),
-                ctx.createIdentifierNode(refs)
+                refs
             ]
         );
     }
@@ -571,15 +606,16 @@ function createElementDeclarationNode(ctx){
     ]);
 }
 
-function createElementRefsNode(ctx){
-    return ctx.createIdentifierNode('createElement');
+function createElementRefsNode(ctx, stack){
+    return ctx.createIdentifierNode('createElement', stack);
 }
 
-function createElementNode(ctx, ...args){
-    return ctx.createCalleeNode(
-        createElementRefsNode(ctx),
+function createElementNode(ctx, stack, ...args){
+    const node = ctx.createCalleeNode(
+        createElementRefsNode(ctx, stack.openingElement ? stack.openingElement.name : stack),
         args
     );
+    return node;
 }
 
 function createParenthesNode(ctx, expression){
@@ -591,14 +627,17 @@ function createParenthesNode(ctx, expression){
 
 function createSlotCalleeNode(ctx, child, ...args){
     const node = ctx.createNode('LogicalExpression');
-    node.left = createParenthesNode(node,node.createCalleeNode(
+    node.left = node.createCalleeNode(
         node.createMemberNode([
             node.createThisNode(), 
             node.createIdentifierNode('slot')
         ]),
         args
-    ));
+    );
     node.right = child;
+
+    node.left.parent = node;
+    node.right.parent = node;
     node.operator = '||';
     return node;
 }
@@ -606,7 +645,7 @@ function createSlotCalleeNode(ctx, child, ...args){
 function createSlotElement( ctx, stack , children){
     const openingElement = ctx.createToken(stack.openingElement);
     if( stack.isSlotDeclared ){
-        if( openingElement.attributes.length > 0 ){
+        if( stack.openingElement.attributes.length > 0 ){
             return createSlotCalleeNode(
                 ctx, 
                 children,
@@ -623,7 +662,7 @@ function createSlotElement( ctx, stack , children){
             );
         }
     }else{
-        if( openingElement.attributes.length > 0 ){
+        if( stack.openingElement.attributes.length > 0 ){
             const scope = openingElement.attributes.find( attr=>attr.name.value === 'scope' );
             const scopeName = scope && scope.value ? scope.value.value : 'scope';
             return createSlotCalleeNode(ctx,
@@ -679,7 +718,7 @@ function createDirectiveElement(ctx,stack,children){
                 if( attr.name.value()==='name'){
                     argument[ 'refs' ] = ctx.createToken( attr.parserAttributeValueStack() );
                 }else{
-                    argument[ attr.name.value() ] = ctx.createIdentifierNode( attr.value.value() );
+                    argument[ attr.name.value() ] = attr.value.value();
                 }
             });
             const fun = createIterationNode(
@@ -693,7 +732,7 @@ function createDirectiveElement(ctx,stack,children){
                 argument.index
             );
             return ctx.createCalleeNode(
-                ctx.createCalleeNode([fun,ctx.createIdentifierNode('reduce')]),
+                ctx.createMemberNode([fun,ctx.createIdentifierNode('reduce')]),
                 [
                     ctx.createChunkNode('function(acc, val){return acc.concat(val)}', false),
                     ctx.createArrayNode()
@@ -705,25 +744,21 @@ function createDirectiveElement(ctx,stack,children){
 
 function createHTMLElement(ctx,stack,data,children){
     const name = ctx.createLiteralNode(stack.openingElement.name.value());
-    children = children && children.length > 0 ? children : null;
     data = makeConfigObject(ctx, data);
     if( children ){
-        return createElementNode(ctx, name, data ? data : ctx.createLiteralNode('null','null'), children)
+        return createElementNode(ctx, stack, name, data || ctx.createLiteralNode('null','null'), children)
     }else if(data){
-        return createElementNode(ctx, name, data)
+        return createElementNode(ctx, stack,  name, data)
     }else{
-        return createElementNode(ctx, name);
+        return createElementNode(ctx, stack, name);
     }
 }
 
 function JSXElement(ctx, stack){
 
     const data = getElementConfig();
-    const children = makeChildren(
-        ctx, 
-        stack.children.filter(child=>!( (child.isJSXScript && child.isScriptProgram) || child.isJSXStyle) ), 
-        data
-    );
+    const children = stack.children.filter(child=>!( (child.isJSXScript && child.isScriptProgram) || child.isJSXStyle) );
+    const childNodes = makeChildren(ctx, children, data);
 
     if( stack.parentStack.isSlot ){
         const name = stack.parentStack.openingElement.name.value();
@@ -758,7 +793,7 @@ function JSXElement(ctx, stack){
                                     ctx.createParenthesNode(
                                         ctx.createFunctionNode((ctx)=>{
                                             ctx.body.push(
-                                                ctx.createReturnNode( children.length > 0 ? ctx.createArrayNode(children) : ctx.createLiteralNode('null','null') )
+                                                ctx.createReturnNode( childNodes ? childNodes : ctx.createLiteralNode('null','null') )
                                             )
                                         },[ctx.createIdentifierNode(scopeName)])
                                         
@@ -806,11 +841,11 @@ function JSXElement(ctx, stack){
     }
 
     if(stack.isSlot){
-        return createSlotElement(ctx, stack, children);
+        return createSlotElement(ctx, stack, childNodes);
     }else if(stack.isDirective){
-        return createDirectiveElement(ctx, stack, children);
+        return createDirectiveElement(ctx, stack, childNodes);
     }else{
-        return createHTMLElement(ctx, stack, data, hasScopedSlot ? null : children );
+        return createHTMLElement(ctx, stack, data, hasScopedSlot ? null : childNodes );
     }
 }
 

@@ -13,7 +13,5 @@ module.exports = function(ctx, stack){
             ctx.createToken( stack.expression )
         );
     }
-    const node = ctx.createNode( stack );
-    node.expression = node.createToken( stack.expression );
-    return node;
+    return ctx.createToken( stack.expression );
 }
