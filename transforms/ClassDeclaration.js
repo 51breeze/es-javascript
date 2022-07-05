@@ -400,4 +400,5 @@ ClassDeclaration.createExportDeclaration = createExportDeclaration;
 ClassDeclaration.createStatementMember = createStatementMember;
 ClassDeclaration.createDependencies = createDependencies;
 ClassDeclaration.createModuleAssets = createModuleAssets;
+ClassDeclaration.createConstructInitPrivateObject = createConstructInitPrivateObject;
 module.exports = ClassDeclaration;

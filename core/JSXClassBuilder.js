@@ -1,4 +1,6 @@
 const Token = require("./Token");
+const Constant = require("./Constant");
+const ClassDeclaration = require("../transforms/ClassDeclaration")
 class JSXClassBuilder extends Token{
     constructor(stack, ctx){
         super(stack.toString());
@@ -199,62 +201,97 @@ class JSXClassBuilder extends Token{
     }
     
     create( render, initProperties){
+
         const module = this.module;
         const methods = module.methods;
         const members = module.members;
         const properties = [];
-        const initialProps = initProperties && initProperties.length > 0 ? initProperties.map( item=>this.semicolon(`\t${item}`) ).join('\r\n') : [];
         const content = [];
-        const imps = module.implements.filter( impModule=>{
+
+        const classNode = this.createNode('ClassDeclaration');
+        classNode.id = this.createIdentifierNode( module.id );
+        classNode.implements = module.implements.filter( impModule=>{
             return !impModule.isDeclaratorModule && impModule.isInterface;
         });
+        classNode.body = [];
 
-        var inherit = null;
         if( this.isActiveForModule(module.inherit) ){
-            node.inherit = module.inherit;
+            classNode.inherit = module.inherit;
             node.addDepend(module.inherit);
         }
     
         const reserved = this.getReserved();
-        const methodContent = [];
-        const memberContent = [];
-        const mainEnterMethods = [];
         const Component = this.builder.getGlobalModuleById('web.components.Component');
         this.addDepend( Component );
         
+        const methodObject = this.createMemberNode(methods, true);
+        const memberObject = this.createMemberNode(members, false);
+        classNode.initProvider = memberObject.initProvider;
+        classNode.initProperties = initProperties ? initProperties.concat(memberObject.injectProperties) : memberObject.injectProperties;
+        classNode.privateProperties = memberObject.privateProperties;
+        classNode.construct = module.methodConstructor ? this.createToken( module.methodConstructor ) : memberObject.construct;
+
+        const iteratorType = this.builder.getGlobalModuleById("Iterator")
+        if( module.implements.includes(iteratorType) ){
+            const method = this.createMethodNode( 'Symbol.iterator', (ctx)=>{
+                const obj = this.createNode('ReturnStatement'); 
+                obj.argument = obj.createThisNode();
+                ctx.body.push( obj );
+            });
+            method.static = false;
+            method.modifier = 'public';
+            method.kind = 'method';
+            method.key.computed = true;
+            memberObject.items.push( method );
+        }
+
         if( render ){
-            memberContent.push(this.definePropertyDescription(
-                `members`,
-                'render',
-                render( this ),
-                false,
-                'public',
-                Constant.DECLARE_PROPERTY_FUN,
-                false
+            memberObject.items.push( render );
+        }
+
+        this.addDepend( this.getGlobalModuleById('Class') );
+        ClassDeclaration.createStatementMember(this, 'methods', methodObject.items);
+        ClassDeclaration.createStatementMember(this, 'members', memberObject.items);
+
+        if( classNode.privateProperties.length ){
+            classNode.privateName = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+            classNode.beforeBody.push( classNode.createDeclarationNode(
+                'const',
+                [
+                    this.createDeclaratorNode(
+                        classNode.privateName,
+                        this.createCalleeNode( 
+                            this.createIdentifierNode('Symbol'),
+                            [this.createLiteralNode('private')]
+                        )
+                    )
+                ]
             ));
         }
 
-        this.createMemberNode(methods, true);
-        this.createMemberNode(members, false);
-
-        this.addDepend( this.getGlobalModuleById('Class') );
-
-        const iteratorType = this.getGlobalModuleById("Iterator")
-        if( module.implements.includes(iteratorType) ){
-            memberContent.push(`members[Symbol.iterator]={value:function(){return this;}}`)
+        if( classNode.construct ){
+            let index = classNode.construct.body.body.findIndex( item=>{
+                if( item.type ==='ExpressionStatement' && item.expression.type==="CallExpression" ){
+                    return item.expression.callee.object.type==="SuperExpression";
+                }
+                return false;
+            });
+            if( classNode.privateProperties.length ){
+                classNode.construct.body.body.splice(index++, 0, ClassDeclaration.createConstructInitPrivateObject(classNode, classNode.privateName, classNode.privateProperties) );
+            }
+            if( classNode.initProperties.length ){
+                classNode.initProperties.forEach( item=>{
+                    classNode.construct.body.body.splice(index++, 0, item);
+                });
+            }
+        }else{
+            classNode.construct = ClassDeclaration.createDefaultConstructMethod(classNode, module, classNode.privateProperties, classNode.initProperties);
         }
-
-       
-
-        let construct = module.methodConstructor ? this.make(module.methodConstructor) : null;
-        if( !construct && (properties.length > 0 || initialProps.length > 0 || injectProperties.length > 0 || providerMethod.length > 0 ) ){
-            construct =  this.createDefaultConstructor(module, inherit, properties, initialProps);
-        }
-
+    
         if( construct ){
             const callParams = ['this', 'options'];
             const callConstructor = [];
-            const injectAndProvide = injectProperties.concat( providerMethod );
+            const injectAndProvide = memberObject.injectProperties.concat( memberObject.initProvider );
             if( injectAndProvide.length > 0 ){
                 callConstructor.push(this.semicolon(`this.addEventListener('onBeforeCreate',(function(e){${injectProperties.concat( providerMethod ).join('\r\n')}}).bind(this))`));
             }
@@ -278,17 +315,6 @@ class JSXClassBuilder extends Token{
 
         this.createDependencies(module,refs);
 
-        const _private = properties.length > 0 ? Constant.REFS_DECLARE_PRIVATE_NAME : null;
-        if( _private ){
-            refs.push(`var ${_private}=Symbol("private");`);
-        }
-        
-        //alias refs
-        if( topRefs.size > 0 ){
-            topRefs.forEach( (value,name)=>{
-                refs.push( `var ${value} = ${name};` );
-            });
-        }
 
         const createConstructor = this.semicolon(`var ${module.id} = ${this.getModuleReferenceName(Component, module)}.createComponent(${this.createOptions(module.id,inherit)})`);
         const description = this.createClassDescription(module, inherit, imps, _methods, _members, _private);
