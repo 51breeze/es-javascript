@@ -13,6 +13,10 @@ function JSXElement(ctx, stack){
     const obj = getTransform( stack.jsxRootElement, ctx);
     if( stack.jsxRootElement === stack ){
         if( stack.compilation.JSX && stack.parentStack.isProgram ){
+           const renderMethod = obj.createRenderNode( obj.create( stack ) );
+
+           
+
 
         }else{
             const block =  ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition" ? ctx : ctx.getParentByType( ctx=>{
@@ -25,4 +29,5 @@ function JSXElement(ctx, stack){
     }
     return obj.create( stack );
 }
+
 module.exports = JSXElement;

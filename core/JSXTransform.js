@@ -570,6 +570,18 @@ class JSXTransform extends Token{
         }
     }
 
+    createRenderNode(child){
+        return this.createMethodNode('render', (ctx)=>{
+            ctx.body = [
+                ctx.createRenderNode( child )
+            ]
+        });
+    }
+
+    getJSXClassBuilder(){
+        
+    }
+
     getElementConfig(){
         return {
             props:[],
