@@ -266,7 +266,7 @@ class Token extends events.EventEmitter {
                 node.raw = String(value); 
             }
         }else{
-            node.raw = raw;
+            node.raw = String(value);
         }
         return node;
     }

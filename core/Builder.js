@@ -5,7 +5,6 @@ const Generator = require("./Generator");
 const Token = require("./Token");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
-const webComponents = new Map();
 const moduleDependencies = new Map();
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
@@ -493,32 +492,6 @@ class Builder extends Token{
         return null;
     }
 
-    getJsxCreateElementHandle(){
-        return 'createElement';
-    }
-
-    getJsxCreateElementRefs(){
-        return 'this.createElement.bind(this)';
-    }
-
-    isInheritWebComponent(classModule){
-        if( webComponents.has(classModule) ){
-            return webComponents.get(classModule);
-        }
-        while( classModule ){
-            const stack = this.compilation.getStackByModule( classModule );
-            if( stack && stack.annotations  && Array.isArray(stack.annotations) ){
-                if( stack.annotations.some( item=>item.name.toLowerCase() === 'webcomponent' ) ){
-                    webComponents.set(classModule, true);
-                    return true;
-                }
-            }
-            classModule=classModule.inherit;
-        }
-        webComponents.set(classModule, false);
-        return false;
-    }
-
     createAstToken( stack ){
         return this.createToken( stack );
     }
@@ -535,7 +508,6 @@ class Builder extends Token{
         gen.make( ast );
         return gen;
     }
-
 }
 
 module.exports = Builder;

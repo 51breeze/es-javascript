@@ -14,6 +14,7 @@ module.exports = function(ctx,stack){
 
     const node = ctx.createNode( stack );
     node.namespace = ns;
+    
     let name = ctx.createToken( stack.name );
     let value = stack.value ? ctx.createToken( stack.value ) : ctx.createLiteralNode(true);
 
@@ -56,5 +57,4 @@ module.exports = function(ctx,stack){
     node.name = name;
     node.value = value;
     return node;
-
 }

@@ -9,5 +9,7 @@ module.exports = function(ctx,stack){
         const ops = ctx.builder.getOptions();
         node.value = ops.jsx.xmlns.default[ stack.namespace.value() ] || null;
     }
+    node.value = node.name.value;
+    node.raw   = node.value;
     return node;
 }
