@@ -1,4 +1,5 @@
 const Token = require("./Token");
+const JSXClassBuilder = require("./JSXClassBuilder");
 class JSXTransform extends Token{
     constructor(stack, ctx){
         super(stack.toString());
@@ -376,6 +377,8 @@ class JSXTransform extends Token{
                 }
             }
         }
+
+        var hasComplex = false;
         
         while(true){
             result = next();
@@ -400,56 +403,40 @@ class JSXTransform extends Token{
 
                 const complex = last.child.isJSXExpressionContainer ? !!(last.child.expression.isMemberExpression || last.child.expression.isCallExpression) : false;
                 if( last.cmd.includes('each') || last.cmd.includes('for') || last.child.isSlot || last.child.isDirective || complex ){
-                    if( part.length > 0 ){
-                        content.push( part.splice(0, part.length) );
-                    }
-                    push(content, value);
-                }else{
-                    push(part, value);
+                    hasComplex = true;
                 }
+                push(content, value);
             }
             last = result;
             if( !result )break;
         }
 
-        if( part.length > 0 ){
-            content.push( part.splice(0, part.length) );
-        }
-
         if( !content.length )return null;
-    
-        const segments = []
-        content.forEach( item=>{
-            if( Array.isArray(item) ){
-                if( item.length > 1 ){
-                    const node = this.createArrayNode( item );
-                    node.newLine = true;
-                    segments.push( node );
-                }else{
-                    segments.push( item[0] );
-                }
-            }else{
-                segments.push( item );
+        if( hasComplex ){
+            var base =  content.length > 1 ? content.shift() : this.createArrayNode();
+            if( base.type !== 'ArrayExpression' ){
+                base = this.createArrayNode([base]);
+                base.newLine = true;
             }
-        });
-
-        if( segments.length > 1 ){
-            const base = segments.shift();
-            return this.createCalleeNode( 
+            const node = this.createCalleeNode( 
                 this.createMemberNode([
-                    this.createParenthesNode(base),
+                    base,
                     this.createIdentifierNode('concat')
                 ]),
-                segments
+                content.reduce(function(acc, val){
+                    if( val.type === 'ArrayExpression' ){
+                        return acc.concat( ...val.elements );
+                    }else{
+                        return acc.concat(val)
+                    }
+                },[])
             );
+            node.newLine = true;
+            node.indentation = true; 
+            return node;
         }
-
-        if( segments.length===1 && segments[0].type ==='ArrayExpression' ){
-            return segments[0];
-        }
-
-        const node = this.createArrayNode( segments );
-        if( segments.length > 1 || !(segments[0].type ==="Literal" || segments[0].type ==="Identifier") ){
+        const node = this.createArrayNode( content );
+        if( content.length > 1 || !(content[0].type ==="Literal" || content[0].type ==="Identifier") ){
             node.newLine = true;
         }
         return node;
@@ -530,7 +517,7 @@ class JSXTransform extends Token{
     createEachNode(element, args){
         return this.createCalleeNode(
             this.createMemberNode([
-                createParenthesNode(ctx,ctx.createFunctionNode(ctx=>{
+                this.createParenthesNode(this.createFunctionNode(ctx=>{
                     ctx.body.push( ctx.createReturnNode( element ) );
                 }, args)),
                 this.createIdentifierNode('bind')
@@ -570,16 +557,23 @@ class JSXTransform extends Token{
         }
     }
 
-    createRenderNode(child){
-        return this.createMethodNode('render', (ctx)=>{
+    createRenderNode(stack, child){
+        const handle = this.createElementHandleNode(stack);
+        const node = this.createMethodNode('render', (ctx)=>{
+            handle.parent = ctx;
             ctx.body = [
-                ctx.createRenderNode( child )
+                handle,
+                ctx.createReturnNode( child )
             ]
         });
+        node.static = false;
+        node.modifier = 'public';
+        node.kind = 'method';
+        return node;
     }
 
-    getJSXClassBuilder(){
-        
+    getJSXClassBuilder(stack , ctx){
+        return new JSXClassBuilder(stack, ctx);
     }
 
     getElementConfig(){
@@ -767,7 +761,8 @@ class JSXTransform extends Token{
     }
 
     makeHTMLElement(stack,data,children){
-        const name = this.createLiteralNode(stack.openingElement.name.value(), void 0, stack.openingElement.name);
+        const name = stack.isComponent ? this.createIdentifierNode( stack.openingElement.name.value(), stack.openingElement.name) :
+                                         this.createLiteralNode(stack.openingElement.name.value(), void 0, stack.openingElement.name);
         data = this.makeConfig(data);
         if( children ){
             return this.createElementNode(stack, name, data || this.createLiteralNode('null','null'), children);
@@ -838,13 +833,53 @@ class JSXTransform extends Token{
             }
         }
 
-        if(stack.isSlot){
-            return this.makeSlotElement(stack, childNodes);
-        }else if(stack.isDirective){
-            return this.makeDirectiveElement(stack, childNodes);
-        }else{
-            return this.makeHTMLElement(stack, data, hasScopedSlot ? null : childNodes );
+        const isRoot = stack.jsxRootElement === stack;
+        var initProperties = data.props;
+        var nodeElement = null;
+        if( isRoot ){
+            data.props = null;
         }
+
+        if(stack.isSlot){
+            nodeElement = this.makeSlotElement(stack, childNodes);
+        }else if(stack.isDirective){
+            nodeElement = this.makeDirectiveElement(stack, childNodes);
+        }else{
+            nodeElement = this.makeHTMLElement(stack, data, hasScopedSlot ? null : childNodes );
+        }
+
+        if( !stack.parentStack.isReturnStatement && !isRoot ){
+            // nodeElement.newLine = true;
+            // nodeElement.indentation = true;
+            nodeElement.isJSXToken = true;
+        }
+
+        if( isRoot ){
+            
+            if( stack.compilation.JSX && stack.parentStack.isProgram ){
+                initProperties = initProperties.map( property=>{
+                    return this.createStatementNode(
+                        this.createAssignmentNode(
+                            this.createMemberNode([
+                                this.createThisNode(),
+                                this.createIdentifierNode( property.name.value )
+                            ]),
+                            property.value,
+                        )
+                    )
+                });
+                const renderMethod = this.createRenderNode( stack, nodeElement );
+                nodeElement = this.getJSXClassBuilder(stack, this).create( renderMethod, initProperties);
+            }else{
+                const block =  this.getParentByType( ctx=>{
+                    return ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition"
+                });
+                if( block ){
+                    block.body.unshift( this.createElementHandleNode(stack) );
+                }
+            }
+        }
+        return nodeElement;
     }
 }
 

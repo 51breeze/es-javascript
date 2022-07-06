@@ -137,7 +137,7 @@ class Generator{
             this.make( item );
             if( index < len ){
                 this.withString(',');
-                if(newLine)this.newLine();
+                if(newLine || item.newLine)this.newLine();
             }
         });
         return this;
@@ -216,15 +216,21 @@ class Generator{
             case "CallExpression" :
                 this.make(token.callee)
                 this.withParenthesL();
-                this.withSequence(token.arguments);
+                if(token.newLine)this.newLine();
+                if(token.indentation)this.newBlock();
+                this.withSequence(token.arguments, token.newLine);
+                if(token.indentation)this.endBlock();
+                if(token.newLine)this.newLine();
                 this.withParenthesR();
             break;
             case "ConditionalExpression" :
+                if(token.newLine)this.newLine();
                 this.make(token.test);
                 this.withOperator('?');
                 this.make(token.consequent);
                 this.withOperator(':');
                 this.make(token.alternate);
+                if(token.newLine)this.newLine();
             break;
             case "ContinueStatement" :
                 this.newLine();
@@ -441,9 +447,11 @@ class Generator{
                 this.withBraceR();
             break;
             case "ParenthesizedExpression" :
+                if(token.newLine)this.newLine();
                 this.withParenthesL();
                 this.make( token.expression );
                 this.withParenthesR();
+                if(token.newLine)this.newLine();
             break;
             case "Property" :
                 if( token.computed ){
@@ -556,7 +564,9 @@ class Generator{
             case "UnaryExpression" :
                 if( token.prefix ){
                     this.withString(token.operator);
-                    this.withSpace();
+                    if( ![33,126].includes(token.operator.charCodeAt(0)) ){
+                        this.withSpace();
+                    }
                     this.make( token.argument )
                 }else{
                     this.make( token.argument )

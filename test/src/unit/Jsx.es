@@ -1,5 +1,7 @@
 package unit;
 
+import unit.Web;
+
 public class Jsx{
 
     change(e){
@@ -34,6 +36,8 @@ public class Jsx{
                  <div cmd:elseif="index==2" >22222</div>
                  <div cmd:else cmd:show="index==3" >888</div>
             </cmd:for>
+
+            <Web />
 
         </div>
 

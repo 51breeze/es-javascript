@@ -17,7 +17,7 @@ class JSXClassBuilder extends Token{
     }
 
     getReserved(){
-        return this.builder.getConfig('reserved') || [];
+        return null;
     }
 
     createInjectPropertyNode(name,from,value){
@@ -115,7 +115,8 @@ class JSXClassBuilder extends Token{
         return node;
     }
 
-    createMemberNode(target, isStatic){
+    createClassMemberNode(dataset, isStatic){
+
         const refs = [];
         const cache = new Map();
         const privateProperties = [];
@@ -136,24 +137,48 @@ class JSXClassBuilder extends Token{
 
         const providerPush=(provider, name)=>{
             if( provider ){
-                initProvider.push( this.createAddProviderNode(name) );
+                initProvider.push(  this.createAddProviderNode(name) );
             }
         }
 
-        for( var name in target ){
-            const item = target[ name ];
-            const required = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='required' );
-            const provider = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='provider' );
-            const injector = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='injector' );
-            if( Array.isArray(reserved) && reserved.includes(name) ){
+        const reserved = this.getReserved();
+
+        for( var name in dataset ){
+            var item = dataset[ name ];
+            if( Array.isArray(reserved) && reserved.includes( name ) ){
                 item.error(1124,name);
             }
 
+            if( item.isAccessor ){
+                var target={isAccessor:true,kind:'accessor'};
+                if( item.get ){
+                    target.get = this.createToken( item.get );
+                }
+                
+                if( item.set  ){
+                    const required = item.set.annotations && item.set.annotations.find( annotation=>annotation.name.toLowerCase() ==='required' );
+                    const injector = item.set.annotations && item.set.annotations.find( annotation=>annotation.name.toLowerCase() ==='injector' );
+                    injectorPush(injector, name);
+                    target.set = this.createToken( item.set );
+                    target.set.required = required;
+                }
+                const obj = (target.get || target.set);
+                target.kind = obj.kind;
+                target.modifier = obj.modifier;
+                target.static = obj.static;
+                target.key = obj.key;
+                refs.push( target );
+                continue;
+            }
+
+            const required = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='required' );
+            const provider = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='provider' );
+            const injector = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='injector' );
             var child = this.createToken(item);
-            const static = !!(item.static || isStatic);
+            const _static = !!(item.static || isStatic);
 
             if( child.type ==="PropertyDefinition" ){
-                if( !static ){
+                if( !_static ){
                     if( child.modifier === "private" ){
                         privateProperties.push(
                             ctx.createPropertyNode( child.key.value, child.init )
@@ -199,38 +224,40 @@ class JSXClassBuilder extends Token{
         }
         return {items:refs,construct,privateProperties, injectProperties, initProvider};
     }
-    
-    create( render, initProperties){
+
+    createClassNode( initProperties = [] ){
 
         const module = this.module;
         const methods = module.methods;
         const members = module.members;
-        const properties = [];
-        const content = [];
-
-        const classNode = this.createNode('ClassDeclaration');
-        classNode.id = this.createIdentifierNode( module.id );
-        classNode.implements = module.implements.filter( impModule=>{
+       
+        const node = this.createNode('ClassDeclaration');
+        node.beforeBody = [];
+        node.afterBody = [];
+        node.body = [];
+        node.id = this.createIdentifierNode( module.id );
+        node.implements = module.implements.filter( impModule=>{
             return !impModule.isDeclaratorModule && impModule.isInterface;
         });
-        classNode.body = [];
-
         if( this.isActiveForModule(module.inherit) ){
-            classNode.inherit = module.inherit;
-            node.addDepend(module.inherit);
+            node.inherit = module.inherit;
+            this.addDepend(module.inherit);
         }
     
-        const reserved = this.getReserved();
         const Component = this.builder.getGlobalModuleById('web.components.Component');
         this.addDepend( Component );
         
-        const methodObject = this.createMemberNode(methods, true);
-        const memberObject = this.createMemberNode(members, false);
-        classNode.initProvider = memberObject.initProvider;
-        classNode.initProperties = initProperties ? initProperties.concat(memberObject.injectProperties) : memberObject.injectProperties;
-        classNode.privateProperties = memberObject.privateProperties;
-        classNode.construct = module.methodConstructor ? this.createToken( module.methodConstructor ) : memberObject.construct;
+        const methodObject = this.createClassMemberNode(methods, true);
+        const memberObject = this.createClassMemberNode(members, false);
 
+        node.methods = methodObject.items;
+        node.members = memberObject.items;
+        node.initProperties = initProperties;
+        node.initProvider = memberObject.initProvider;
+        node.injectProperties = memberObject.injectProperties;
+        node.privateProperties = memberObject.privateProperties;
+        var construct = module.methodConstructor ? this.createToken( module.methodConstructor ) : memberObject.construct;
+        
         const iteratorType = this.builder.getGlobalModuleById("Iterator")
         if( module.implements.includes(iteratorType) ){
             const method = this.createMethodNode( 'Symbol.iterator', (ctx)=>{
@@ -242,20 +269,14 @@ class JSXClassBuilder extends Token{
             method.modifier = 'public';
             method.kind = 'method';
             method.key.computed = true;
-            memberObject.items.push( method );
+            node.members.push( method );
         }
 
-        if( render ){
-            memberObject.items.push( render );
-        }
-
-        this.addDepend( this.getGlobalModuleById('Class') );
-        ClassDeclaration.createStatementMember(this, 'methods', methodObject.items);
-        ClassDeclaration.createStatementMember(this, 'members', memberObject.items);
-
-        if( classNode.privateProperties.length ){
-            classNode.privateName = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
-            classNode.beforeBody.push( classNode.createDeclarationNode(
+        this.addDepend( this.builder.getGlobalModuleById('Class') );
+       
+        if( node.privateProperties.length ){
+            node.privateName = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
+            node.beforeBody.push( node.createDeclarationNode(
                 'const',
                 [
                     this.createDeclaratorNode(
@@ -269,82 +290,151 @@ class JSXClassBuilder extends Token{
             ));
         }
 
-        if( classNode.construct ){
-            let index = classNode.construct.body.body.findIndex( item=>{
+        if( construct ){
+            let index = construct.body.body.findIndex( item=>{
                 if( item.type ==='ExpressionStatement' && item.expression.type==="CallExpression" ){
                     return item.expression.callee.object.type==="SuperExpression";
                 }
                 return false;
             });
-            if( classNode.privateProperties.length ){
-                classNode.construct.body.body.splice(index++, 0, ClassDeclaration.createConstructInitPrivateObject(classNode, classNode.privateName, classNode.privateProperties) );
+            if( node.privateProperties.length ){
+                construct.body.body.splice(index++, 0, ClassDeclaration.createConstructInitPrivateObject(node, node.privateName, node.privateProperties) );
             }
-            if( classNode.initProperties.length ){
-                classNode.initProperties.forEach( item=>{
-                    classNode.construct.body.body.splice(index++, 0, item);
+            const initProperties = node.initProperties;
+            if( initProperties.length ){
+                initProperties.forEach( item=>{
+                    construct.body.body.splice(index++, 0, item);
                 });
             }
-        }else{
-            classNode.construct = ClassDeclaration.createDefaultConstructMethod(classNode, module, classNode.privateProperties, classNode.initProperties);
+        }else if( node.privateProperties.length >0 || node.initProperties.length >0){
+            construct = ClassDeclaration.createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties );
         }
-    
+
+        const injectAndProvide = node.injectProperties.concat( node.initProvider );
+        const initBody = [];
+        if( injectAndProvide.length > 0 ){
+            initBody.push(
+                this.createStatementNode(
+                    this.createCalleeNode(
+                        this.createMemberNode([
+                            this.createThisNode(),
+                            this.createIdentifierNode('addEventListener')
+                        ]),
+                        [
+                            this.createLiteralNode('onBeforeCreate'),
+                            this.createCalleeNode(
+                                this.createMemberNode([
+                                    this.createParenthesNode(
+                                        this.createFunctionNode((ctx)=>{
+                                            ctx.body = injectAndProvide;
+                                        },[this.createIdentifierNode('e')])
+                                    ),
+                                    this.createIdentifierNode('bind')
+                                ]),
+                                [
+                                    this.createThisNode()
+                                ]
+                            )
+                        ]
+                    )
+                )
+            );
+        }
+        
         if( construct ){
-            const callParams = ['this', 'options'];
-            const callConstructor = [];
-            const injectAndProvide = memberObject.injectProperties.concat( memberObject.initProvider );
-            if( injectAndProvide.length > 0 ){
-                callConstructor.push(this.semicolon(`this.addEventListener('onBeforeCreate',(function(e){${injectProperties.concat( providerMethod ).join('\r\n')}}).bind(this))`));
-            }
-            callConstructor.push( this.semicolon(`(${construct}).call(${callParams.join(',')})`) );
-            memberContent.push(`members._init={value:function _init(options){\r\n${callConstructor.join('\r\n')}\r\n}}`)
+            initBody.push( 
+                this.createStatementNode(
+                    this.createCalleeNode(
+                        this.createMemberNode([
+                            this.createParenthesNode(construct),
+                            this.createIdentifierNode('call')
+                        ]),
+                        [
+                            this.createThisNode(),
+                            this.createIdentifierNode('options')
+                        ]
+                    )
+                )
+            );
         }
 
-        let _methods = null;
-        let _members = null;
-        if( methodContent.length > 0 ){
-            content.push(`var methods = {};`);
-            content.push.apply(content, methodContent);
-             _methods='methods';
+        if( initBody.length > 0 ){
+            const initMethod = this.createMethodNode('_init',ctx=>{
+                    ctx.body = initBody;
+                },
+                [this.createIdentifierNode('options')]
+            );
+            initMethod.kind = 'method';
+            initMethod.modifier = 'public';
+            initMethod.static = false;
+            node.members.splice(0,0,initMethod);
         }
 
-        if( memberContent.length > 0 ){
-            content.push(`var members = {};`);
-            content.push.apply( content, memberContent )
-            _members = 'members';
-        }
+        node.construct = this.createDeclarationNode('const',[
+            this.createDeclaratorNode(
+                this.createIdentifierNode(module.id),
+                this.createCalleeNode(
+                    this.createMemberNode([
+                        this.createIdentifierNode( this.getModuleReferenceName(Component, module) ),
+                        this.createIdentifierNode('createComponent')
+                    ]),
+                    [
+                        this.createOptionNode(module.id, node.inherit)
+                    ]
+                )
+            )
+        ]);
 
-        this.createDependencies(module,refs);
+        return node;
 
-
-        const createConstructor = this.semicolon(`var ${module.id} = ${this.getModuleReferenceName(Component, module)}.createComponent(${this.createOptions(module.id,inherit)})`);
-        const description = this.createClassDescription(module, inherit, imps, _methods, _members, _private);
-        const parts = refs.concat(content,createConstructor);
-        const external = this.buildExternal();
-        parts.push( this.emitCreateClassDescription( module, description) );
-        parts.push( this.emitExportClass(module) );
-        if( external ){
-            parts.push( external );
-        }
-        if( mainEnterMethods.length > 0 ){
-            parts.push( mainEnterMethods.join('\r\n') );
-        }
-        return parts.join("\r\n");
     }
 
-
-    createOptions(name,inherit){
-        const properties = [`name:'es-${name}'`];
-        const indent = this.getIndent();
+    createOptionNode(name,inherit){
+        const properties = [
+            this.createPropertyNode(this.createIdentifierNode('name'), this.createLiteralNode(`es-${name}`) )
+        ];
         if( inherit ){
-            const Component = this.getGlobalModuleById('web.components.Component');
+            const Component = this.builder.getGlobalModuleById('web.components.Component');
             if( Component !== inherit ){
-                properties.push( `extends:${this.getModuleReferenceName(inherit)}` );
+                properties.push( this.createPropertyNode(this.createIdentifierNode('extends'), this.getModuleReferenceName(inherit) ) );
             }
         }
-        return `{\r\n\t${indent}${properties.join(`,\r\n\t${indent}`)}\r\n}`;
+        return this.createObjectNode( properties );
+    }
+    
+    create( render, initProperties=[]){
+
+        const module = this.module;
+        const classNode = this.createClassNode(initProperties);
+        const body = classNode.body;
+        if( render ){
+            classNode.members.push( render );
+        }
+
+        ClassDeclaration.createDependencies(classNode, module).forEach( item=>body.push( item ) );
+        ClassDeclaration.createModuleAssets(classNode, module).forEach( item=>body.push( item ) );
+
+        classNode.beforeBody.forEach( item=>item && body.push( item ) );
+
+        body.push( classNode.construct );
+        body.push( ClassDeclaration.createStatementMember(this, 'methods', classNode.methods) );
+        body.push( ClassDeclaration.createStatementMember(this, 'members', classNode.members) );
+
+        body.push( ClassDeclaration.createClassDescriptor(
+            classNode, 
+            module, 
+            classNode.privateName,
+            classNode.methods,
+            classNode.members,
+            classNode.implements,
+            classNode.inherit
+        ));
+
+        classNode.afterBody.forEach( item=>item && body.push( item ) );
+        body.push( ClassDeclaration.createExportDeclaration(classNode, module.id) );
+        return classNode;
     }
 
 }
-
 
 module.exports = JSXClassBuilder;

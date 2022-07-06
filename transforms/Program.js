@@ -3,7 +3,7 @@ module.exports = function(ctx,stack){
     node.body = [];
     node.afterBody = [];
     stack.body.forEach( item=>{
-        if( item.isClassDeclaration || item.isDeclaratorDeclaration || item.isEnumDeclaration || item.isInterfaceDeclaration || item.isPackageDeclaration ){
+        if( stack.isJSXProgram || item.isClassDeclaration || item.isDeclaratorDeclaration || item.isEnumDeclaration || item.isInterfaceDeclaration || item.isPackageDeclaration ){
             node.body.push( node.createToken(item) );
         }
     });

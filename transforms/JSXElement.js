@@ -11,22 +11,6 @@ function getTransform(root, ctx){
 
 function JSXElement(ctx, stack){
     const obj = getTransform( stack.jsxRootElement, ctx);
-    if( stack.jsxRootElement === stack ){
-        if( stack.compilation.JSX && stack.parentStack.isProgram ){
-           const renderMethod = obj.createRenderNode( obj.create( stack ) );
-
-           
-
-
-        }else{
-            const block =  ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition" ? ctx : ctx.getParentByType( ctx=>{
-                return ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition"
-            })
-            if( block ){
-                block.body.unshift( obj.createElementHandleNode(stack) );
-            }
-        }
-    }
     return obj.create( stack );
 }
 

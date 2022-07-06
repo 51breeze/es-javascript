@@ -565,7 +565,7 @@ const members = {
 		m:3,
 		id:3,
 		value:function next(){
-			if(! (this[_private].currentIndex < this[_private].len)){
+			if(!(this[_private].currentIndex < this[_private].len)){
 				return {
 					value:null,
 					done:true
