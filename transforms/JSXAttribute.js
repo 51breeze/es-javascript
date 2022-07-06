@@ -31,7 +31,7 @@ module.exports = function(ctx,stack){
                 }else{
                     name = named.value;
                 }
-                name = ctx.createIdentifier( name );
+                name = ctx.createIdentifierNode( name );
             }
         }
     }

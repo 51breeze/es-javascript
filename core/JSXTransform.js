@@ -683,12 +683,12 @@ class JSXTransform extends Token{
             }
         }else{
             if( stack.openingElement.attributes.length > 0 ){
-                const scope = openingElement.attributes.find( attr=>attr.name.value === 'scope' );
+                const scope = stack.openingElement.attributes.find( attr=>attr.name.value === 'scope' );
                 const scopeName = scope && scope.value ? scope.value.value : 'scope';
                 return this.createSlotCalleeNode(
                     this.createCalleeNode(
                         this.createMemberNode([
-                            createParenthesNode(this.createFunctionNode((ctx)=>{
+                            this.createParenthesNode(this.createFunctionNode((ctx)=>{
                                 const node = ctx.createNode('ReturnStatement');
                                 node.argument = children;
                                 children.parent = node;

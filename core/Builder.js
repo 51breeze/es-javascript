@@ -27,12 +27,15 @@ class Builder extends Token{
 
     emitContent(filesystem, module, gen, file, emitFile, flag){
         if( gen ){
-            filesystem.mkdirpSync( path.dirname(file) );
-            filesystem.writeFileSync(file, gen.toString() );
-            if( emitFile ){
-                this.emitFile( this.getOutputAbsolutePath(module, flag), filesystem.readFileSync(file) );
-                if( gen.sourceMap ){
-                    this.emitFile( this.getOutputAbsolutePath(module, flag)+'.map', gen.sourceMap.toString() );
+            const content = gen.toString();
+            if( content ){
+                filesystem.mkdirpSync( path.dirname(file) );
+                filesystem.writeFileSync(file, content );
+                if( emitFile ){
+                    this.emitFile( this.getOutputAbsolutePath(module, flag), filesystem.readFileSync(file) );
+                    if( gen.sourceMap ){
+                        this.emitFile( this.getOutputAbsolutePath(module, flag)+'.map', gen.sourceMap.toString() );
+                    }
                 }
             }
         }
@@ -403,6 +406,7 @@ class Builder extends Token{
                     });
                 }
             }else if( asset.type ==="style" && module ){
+                const config = this.getConfig();
                 const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve);
                 const source = (config.styleLoader || []).concat( file ).join('!');
                 dataset.set(source,{
