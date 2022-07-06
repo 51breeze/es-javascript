@@ -191,7 +191,7 @@ class JSXTransform extends Token{
                     }
                 }
                 if( !isDOMAttribute ){
-                    data.props.push( ctx.createPropertyNode( ctx.createIdentifierNode(propName, value.name.stack ), value.value ) );
+                    data.props.push( this.createPropertyNode( this.createIdentifierNode(propName, value.name.stack ), value.value ) );
                     return;
                 }
             }

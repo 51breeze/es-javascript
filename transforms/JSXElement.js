@@ -13,5 +13,5 @@ function JSXElement(ctx, stack){
     const obj = getTransform( stack.jsxRootElement, ctx);
     return obj.create( stack );
 }
-
+JSXElement.getTransform=getTransform;
 module.exports = JSXElement;
