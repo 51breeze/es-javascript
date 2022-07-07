@@ -435,12 +435,13 @@ class Syntax extends events.EventEmitter {
                 const external = externals && item.from ? externals.find( name=>item.from.indexOf(name)===0 ) : null;
                 var file = external;
                 if( !file ){
-                    file = this.compiler.normalizePath( item.from );
-                    if( config.useAbsolutePathImport ){
-                        file = item.resolve || file;
-                    }else if(item.resolve && !item.resolve.includes('/node_modules/') ){
-                        file = this.getOutputRelativePath(item.resolve,module);
-                    }
+                    file = item.from;
+                    // file = this.compiler.normalizePath( item.from );
+                    // if( config.useAbsolutePathImport ){
+                    //     file = item.resolve || file;
+                    // }else if(item.resolve && !item.resolve.includes('/node_modules/') ){
+                    //     file = this.getOutputRelativePath(item.resolve,module);
+                    // }
                 }
 
                 let name = item.key;
