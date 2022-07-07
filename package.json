@@ -1,6 +1,6 @@
 {
   "name": "es-javascript",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "test",
   "main": "index.js",
   "typings": "./types",

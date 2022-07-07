@@ -57,6 +57,7 @@ const properties ={
         const builder = new Builder( compilation.stack );
         builder.name = this.name;
         builder.platform = this.platform;
+        builder.plugin = this;
         builder.build(done);
     }
 }

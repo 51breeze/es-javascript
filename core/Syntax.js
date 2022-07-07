@@ -641,6 +641,7 @@ class Syntax extends events.EventEmitter {
         const obj = new syntaxClass( stack );
         obj.name = this.name
         obj.platform = this.platform;
+        obj.plugin = this.plugin;
         return obj;
     }
 
