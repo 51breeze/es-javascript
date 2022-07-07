@@ -1,6 +1,6 @@
 {
   "name": "es-javascript",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "test",
   "main": "index.js",
   "typings": "./types",
@@ -26,13 +26,10 @@
   },
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
-    "@babel/core": "^7.17.10",
-    "@babel/plugin-transform-runtime": "^7.17.10",
     "axios": "^0.26.1",
     "easescript": "*",
     "js-cookie": "^3.0.1",
-    "lodash": "^4.17.21",
-    "source-map": "^0.7.4"
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "jasmine": "^3.10.0"
