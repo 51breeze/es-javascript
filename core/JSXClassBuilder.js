@@ -192,6 +192,7 @@ class JSXClassBuilder extends Token{
                             isAccessor:true
                         }
                         target.key = target.get.key;
+                        target.kind = 'get';
                         child = target;
                     }
                 }
