@@ -303,10 +303,11 @@ class Generator{
                     this.withSemicolon();
                 }
             break;
+            case "FunctionDeclaration" :
             case "MethodDefinition" :
             case "MethodGetterDefinition" :
             case "MethodSetterDefinition" :
-            case "FunctionDeclaration" :
+                if( token.type ==="FunctionDeclaration")this.newLine();
                 if(token.async){
                     this.withString('async');
                     this.withSpace();
@@ -320,6 +321,7 @@ class Generator{
                 this.withSequence(token.params);
                 this.withParenthesR();
                 this.make(token.body);
+                if( token.type ==="FunctionDeclaration")this.newLine();
             break;
             case "FunctionExpression" :
                 this.withString('function');

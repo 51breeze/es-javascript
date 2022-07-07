@@ -153,10 +153,10 @@ function createConstructInitPrivateObject(ctx, privateName, privateProperties){
     )
 }
 
-function createDefaultConstructMethod(ctx, module, privateProperties, initProperties){
+function createDefaultConstructMethod(ctx, module, privateProperties, initProperties, params=[]){
     const privateName = ctx.privateName;
     const inherit = ctx.inherit;
-    return ctx.createMethodNode( ctx.createIdentifierNode(module.id), (ctx)=>{
+    const node = ctx.createMethodNode( ctx.createIdentifierNode(module.id), (ctx)=>{
         if( inherit ){
             const se = ctx.createNode('SuperExpression');
             se.value =  ctx.getModuleReferenceName(module.inherit);
@@ -170,7 +170,7 @@ function createDefaultConstructMethod(ctx, module, privateProperties, initProper
                             ]
                         ),[
                             ctx.createThisNode()
-                        ]
+                        ].concat(params)
                     )
                 )
             );
@@ -185,7 +185,9 @@ function createDefaultConstructMethod(ctx, module, privateProperties, initProper
                 ctx.body.push( item );
             });
         }
-    });
+    }, params);
+    node.type ="FunctionDeclaration";
+    return node;
 }
 
 function createMemberDescriptor(ctx, key, node, modifier, kind){

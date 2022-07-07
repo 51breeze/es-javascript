@@ -243,10 +243,7 @@ class JSXClassBuilder extends Token{
             node.inherit = module.inherit;
             this.addDepend(module.inherit);
         }
-    
-        const Component = this.builder.getGlobalModuleById('web.components.Component');
-        this.addDepend( Component );
-        
+
         const methodObject = this.createClassMemberNode(methods, true);
         const memberObject = this.createClassMemberNode(members, false);
 
@@ -298,7 +295,7 @@ class JSXClassBuilder extends Token{
                 return false;
             });
             if( node.privateProperties.length ){
-                construct.body.body.splice(index++, 0, ClassDeclaration.createConstructInitPrivateObject(node, node.privateName, node.privateProperties) );
+                construct.body.body.splice(index++, 0, this.createConstructInitPrivateObject(node, node.privateName, node.privateProperties) );
             }
             const initProperties = node.initProperties;
             if( initProperties.length ){
@@ -307,9 +304,22 @@ class JSXClassBuilder extends Token{
                 });
             }
         }else if( node.privateProperties.length >0 || node.initProperties.length >0){
-            construct = ClassDeclaration.createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties );
+            construct = this.createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties );
         }
+        node.construct = construct;
+        this.adjustConstructor(node, module);
+        return node;
+    }
 
+    createDefaultConstructMethod(node, module, privateProperties, initProperties, params=[]){
+        return ClassDeclaration.createDefaultConstructMethod(node, module, privateProperties, initProperties, params );
+    }
+
+    createConstructInitPrivateObject(node, privateName, privateProperties){
+        return ClassDeclaration.createConstructInitPrivateObject(node, privateName, privateProperties)
+    }
+
+    adjustConstructor(node, module){
         const injectAndProvide = node.injectProperties.concat( node.initProvider );
         const initBody = [];
         if( injectAndProvide.length > 0 ){
@@ -341,12 +351,12 @@ class JSXClassBuilder extends Token{
             );
         }
         
-        if( construct ){
+        if( node.construct ){
             initBody.push( 
                 this.createStatementNode(
                     this.createCalleeNode(
                         this.createMemberNode([
-                            this.createParenthesNode(construct),
+                            this.createParenthesNode( node.construct ),
                             this.createIdentifierNode('call')
                         ]),
                         [
@@ -370,6 +380,9 @@ class JSXClassBuilder extends Token{
             node.members.splice(0,0,initMethod);
         }
 
+        const Component = this.builder.getGlobalModuleById('web.components.Component');
+        this.addDepend( Component );
+
         node.construct = this.createDeclarationNode('const',[
             this.createDeclaratorNode(
                 this.createIdentifierNode(module.id),
@@ -384,9 +397,6 @@ class JSXClassBuilder extends Token{
                 )
             )
         ]);
-
-        return node;
-
     }
 
     createOptionNode(name,inherit){
