@@ -178,7 +178,7 @@ class Builder extends Token{
     }
 
     isUsed(module, ctxModule){
-        ctxModule = ctxModule || this.module;
+        ctxModule = ctxModule || this.module || this.compilation;
         if( !module )return false;
         if( ctxModule && moduleDependencies.has(ctxModule) && moduleDependencies.get(ctxModule).has(module) ){
             return true;
@@ -310,7 +310,7 @@ class Builder extends Token{
     }
 
     addDepend( depModule, ctxModule ){
-        ctxModule = ctxModule || this.module;
+        ctxModule = ctxModule || this.module || this.compilation;
         if( !depModule.isModule || depModule === ctxModule )return;
         if( !this.compiler.callUtils("isTypeModule", depModule) )return;
         var dataset = moduleDependencies.get(ctxModule);
@@ -321,7 +321,7 @@ class Builder extends Token{
     }
 
     getDependencies( ctxModule ){
-        ctxModule = ctxModule || this.module;
+        ctxModule = ctxModule || this.module || this.compilation;
         var dataset = moduleDependencies.get(ctxModule);
         if( !dataset ){
             return this.compilation.getDependencies(ctxModule);

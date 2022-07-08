@@ -123,7 +123,7 @@ class JSXClassBuilder extends Token{
         var construct = null;
 
         const injectProperties = [];
-        const initProvider = [];
+        const provideProperties = [];
         const injectorPush=(injector, name, value)=>{
             if( injector ){
                 const injectorArgs = injector.getArguments();
@@ -137,7 +137,7 @@ class JSXClassBuilder extends Token{
 
         const providerPush=(provider, name)=>{
             if( provider ){
-                initProvider.push(  this.createAddProviderNode(name) );
+                provideProperties.push(  this.createAddProviderNode(name) );
             }
         }
 
@@ -178,6 +178,10 @@ class JSXClassBuilder extends Token{
             const _static = !!(item.static || isStatic);
 
             if( child.type ==="PropertyDefinition" ){
+                if( !child.init ){
+                    child.init = child.createLiteralNode(null);
+                }
+
                 if( !_static ){
                     if( child.modifier === "private" ){
                         privateProperties.push(
@@ -217,16 +221,16 @@ class JSXClassBuilder extends Token{
                 construct = child;
             }
             else{
-                if( item.isMethodDefinition ){
+                if( !_static && item.isMethodDefinition ){
                     providerPush( provider, child.key.value);
                 }
                 refs.push( child );
             }
         }
-        return {items:refs,construct,privateProperties, injectProperties, initProvider};
+        return {items:refs,construct,privateProperties, injectProperties, provideProperties};
     }
 
-    createClassNode( initProperties = [] ){
+    createClassNode( initProperties = []){
 
         const module = this.module;
         const methods = module.methods;
@@ -251,7 +255,7 @@ class JSXClassBuilder extends Token{
         node.methods = methodObject.items;
         node.members = memberObject.items;
         node.initProperties = initProperties;
-        node.initProvider = memberObject.initProvider;
+        node.provideProperties = memberObject.provideProperties;
         node.injectProperties = memberObject.injectProperties;
         node.privateProperties = memberObject.privateProperties;
         var construct = module.methodConstructor ? this.createToken( module.methodConstructor ) : memberObject.construct;
@@ -321,7 +325,7 @@ class JSXClassBuilder extends Token{
     }
 
     adjustConstructor(node, module){
-        const injectAndProvide = node.injectProperties.concat( node.initProvider );
+        const injectAndProvide = node.injectProperties.concat( node.provideProperties );
         const initBody = [];
         if( injectAndProvide.length > 0 ){
             initBody.push(
@@ -370,6 +374,26 @@ class JSXClassBuilder extends Token{
         }
 
         if( initBody.length > 0 ){
+
+            if( !node.construct && module.inherit ){
+                initBody.push(
+                    this.createStatementNode(
+                        this.createCalleeNode(
+                            this.createMemberNode([
+                                this.getModuleReferenceName(module.inherit, module),
+                                this.createIdentifierNode('prototype'),
+                                this.createIdentifierNode('_init'),
+                                this.createIdentifierNode('call')
+                            ]),
+                            [
+                                this.createThisNode(),
+                                this.createIdentifierNode('options')
+                            ]
+                        )
+                    )
+                );
+            }
+
             const initMethod = this.createMethodNode('_init',ctx=>{
                     ctx.body = initBody;
                 },
@@ -413,10 +437,30 @@ class JSXClassBuilder extends Token{
         return this.createObjectNode( properties );
     }
     
-    create( render, initProperties=[]){
+    create( render, initProperties=[], convert=null){
 
         const module = this.module;
-        const classNode = this.createClassNode(initProperties);
+        var classNode = null;
+        if( this.compilation.JSX ){
+            classNode = this.createClassNode(initProperties);
+        }else{
+            classNode = ClassDeclaration.createClassNode(this, this.stack, this.stack.toString() ,convert || ((child, node, stack)=>{
+                if( !child.static && child.type ==="PropertyDefinition" && child.modifier === "public" && child.kind ==="var" ){  
+                    const target ={
+                        get:this.createGetterNode(child.key.value, child.init, child.required),
+                        set:this.createSetterNode(child.key.value, child.required),
+                        modifier:child.modifier,
+                        isAccessor:true
+                    }
+                    target.key = target.get.key;
+                    target.kind = 'get';
+                    return target;    
+                }
+                return child;
+            }), false);
+            this.adjustConstructor(classNode, module);
+        }
+
         const body = classNode.body;
         if( render ){
             classNode.members.push( render );

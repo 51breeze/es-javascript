@@ -63,7 +63,7 @@ class Token extends events.EventEmitter {
         const creator = this.plugin.getStack( type );
         if( creator ){
             try{
-            return creator(this, stack, type);
+                return creator(this, stack, type);
             }catch(e){
                 console.log(e)
             }

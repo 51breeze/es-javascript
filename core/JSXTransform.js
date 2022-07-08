@@ -171,7 +171,7 @@ class JSXTransform extends Token{
                                         )
                                     )
                                 ]
-                            })
+                            },[ this.createIdentifierNode('event') ])
                         ),
                         this.createIdentifierNode('bind')
                     ]),
@@ -767,8 +767,17 @@ class JSXTransform extends Token{
     }
 
     makeHTMLElement(stack,data,children){
-        const name = stack.isComponent ? this.createIdentifierNode( stack.openingElement.name.value(), stack.openingElement.name) :
-                                         this.createLiteralNode(stack.openingElement.name.value(), void 0, stack.openingElement.name);
+        var name = null;
+        if( stack.isComponent ){
+            if( stack.jsxRootElement === stack ){
+                name = this.createLiteralNode("div");
+            }else{
+                name = this.createIdentifierNode( this.getModuleReferenceName( stack.description() ) );
+            }
+        }else{
+            name = this.createLiteralNode(stack.openingElement.name.value(), void 0, stack.openingElement.name);
+        }
+
         data = this.makeConfig(data);
         if( children ){
             return this.createElementNode(stack, name, data || this.createLiteralNode('null','null'), children);

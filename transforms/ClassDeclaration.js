@@ -13,11 +13,13 @@ const IDENT_MAP={
     "method":Constant.DECLARE_PROPERTY_FUN,
 };
 
-function createClassNode(ctx,stack){
+function createClassNode(ctx, stack, type, convert=null, createDefaultConstruct=true){
     const module = stack.module;
     const node = ctx.createNode( stack );
     node.privateProperties=[];
     node.initProperties=[];
+    node.injectProperties = [];
+    node.provideProperties = [];
     node.beforeBody = [];
     node.afterBody = [];
     node.body = [];
@@ -39,11 +41,37 @@ function createClassNode(ctx,stack){
     if( stack.isClassDeclaration ){
         const cache1 = new Map();
         const cache2 = new Map();
+        const injectorPush=(injector, name, value)=>{
+            if( injector ){
+                const injectorArgs = injector.getArguments();
+                var from = name;
+                if( injectorArgs.length > 0 ){
+                    from = injectorArgs[0].value || from;
+                }
+                injectProperties.push( this.createInjectPropertyNode(name,from, value) ); 
+            }
+        }
+        const providerPush=(provider, name)=>{
+            if( provider ){
+                provideProperties.push(  this.createAddProviderNode(name) );
+            }
+        }
+
         stack.body.forEach( item=> {
-            const child = node.createToken(item);
+
+            const required = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='required' );
+            const provider = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='provider' );
+            const injector = item.annotations && item.annotations.find( annotation=>annotation.name.toLowerCase() ==='injector' );
+
+            const child = convert ? convert(node.createToken(item), node, item) : node.createToken(item);
             const static = !!(stack.static || child.static);
             const refs  = static ? node.methods : node.members;
+            child.required = required;
+
             if( child.type ==="PropertyDefinition" ){
+                if( !child.init ){
+                    child.init = child.createLiteralNode(null);
+                }
                 if( !static && child.modifier === "private"){
                     node.privateProperties.push(
                         ctx.createPropertyNode( child.key.value, child.init )
@@ -63,6 +91,7 @@ function createClassNode(ctx,stack){
                 if( item.isMethodGetterDefinition ){
                     target.get =child;
                 }else if( item.isMethodSetterDefinition ){
+                    injectorPush(injector, name);
                     target.set = child;
                 }
             }else if(item.isConstructor && item.isMethodDefinition){
@@ -79,6 +108,8 @@ function createClassNode(ctx,stack){
                     ));  
                     const program = ctx.getParentByType('Program');
                     program.afterBody.push( mainEnterMethods );
+                }else if( !static && item.isMethodDefinition ){
+                    providerPush( provider, child.key.value);
                 }
 
                 refs.push( child );
@@ -131,7 +162,7 @@ function createClassNode(ctx,stack){
         node.construct = createDefaultConstructMethod(node, module, node.privateProperties, node.initProperties);
     }
 
-    if( !node.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration || stack.isEnumDeclaration) ){
+    if( createDefaultConstruct && !node.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration || stack.isEnumDeclaration) ){
         node.construct = createDefaultConstructMethod(node, module);
     }
 
