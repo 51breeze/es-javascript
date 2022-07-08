@@ -1088,8 +1088,8 @@ declare interface Element extends Node implements ParentNode, ChildNode, GlobalE
     const namespaceURI: string | null;
     const onfullscreenchange: (ev: Event) => any;
     const onfullscreenerror: (ev: Event) => any;
-    const outerHTML: string;
-    const innerHTML: string;
+    var outerHTML: string;
+    var innerHTML: string;
     const ownerDocument: Document;
     const part: DOMTokenList;
     /**
