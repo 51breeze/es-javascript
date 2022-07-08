@@ -126,13 +126,13 @@ class Builder extends Token{
         const gen = ast ? this.createGenerator(ast, compilation) : null;
         const isRoot = compilation.stack === stack;
         if( gen ){
-            const file = isRoot ? compilation.file : this.getModuleFile( module );
+            const file = this.getModuleFile( module || compilation );
             const content = gen.toString();
             if( content ){
                 filesystem.mkdirpSync( path.dirname(file) );
                 filesystem.writeFileSync(file, content );
                 if( emitFile ){
-                    const output = isRoot ? this.getOutputAbsolutePath(compilation.file) : this.getOutputAbsolutePath(module);
+                    const output = this.getOutputAbsolutePath(module ? module : compilation.file);
                     this.emitFile( output, content );
                     if( gen.sourceMap ){
                         this.emitFile( output+'.map', gen.sourceMap.toString() );
@@ -156,34 +156,12 @@ class Builder extends Token{
         const compiler    = this.compiler;
         const config      = this.getConfig();
         const filesystem  = compiler.getOutputFileSystem( this.name );
-        const make = (compilation, stack, module, file, flag )=>{
-            const ast = this.createAstToken(stack);
-            if( ast ){
-                this.emitContent(filesystem, module, this.createGenerator(ast,compilation), file, config.emitFile, flag);
-                if( module ){
-                    this.emitAssets(filesystem, module, config.emitFile);
-                }
-            }
-        }
         if( compilation.completed(this.name) ){
             return done();
         }
         try{
             compilation.completed(this.name,false);
-            if( compilation.modules.size >0 ){
-                compilation.modules.forEach( module =>{
-                    if( this.isNeedBuild(module) ){
-                        const stack = compilation.getStackByModule(module);
-                        if( stack ){
-                            make(stack.compilation, stack, module, this.getModuleFile(module) );
-                        }else{
-                            throw new Error(`Not found stack by '${module.getName()}'`);
-                        }
-                    }
-                });
-            }else{
-                make(compilation, compilation.stack, null, compilation.file, true);
-            }
+            this.make(compilation, compilation.stack, Array.from(compilation.modules.values()).shift(), filesystem, config.emitFile);
             compilation.completed(this.name,true);
             done();
         }catch(e){

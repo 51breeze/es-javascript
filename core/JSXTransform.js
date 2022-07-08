@@ -46,7 +46,12 @@ class JSXTransform extends Token{
 
         const pushEvent=(name,callback, category)=>{
             const events =  data[ category ] || (data[ category ]=[]);
-            events.push( this.createPropertyNode(name, callback) );
+            const property = this.createPropertyNode(name, callback);
+            if( property.key.computed ){
+                property.computed = true;
+                property.key.computed = false;
+            }
+            events.push( property );
         }
 
         const toFun = (item,content)=>{
@@ -138,6 +143,7 @@ class JSXTransform extends Token{
                     this.createIdentifierNode( moduleClass ),
                     name
                 ], name);
+                name.computed = true;
             }
 
             if( ns ==="@events" ){
