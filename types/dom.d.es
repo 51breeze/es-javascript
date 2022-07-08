@@ -525,14 +525,14 @@ declare interface Document implements IEventDispatcher,GlobalEventHandlers,Docum
     createRange(): Range;
 
     requestFullscreen():void;
-    createElement(name:string):Node;
+    createElement(name:string):Element;
     createTextNode(name:string):Node;
     createComment(name:string):Node;
     createDocumentFragment(name:string):Node;
     createAttribute():Attr;
-    querySelector(selector:string):Node|null;
-    querySelectorAll(selector:string):Node[];
-    getElementById(name:string):Node;
+    querySelector(selector:string):Element|null;
+    querySelectorAll(selector:string):NodeList;
+    getElementById(name:string):Element;
 
      /** Stops document's fullscreen element from being displayed fullscreen and resolves promise when done. */
     exitFullscreen(): Promise<void>;
@@ -604,6 +604,12 @@ declare interface NodeList {
      * @param thisArg  An object to which the this keyword can refer in the callbackfn function. If thisArg is omitted, undefined is used as the this value.
      */
     forEach(callbackfn: (value: Node, key: number, parent: NodeList) => void, thisArg?: any): void;
+
+    entries():Iterator<Element>;
+
+    keys():Iterator<uint>;
+
+    values():Iterator<Element>;
 
     [key:number]:Node;
 }
