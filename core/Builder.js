@@ -161,7 +161,14 @@ class Builder extends Token{
         }
         try{
             compilation.completed(this.name,false);
-            this.make(compilation, compilation.stack, Array.from(compilation.modules.values()).shift(), filesystem, config.emitFile);
+            compilation.modules.forEach( module=>{
+                if( module.isDeclaratorModule ){
+                    const stack = compilation.getStackByModule(module);
+                    this.make(compilation, stack, module, filesystem, config.emitFile);
+                }else{
+                    this.make(compilation, compilation.stack, module, filesystem, config.emitFile);
+                }
+            });
             compilation.completed(this.name,true);
             done();
         }catch(e){
@@ -374,7 +381,7 @@ class Builder extends Token{
             if( asset.file ){
                 const external = externals && asset.file ? externals.find( name=>asset.file.indexOf(name)===0 ) : null;
                 if( !external ){
-                    const source = this.getModuleImportSource(asset.resolve || asset.file, module || context );
+                    const source = asset.resolve.includes('/node_modules/') ? asset.file : this.getModuleImportSource(asset.resolve, module || context );
                     dataset.set(source,{
                         source:source,
                         local:asset.assign,
@@ -447,11 +454,11 @@ class Builder extends Token{
     getModuleImportSource(source,module){
         const config = this.getConfig();
         const isString = typeof source === 'string';
-        if( config.useAbsolutePathImport ){
-            return isString ? source : this.getModuleFile(source);
-        }
         if( isString && source.includes('/node_modules/') ){
             return source;
+        }
+        if( config.useAbsolutePathImport ){
+            return isString ? source : this.getModuleFile(source);
         }
         return this.getOutputRelativePath(source, module);
     }

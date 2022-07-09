@@ -866,6 +866,8 @@ class JSXTransform extends Token{
             nodeElement = this.makeHTMLElement(stack, data, hasScopedSlot ? null : childNodes );
         }
 
+       
+
         if( isRoot ){
             if( stack.compilation.JSX && stack.parentStack.isProgram ){
                 const initProperties = data.props.map( property=>{
