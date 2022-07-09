@@ -697,8 +697,8 @@ class JSXTransform extends Token{
             }
         }else{
             if( stack.openingElement.attributes.length > 0 ){
-                const scope = stack.openingElement.attributes.find( attr=>attr.name.value === 'scope' );
-                const scopeName = scope && scope.value ? scope.value.value : 'scope';
+                const scope = stack.openingElement.attributes.find( attr=>attr.name.value() === 'scope' );
+                const scopeName = scope && scope.value ? scope.value.value() : 'scope';
                 return this.createSlotCalleeNode(
                     this.createCalleeNode(
                         this.createMemberNode([
@@ -865,8 +865,6 @@ class JSXTransform extends Token{
         }else{
             nodeElement = this.makeHTMLElement(stack, data, hasScopedSlot ? null : childNodes );
         }
-
-       
 
         if( isRoot ){
             if( stack.compilation.JSX && stack.parentStack.isProgram ){

@@ -378,6 +378,21 @@ class ClassBuilder extends Token{
                 items.push( this.createImportDeclaration(source, [[name]]) );
             }
         });
+        if( module.isDeclaratorModule ){
+            const polyfillModule = this.builder.getPolyfillModule( module.getName() );
+            if( polyfillModule && polyfillModule.requires.size > 0 ){
+                polyfillModule.requires.forEach( item=>{
+                    const name = item.key;
+                    const source = item.from;
+                    //const extract = item.extract;
+                    if( name !== item.value ){
+                        items.push( this.createImportDeclaration(source, [[item.value, name]]) );
+                    }else{
+                        items.push( this.createImportDeclaration(source, [[name]]) );
+                    }
+                });
+            }
+        }
         return items;
     }
 

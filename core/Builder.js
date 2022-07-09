@@ -342,6 +342,10 @@ class Builder extends Token{
         return Array.from( dataset.values() );
     }
 
+    getPolyfillModule(id){
+        return Polyfill.modules.get( id );
+    }
+
     isActiveForModule(depModule,ctxModule){
         ctxModule = ctxModule || this.module;
         if( this.compilation.isPolicy(2,depModule) ){
@@ -350,7 +354,7 @@ class Builder extends Token{
         const isUsed = this.isUsed(depModule, ctxModule);
         if( !isUsed )return false;
         const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
-        const isPolyfill = depModule.isDeclaratorModule && Polyfill.modules.has( depModule.getName() );
+        const isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
         return isRequire || isPolyfill;
     }
 
@@ -362,6 +366,12 @@ class Builder extends Token{
         context = context || this.module;
         if( !module )return null;
         if( context ){
+            if( context.isDeclaratorModule ){
+                const polyfill = this.getPolyfillModule( context.getName() );
+                if( polyfill && polyfill.require.includes( module.getName() ) ){
+                    return module.id;
+                }
+            }
             return context.getReferenceNameByModule( module );
         }
         return module.getName("_");

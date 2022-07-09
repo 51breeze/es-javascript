@@ -82,7 +82,6 @@ function MemberExpression(ctx,stack){
             );
         }
     }
-
     const node = ctx.createNode(stack);
     node.computed = !!stack.computed;
     node.object = node.createToken( stack.object );
