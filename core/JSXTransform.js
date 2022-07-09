@@ -769,7 +769,7 @@ class JSXTransform extends Token{
     makeHTMLElement(stack,data,children){
         var name = null;
         if( stack.isComponent ){
-            if( stack.jsxRootElement === stack ){
+            if( stack.jsxRootElement === stack && stack.parentStack.isProgram ){
                 name = this.createLiteralNode("div");
             }else{
                 name = this.createIdentifierNode( this.getModuleReferenceName( stack.description() ) );
