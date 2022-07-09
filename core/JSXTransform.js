@@ -578,8 +578,16 @@ class JSXTransform extends Token{
         return node;
     }
 
-    getJSXClassBuilder(stack , ctx){
-        return new JSXClassBuilder(stack, ctx);
+    createClassNode(stack, renderMethod, initProperties){
+        const obj = new JSXClassBuilder(stack, this, 'ClassDeclaration');
+        if(renderMethod){
+            obj.members.push( renderMethod )
+        }
+        if( initProperties && initProperties.length>0 ){
+            obj.initProperties.push( ...initProperties );
+        }
+        obj.create();
+        return obj;
     }
 
     getElementConfig(){
@@ -849,12 +857,7 @@ class JSXTransform extends Token{
         }
 
         const isRoot = stack.jsxRootElement === stack;
-        var initProperties = data.props;
         var nodeElement = null;
-        if( isRoot ){
-            data.props = null;
-        }
-
         if(stack.isSlot){
             nodeElement = this.makeSlotElement(stack, childNodes);
         }else if(stack.isDirective){
@@ -863,16 +866,9 @@ class JSXTransform extends Token{
             nodeElement = this.makeHTMLElement(stack, data, hasScopedSlot ? null : childNodes );
         }
 
-        if( !stack.parentStack.isReturnStatement && !isRoot ){
-            // nodeElement.newLine = true;
-            // nodeElement.indentation = true;
-            nodeElement.isJSXToken = true;
-        }
-
         if( isRoot ){
-            
             if( stack.compilation.JSX && stack.parentStack.isProgram ){
-                initProperties = initProperties.map( property=>{
+                const initProperties = data.props.map( property=>{
                     return this.createStatementNode(
                         this.createAssignmentNode(
                             this.createMemberNode([
@@ -883,8 +879,8 @@ class JSXTransform extends Token{
                         )
                     )
                 });
-                const renderMethod = this.createRenderNode( stack, nodeElement );
-                nodeElement = this.getJSXClassBuilder(stack, this).create( renderMethod, initProperties);
+                const renderMethod = this.createRenderNode(stack, nodeElement );
+                nodeElement = this.createClassNode(stack, renderMethod, initProperties);
             }else{
                 const block =  this.getParentByType( ctx=>{
                     return ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition"

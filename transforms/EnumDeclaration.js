@@ -1,13 +1,12 @@
-const ClassDeclaration = require("./ClassDeclaration");
-const Constant = require("../core/Constant");
 
+const Constant = require("../core/Constant");
 function createStatementMember(ctx, name, members){
     if( !members.length )return;
     const items = [];
     members.forEach( item =>{
-        const property = ClassDeclaration.createMemberDescriptor(ctx, item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
+        const property = ctx.createMemberDescriptor(item.key, item.init, 'public', Constant.DECLARE_PROPERTY_ENUM_VALUE);
         items.push( property );
-        const key = ClassDeclaration.createMemberDescriptor(ctx, item.init, ctx.createLiteralNode(item.key.value), 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
+        const key = ctx.createMemberDescriptor(item.init, ctx.createLiteralNode(item.key.value), 'public', Constant.DECLARE_PROPERTY_ENUM_KEY);
         items.push( key );
     });
     return ctx.createStatementNode( 
@@ -23,18 +22,24 @@ function createStatementMember(ctx, name, members){
     );
 }
 
+const ClassBuilder = require("../core/ClassBuilder");
 module.exports = function(ctx,stack,type){
 
     if( stack.parentStack.isPackageDeclaration ){
-        const node = ClassDeclaration.createClassNode(ctx,stack);
+        const node = new ClassBuilder(stack, ctx, type);
         const module = stack.module;
-        node.properties = stack.properties.map( item=>node.createToken(item) );
-        ClassDeclaration.createDependencies(node,module).forEach( item=> node.body.push(item) );
-        ClassDeclaration.createModuleAssets(node,module).forEach( item=> node.body.push(item) );
+        if( node.isActiveForModule(module.inherit) ){
+            node.inherit = module.inherit;
+        }
+        node.construct = node.createDefaultConstructMethod(module.id);
+        node.addDepend( stack.compilation.getGlobalTypeById('Class') );
+        node.methods = stack.properties.map( item=>node.createToken(item) );
+        node.createDependencies(module).forEach( item=> node.body.push(item) );
+        node.createModuleAssets(module).forEach( item=> node.body.push(item) );
         node.body.push( node.construct );
-        node.body.push( createStatementMember(node, 'methods', node.properties) );
-        node.body.push( ClassDeclaration.createClassDescriptor(node, module,  null, node.properties, null, null, node.inherit) );
-        node.body.push( ClassDeclaration.createExportDeclaration(node, module.id ) );
+        node.body.push( createStatementMember(node, 'methods', node.methods) );
+        node.body.push( node.createClassDescriptor() );
+        node.body.push( node.createExportDeclaration(module.id) );
         return node;
     }else{
         const name = stack.value();

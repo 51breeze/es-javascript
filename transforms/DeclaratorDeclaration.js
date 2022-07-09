@@ -1,4 +1,4 @@
-const ClassDeclaration = require("./ClassDeclaration");
+const ClassBuilder = require("../core/ClassBuilder");
 module.exports = function(ctx, stack, type){
 
     const module = stack.module;
@@ -7,9 +7,9 @@ module.exports = function(ctx, stack, type){
         return null;
     }
 
-    const node = ctx.createNode( stack );
-
+    const node = new ClassBuilder(stack, ctx, type);
     const content = polyfillModule.content;
+
     polyfillModule.require.forEach( name=>{
         const module = stack.getModuleById(name);
         if( module ){
@@ -21,7 +21,7 @@ module.exports = function(ctx, stack, type){
 
     module.extends.forEach( dep=>{
         if( dep.isClass ){
-            ctx.addDepend( dep );
+            node.addDepend( dep );
         }
     });
 
@@ -30,18 +30,17 @@ module.exports = function(ctx, stack, type){
     }
 
     if( polyfillModule.id !== 'Class' &&  polyfillModule.createClass !== false ){
-        ctx.addDepend( stack.getGlobalTypeById('Class') );
+        node.addDepend( stack.getGlobalTypeById('Class') );
     }
 
-    node.body = [];
     const body = node.body;
-    ClassDeclaration.createDependencies(node, module).forEach( item=>body.push( item ) );
-    ClassDeclaration.createModuleAssets(node, module).forEach( item=>body.push( item ) );
+    node.createDependencies(module).forEach( item=>body.push( item ) );
+    node.createModuleAssets(module).forEach( item=>body.push( item ) );
     body.push( node.createChunkNode( content ) );
-    if( polyfillModule.id !== 'Class' && polyfillModule.createClass !== false ){
-        body.push( ClassDeclaration.createClassDescriptor(node, module, null, null, null, null, node.inherit, polyfillModule.export) );
-    }
-    body.push( ClassDeclaration.createExportDeclaration(node, polyfillModule.export) );
-    return node;
 
+    if( polyfillModule.id !== 'Class' && polyfillModule.createClass !== false ){
+        body.push( node.createClassDescriptor(polyfillModule.export) );
+    }
+    body.push( node.createExportDeclaration(polyfillModule.export) );
+    return node;
 }
