@@ -1,6 +1,6 @@
 package unit;
 
-import unit.Jsx;
+//import unit.Jsx;
 
 public class Param{
 
@@ -19,8 +19,8 @@ public class Param{
          })
         this.ave(2.3660);
 
-        var jsx = new Jsx();
-        jsx.start();
+        //var jsx = new Jsx();
+        //jsx.start();
     }
 
     getList<T,B>({name1000:T,age:number=9},[index:T,id=20]){

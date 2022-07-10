@@ -53,7 +53,7 @@ class Generator{
 
     getStartColumn(){
         if( this.column===0 ){
-            return this.indent * 2;
+            return (this.indent * 4)+1;
         }
         return this.column;
     }
@@ -61,8 +61,8 @@ class Generator{
     withString( value ){
         if( !value )return;
         if( this.column===0 ){
-            this.column = this.indent * 2;
-            this.code += '\t'.repeat( this.indent );
+            this.column = this.getStartColumn();
+            this.code += '    '.repeat( this.indent );
         }
         this.code +=value;
         this.column += value.length;
@@ -208,6 +208,10 @@ class Generator{
                         this.newLine();
                     }
                     this.withString( token.value );
+                    const result = token.value.match(/[\r\n]+/g);
+                    if( result ){
+                        this.line+=result.length;
+                    }
                     if(token.newLine !== false){
                         this.newLine();
                     }
@@ -566,7 +570,7 @@ class Generator{
             case "UnaryExpression" :
                 if( token.prefix ){
                     this.withString(token.operator);
-                    if( ![33,126].includes(token.operator.charCodeAt(0)) ){
+                    if( ![33,43,45,126].includes(token.operator.charCodeAt(0)) ){
                         this.withSpace();
                     }
                     this.make( token.argument )

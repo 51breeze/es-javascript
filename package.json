@@ -28,7 +28,8 @@
   "homepage": "https://github.com/51breeze/es-javascript#readme",
   "dependencies": {
     "@babel/core": "^7.17.10",
-    "@babel/plugin-transform-runtime": "^7.17.10",
+    "@babel/plugin-transform-runtime": "^7.18.6",
+    "@babel/preset-env": "^7.18.6",
     "axios": "^0.26.1",
     "easescript": "*",
     "js-cookie": "^3.0.1",

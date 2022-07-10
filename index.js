@@ -22,8 +22,9 @@ const defaultConfig ={
     "suffix":'.js',
     "name":'main.js',
     "strict":true,
+    "babel":true,
     "ns":'core',
-    "sourceMap":false,
+    "sourceMaps":true,
     'useAbsolutePathImport':false,
 }
 const package = require("./package.json");

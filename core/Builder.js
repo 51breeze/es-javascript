@@ -5,10 +5,21 @@ const Generator = require("./Generator");
 const Token = require("./Token");
 const Polyfill = require("./Polyfill");
 const PATH = require("path");
+const Babel = require('@babel/core');
+const Lodash = require('lodash');
 const moduleDependencies = new Map();
 const moduleIdMap=new Map();
 const namespaceMap=new Map();
 const createAstStackCached = new WeakSet();
+const defaultBabelOps = {
+    babelrc:true,
+    presets:[
+        "@babel/preset-env"
+    ],
+    plugins:[
+        "@babel/plugin-transform-runtime"
+    ]
+}
 class Builder extends Token{
 
     constructor(stack){
@@ -23,6 +34,7 @@ class Builder extends Token{
         this.name = null;
         this.platform = null;
         this.parent = null;
+        this.filesystem = null;
     }
 
     emitContent(filesystem, module, gen, file, emitFile, flag){
@@ -77,15 +89,13 @@ class Builder extends Token{
     }
 
     start( done ){
+        this.filesystem  = this.compiler.getOutputFileSystem( this.name );
+        this.config = this.getConfig();
         try{
             const compilation = this.compilation;
-            const compiler    = this.compiler;
             const buildModules = new Set();
-            const filesystem  = compiler.getOutputFileSystem( this.name );
-            const config      = this.getConfig();
-
             const build = (compilation, stack, module)=>{
-                this.make(compilation, stack, module, filesystem, config.emitFile);
+                this.make(compilation, stack, module);
                 this.getDependencies(module).forEach( depModule=>{
                     if( this.isNeedBuild(depModule) && !buildModules.has(depModule) ){
                         buildModules.add(depModule);
@@ -118,44 +128,10 @@ class Builder extends Token{
         }
     }
 
-    make(compilation, stack, module, filesystem, emitFile){
-        if(createAstStackCached.has(stack))return;
-        createAstStackCached.add( stack );
-        if(compilation.completed(this.name))return;
-        const ast = this.createAstToken(stack);
-        const gen = ast ? this.createGenerator(ast, compilation) : null;
-        const isRoot = compilation.stack === stack;
-        if( gen ){
-            const file = this.getModuleFile( module || compilation );
-            const content = gen.toString();
-            if( content ){
-                filesystem.mkdirpSync( path.dirname(file) );
-                filesystem.writeFileSync(file, content );
-                if( emitFile ){
-                    const output = this.getOutputAbsolutePath(module ? module : compilation.file);
-                    this.emitFile( output, content );
-                    if( gen.sourceMap ){
-                        this.emitFile( output+'.map', gen.sourceMap.toString() );
-                    }
-                }
-            }
-        }
-
-        if( isRoot ){
-            compilation.modules.forEach( module=>{
-                this.emitAssets(module.assets, filesystem, module, emitFile)
-            });
-            this.emitAssets(compilation.assets, filesystem, compilation, emitFile);
-        }else if( module ){
-            this.emitAssets(module.assets, filesystem, module, emitFile);
-        }
-    }
-
     build(done){
+        this.filesystem  = this.compiler.getOutputFileSystem( this.name );
+        this.config = this.getConfig();
         const compilation = this.compilation;
-        const compiler    = this.compiler;
-        const config      = this.getConfig();
-        const filesystem  = compiler.getOutputFileSystem( this.name );
         if( compilation.completed(this.name) ){
             return done();
         }
@@ -164,15 +140,64 @@ class Builder extends Token{
             compilation.modules.forEach( module=>{
                 if( module.isDeclaratorModule ){
                     const stack = compilation.getStackByModule(module);
-                    this.make(compilation, stack, module, filesystem, config.emitFile);
+                    this.make(compilation, stack, module);
                 }else{
-                    this.make(compilation, compilation.stack, module, filesystem, config.emitFile);
+                    this.make(compilation, compilation.stack, module);
                 }
             });
             compilation.completed(this.name,true);
             done();
         }catch(e){
             done(e);
+        }
+    }
+
+    make(compilation, stack, module){
+        if(createAstStackCached.has(stack))return done();
+        createAstStackCached.add( stack );
+        if(compilation.completed(this.name))return done();
+        const config = this.config;
+        const filesystem = this.filesystem;
+        const ast = this.createAstToken(stack);
+        const gen = ast ? this.createGenerator(ast, compilation, module) : null;
+        const isRoot = compilation.stack === stack;
+        if( gen ){
+            const file = this.getModuleFile( module || compilation );
+            var content = gen.toString();
+            var sourceMap = gen.sourceMap;
+            if( content ){
+                filesystem.mkdirpSync( path.dirname(file) );
+                filesystem.writeFileSync(file, content );
+                if( config.babel ){
+                    const babelOps = typeof config.babel === 'object' ? Lodash.merge({}, defaultBabelOps, config.babel): defaultBabelOps;
+                    if( sourceMap ){
+                        babelOps.inputSourceMap = JSON.parse( sourceMap.toString() );
+                        babelOps.sourceMaps = true;
+                        babelOps.sourceFileName = this.getOutputAbsolutePath(module ? module : compilation.file);
+                    }
+                    const result = Babel.transformSync(content, babelOps);
+                    content = result.code;
+                    if( sourceMap ){
+                        sourceMap = JSON.stringify(result.map);
+                    }
+                }
+                if( config.emitFile ){
+                    const output = this.getOutputAbsolutePath(module ? module : compilation.file);
+                    this.emitFile( output, content );
+                    if( sourceMap ){
+                        this.emitFile( output+'.map', sourceMap.toString() ); 
+                    } 
+                }
+            }
+        }
+
+        if( isRoot ){
+            compilation.modules.forEach( module=>{
+                this.emitAssets(module.assets, filesystem, module, config.emitFile)
+            });
+            this.emitAssets(compilation.assets, filesystem, compilation, config.emitFile);
+        }else if( module ){
+            this.emitAssets(module.assets, filesystem, module, config.emitFile);
         }
     }
 
@@ -495,15 +520,18 @@ class Builder extends Token{
         return this.createToken( stack );
     }
 
-    createGenerator(ast, compilation ){
-        var sourceMap = this.getConfig('sourceMap');
-        if( sourceMap ){
-            if( sourceMap === true ){
-                sourceMap = new SourceMap.SourceMapGenerator();
-                sourceMap.setSourceContent(compilation.file, compilation.source);
-            }
+    createGenerator(ast, compilation, module ){
+        var sourceMaps = this.getConfig('sourceMaps');
+        var sourceMapObject = null;
+        if( sourceMaps && !(module.isDeclaratorModule || compilation.isDescriptionType) ){
+            const file = this.getOutputAbsolutePath(module ? module : compilation.file);
+            sourceMapObject = new SourceMap.SourceMapGenerator({
+                file:file,
+                sourceRoot:this.compiler.workspace
+            });
+            sourceMapObject.setSourceContent(compilation.file, compilation.source);
         }
-        const gen = new Generator(compilation.file, sourceMap);
+        const gen = new Generator(compilation.file, sourceMapObject);
         gen.make( ast );
         return gen;
     }
