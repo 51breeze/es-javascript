@@ -11,20 +11,16 @@ fs.readdirSync( dirname ).forEach( (filename)=>{
 });
 
 const defaultConfig ={
-    "target":"es6", //transform es6, none not do transform
-    "webComponent":"vue",
     "webpack":false,
-    "styleLoader":null,
     "reserved":{},
     "useDefineProperty":false,
-    "module":'es', //ES CommonJS
+    "module":'cjs',
     "emitFile":false,
     "suffix":'.js',
-    "name":'main.js',
     "strict":true,
-    "babel":true,
+    "babel":false,
     "ns":'core',
-    "sourceMaps":true, //inline or true
+    "sourceMaps":false,
     'useAbsolutePathImport':false,
 }
 const package = require("./package.json");
@@ -49,6 +45,7 @@ const properties ={
     start(compilation, done, options){
         if(options)this.config(options);
         const builder = new Builder( compilation.stack );
+        this.builder = builder;
         builder.name = this.name;
         builder.platform = this.platform;
         builder.plugin = this;
@@ -57,6 +54,7 @@ const properties ={
     build(compilation, done, options){
         if(options)this.config(options);
         const builder = new Builder( compilation.stack );
+        this.builder = builder;
         builder.name = this.name;
         builder.platform = this.platform;
         builder.plugin = this;
@@ -102,4 +100,57 @@ Object.defineProperty(plugin,'modules',{
     configurable:false
 });
 
-module.exports = plugin;
+
+class Plugin{
+
+    constructor(complier,options){
+        this.complier = complier;
+        this.options = merge({},  options, defaultConfig);
+        this.generatedCodeMaps = new Map();
+        this.generatedSourceMaps = new Map();
+        this.name = package.name;
+        this.version = package.version;
+        this.platform = 'client';
+    }
+
+    getGeneratedCodeByFile( file ){
+        return this.generatedCodeMaps.get( file );
+    }
+
+    getGeneratedSourceMapByFile( file ){
+        return this.generatedCodeMaps.get( file );
+    }
+
+    getPolyfillModules(){
+        return Polyfill.modules;
+    }
+
+    getTokenModules(){
+        return modules;
+    }
+
+    getStack(name){
+        return modules.get(name);
+    }
+
+    start(compilation, done, options){
+        if(options)this.config(options);
+        const builder = new Builder( compilation.stack );
+        builder.name = this.name;
+        builder.platform = this.platform;
+        builder.plugin = this;
+        builder.start(done);
+    }
+
+    build(compilation, done, options){
+        if(options)this.config(options);
+        const builder = new Builder( compilation.stack );
+        builder.name = this.name;
+        builder.platform = this.platform;
+        builder.plugin = this;
+        builder.build(done);
+    } 
+}
+
+
+module.exports = Plugin;

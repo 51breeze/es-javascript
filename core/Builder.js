@@ -33,7 +33,6 @@ class Builder extends Token{
         this.plugin = null;
         this.name = null;
         this.platform = null;
-        this.parent = null;
         this.filesystem = null;
         this.generatedSourceMaps = new Map();
     }
@@ -154,9 +153,8 @@ class Builder extends Token{
     }
 
     make(compilation, stack, module){
-        if(createAstStackCached.has(stack))return done();
+        if(createAstStackCached.has(stack) || compilation.completed(this.name) )return;
         createAstStackCached.add( stack );
-        if(compilation.completed(this.name))return done();
         const config = this.config;
         const filesystem = this.filesystem;
         const ast = this.createAstToken(stack);
@@ -165,35 +163,34 @@ class Builder extends Token{
         if( gen ){
             const file = this.getModuleFile( module || compilation );
             var content = gen.toString();
-            var sourceMapObject = gen.sourceMap;
+            var sourceMap = gen.sourceMap ? gen.sourceMap.toJSON() : null;
             if( content ){
-               
-                if( config.babel ){
+                if( config.babel && !compilation.isDescriptionType ){
                     const babelOps = typeof config.babel === 'object' ? Lodash.merge({}, defaultBabelOps, config.babel): defaultBabelOps;
-                    if( sourceMapObject ){
-                        babelOps.inputSourceMap = JSON.parse( sourceMapObject.toString() );
+                    if( sourceMap ){
+                        babelOps.inputSourceMap = sourceMap;
                         babelOps.sourceMaps = true;
                         babelOps.sourceFileName = this.getOutputAbsolutePath(module ? module : compilation.file);
                     }
                     const result = Babel.transformSync(content, babelOps);
                     content = result.code;
                     if( result.map ){
-                        sourceMapObject = JSON.stringify(result.map);
+                        sourceMap = result.map;
                     }
                 }
 
-                if( sourceMapObject ){
-                    this.generatedSourceMaps.set( file, sourceMapObject);
+                if( sourceMap ){
+                    this.generatedSourceMaps.set(file, sourceMap);
                 }
-                
+
                 filesystem.mkdirpSync( path.dirname(file) );
                 filesystem.writeFileSync(file, content );
 
                 if( config.emitFile ){
                     const output = this.getOutputAbsolutePath(module ? module : compilation.file);
                     this.emitFile( output, content );
-                    if( sourceMapObject ){
-                        this.emitFile( output+'.map', sourceMapObject.toString() );
+                    if( sourceMap ){
+                        this.emitFile( output+'.map', JSON.stringify(sourceMap) );
                     }
                 }
             }
@@ -531,7 +528,7 @@ class Builder extends Token{
     createGenerator(ast, compilation, module ){
         var sourceMaps = this.getConfig('sourceMaps');
         var sourceMapObject = null;
-        if( sourceMaps && !(module.isDeclaratorModule || compilation.isDescriptionType) ){
+        if( sourceMaps && !( (module && module.isDeclaratorModule) || compilation.isDescriptionType ) ){
             const file = this.getOutputAbsolutePath(module ? module : compilation.file);
             sourceMapObject = new SourceMap.SourceMapGenerator({
                 file:file,
