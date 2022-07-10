@@ -24,7 +24,7 @@ const defaultConfig ={
     "strict":true,
     "babel":true,
     "ns":'core',
-    "sourceMaps":true,
+    "sourceMaps":true, //inline or true
     'useAbsolutePathImport':false,
 }
 const package = require("./package.json");

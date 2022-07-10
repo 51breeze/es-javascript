@@ -167,8 +167,7 @@ class Builder extends Token{
             var content = gen.toString();
             var sourceMapObject = gen.sourceMap;
             if( content ){
-                filesystem.mkdirpSync( path.dirname(file) );
-                filesystem.writeFileSync(file, content );
+               
                 if( config.babel ){
                     const babelOps = typeof config.babel === 'object' ? Lodash.merge({}, defaultBabelOps, config.babel): defaultBabelOps;
                     if( sourceMapObject ){
@@ -186,6 +185,9 @@ class Builder extends Token{
                 if( sourceMapObject ){
                     this.generatedSourceMaps.set( file, sourceMapObject);
                 }
+                
+                filesystem.mkdirpSync( path.dirname(file) );
+                filesystem.writeFileSync(file, content );
 
                 if( config.emitFile ){
                     const output = this.getOutputAbsolutePath(module ? module : compilation.file);
