@@ -61,7 +61,7 @@ const properties ={
         builder.platform = this.platform;
         builder.plugin = this;
         builder.build(done);
-    }
+    },
 }
 
 function registerError(define, cn, en){

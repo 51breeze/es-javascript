@@ -35,6 +35,7 @@ class Builder extends Token{
         this.platform = null;
         this.parent = null;
         this.filesystem = null;
+        this.generatedSourceMaps = new Map();
     }
 
     emitContent(filesystem, module, gen, file, emitFile, flag){
@@ -121,10 +122,10 @@ class Builder extends Token{
             });
 
             compilation.completed(this.name,true);
-            done();
+            done(null, this);
 
         }catch(e){
-            done(e);
+            done(e, this);
         }
     }
 
@@ -133,7 +134,7 @@ class Builder extends Token{
         this.config = this.getConfig();
         const compilation = this.compilation;
         if( compilation.completed(this.name) ){
-            return done();
+            return done(null, this);
         }
         try{
             compilation.completed(this.name,false);
@@ -146,9 +147,9 @@ class Builder extends Token{
                 }
             });
             compilation.completed(this.name,true);
-            done();
+            done(null, this);
         }catch(e){
-            done(e);
+            done(e, this);
         }
     }
 
@@ -164,29 +165,34 @@ class Builder extends Token{
         if( gen ){
             const file = this.getModuleFile( module || compilation );
             var content = gen.toString();
-            var sourceMap = gen.sourceMap;
+            var sourceMapObject = gen.sourceMap;
             if( content ){
                 filesystem.mkdirpSync( path.dirname(file) );
                 filesystem.writeFileSync(file, content );
                 if( config.babel ){
                     const babelOps = typeof config.babel === 'object' ? Lodash.merge({}, defaultBabelOps, config.babel): defaultBabelOps;
-                    if( sourceMap ){
-                        babelOps.inputSourceMap = JSON.parse( sourceMap.toString() );
+                    if( sourceMapObject ){
+                        babelOps.inputSourceMap = JSON.parse( sourceMapObject.toString() );
                         babelOps.sourceMaps = true;
                         babelOps.sourceFileName = this.getOutputAbsolutePath(module ? module : compilation.file);
                     }
                     const result = Babel.transformSync(content, babelOps);
                     content = result.code;
-                    if( sourceMap ){
-                        sourceMap = JSON.stringify(result.map);
+                    if( result.map ){
+                        sourceMapObject = JSON.stringify(result.map);
                     }
                 }
+
+                if( sourceMapObject ){
+                    this.generatedSourceMaps.set( file, sourceMapObject);
+                }
+
                 if( config.emitFile ){
                     const output = this.getOutputAbsolutePath(module ? module : compilation.file);
                     this.emitFile( output, content );
-                    if( sourceMap ){
-                        this.emitFile( output+'.map', sourceMap.toString() ); 
-                    } 
+                    if( sourceMapObject ){
+                        this.emitFile( output+'.map', sourceMapObject.toString() );
+                    }
                 }
             }
         }
