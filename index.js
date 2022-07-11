@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const Builder = require("./core/Builder");
-const Polyfill = require("./core/Polyfill");
 const {merge} = require("lodash");
 const modules = new Map();
 const dirname = path.join(__dirname,"tokens");
@@ -49,7 +48,7 @@ class Plugin{
         this.platform = 'client'; 
         const dir = path.join(__dirname,'types');
         const files = fs.readdirSync( dir ).filter( item=>!(item === '.' || item === '..') ).map( item=>path.join(dir,item) );
-        complier.loadTypes(files,true);
+        complier.loadTypes(files,true,null,true);
         registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     }
 
@@ -59,17 +58,6 @@ class Plugin{
 
     getGeneratedSourceMapByFile(file){
         return this.generatedCodeMaps.get(file);
-    }
-
-    getPolyfillModules( name ){
-        if( name ){
-            return Polyfill.modules.get(name);
-        }
-        return Polyfill.modules;
-    }
-
-    getTokens(){
-        return modules;
     }
 
     getTokenNode(name){
