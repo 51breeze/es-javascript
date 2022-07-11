@@ -34,38 +34,22 @@ class Builder extends Token{
         this.name = null;
         this.platform = null;
         this.filesystem = null;
-        this.generatedSourceMaps = new Map();
     }
 
-    emitContent(filesystem, module, gen, file, emitFile, flag){
-        if( gen ){
-            const content = gen.toString();
-            if( content ){
-                filesystem.mkdirpSync( path.dirname(file) );
-                filesystem.writeFileSync(file, content );
-                if( emitFile ){
-                    this.emitFile( this.getOutputAbsolutePath(module, flag), filesystem.readFileSync(file) );
-                    if( gen.sourceMap ){
-                        this.emitFile( this.getOutputAbsolutePath(module, flag)+'.map', gen.sourceMap.toString() );
-                    }
-                }
-            }
-        }
-    }
-
-    emitAssets(assets, filesystem, module, emitFile){
+    emitAssets(assets, module, emitFile){
         if( !module || !assets )return;
         assets.forEach( asset=>{
             const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
             if( !asset.file && asset.type ==="style" ){
-                this.emitContent(filesystem, file, asset.content, file);
+                this.emitContent(file, asset.content);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
                     const content = fs.readFileSync( asset.resolve );
-                    this.emitContent(filesystem, file, content, asset.resolve);
-                    if( emitFile ){
-                        this.emitFile( this.getOutputAbsolutePath(asset.resolve), content );
-                    }
+                    this.emitContent(
+                        asset.resolve, 
+                        content.toString(), 
+                        emitFile ? this.getOutputAbsolutePath(asset.resolve) : null
+                    );
                 }else{
                     console.warn( `Assets file the '${asset.file}' is not emit.`);
                 }
@@ -73,6 +57,19 @@ class Builder extends Token{
                 console.warn( `Assets file the '${asset.file}' is not emit.`);
             }
         });
+    }
+
+    emitContent(file, content, output=null, sourceMap=null){
+        this.plugin.generatedCodeMaps.set(file, content);
+        if( sourceMap ){
+            this.plugin.generatedSourceMaps.set(file, sourceMap);
+        }
+        if(output){
+            this.emitFile( output, content );
+            if( sourceMap ){
+                this.emitFile( output+'.map', JSON.stringify(sourceMap) );
+            }
+        }
     }
 
     emitFile(file, content){
@@ -89,8 +86,6 @@ class Builder extends Token{
     }
 
     start( done ){
-        this.filesystem  = this.compiler.getOutputFileSystem( this.name );
-        this.config = this.getConfig();
         try{
             const compilation = this.compilation;
             const buildModules = new Set();
@@ -114,49 +109,58 @@ class Builder extends Token{
                 });
             }
 
-            build(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
+            if( compilation.isDescriptionType ){
+                compilation.modules.forEach( module=>{
+                    const stack = compilation.getStackByModule(module);
+                    if(stack){
+                        build(compilation, stack, module);
+                    }
+                })
+            }else{
+                build(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
+            }
 
             buildModules.forEach(module=>{
                 module.compilation.completed(this.name,true);
             });
 
             compilation.completed(this.name,true);
-            done(null, this);
+            done(null);
 
         }catch(e){
-            done(e, this);
+            done(e);
         }
     }
 
     build(done){
         this.filesystem  = this.compiler.getOutputFileSystem( this.name );
-        this.config = this.getConfig();
         const compilation = this.compilation;
         if( compilation.completed(this.name) ){
             return done(null, this);
         }
         try{
             compilation.completed(this.name,false);
-            compilation.modules.forEach( module=>{
-                if( module.isDeclaratorModule ){
+            if( compilation.isDescriptionType ){
+                compilation.modules.forEach( module=>{
                     const stack = compilation.getStackByModule(module);
-                    this.make(compilation, stack, module);
-                }else{
-                    this.make(compilation, compilation.stack, module);
-                }
-            });
+                    if(stack){
+                        this.make(compilation, stack, module);
+                    }
+                });
+            }else{
+                this.make(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
+            }
             compilation.completed(this.name,true);
-            done(null, this);
+            done(null);
         }catch(e){
-            done(e, this);
+            done(e);
         }
     }
 
     make(compilation, stack, module){
         if(createAstStackCached.has(stack) || compilation.completed(this.name) )return;
         createAstStackCached.add( stack );
-        const config = this.config;
-        const filesystem = this.filesystem;
+        const config = this.plugin.options;
         const ast = this.createAstToken(stack);
         const gen = ast ? this.createGenerator(ast, compilation, module) : null;
         const isRoot = compilation.stack === stack;
@@ -178,31 +182,22 @@ class Builder extends Token{
                         sourceMap = result.map;
                     }
                 }
-
-                if( sourceMap ){
-                    this.generatedSourceMaps.set(file, sourceMap);
-                }
-
-                filesystem.mkdirpSync( path.dirname(file) );
-                filesystem.writeFileSync(file, content );
-
-                if( config.emitFile ){
-                    const output = this.getOutputAbsolutePath(module ? module : compilation.file);
-                    this.emitFile( output, content );
-                    if( sourceMap ){
-                        this.emitFile( output+'.map', JSON.stringify(sourceMap) );
-                    }
-                }
+                this.emitContent(
+                    file, 
+                    content,  
+                    config.emitFile ? this.getOutputAbsolutePath(module ? module : compilation.file) : null,
+                    sourceMap
+                );
             }
         }
 
         if( isRoot ){
             compilation.modules.forEach( module=>{
-                this.emitAssets(module.assets, filesystem, module, config.emitFile)
+                this.emitAssets(module.assets, module, config.emitFile)
             });
-            this.emitAssets(compilation.assets, filesystem, compilation, config.emitFile);
+            this.emitAssets(compilation.assets, compilation, config.emitFile);
         }else if( module ){
-            this.emitAssets(module.assets, filesystem, module, config.emitFile);
+            this.emitAssets(module.assets, module, config.emitFile);
         }
     }
 
@@ -246,13 +241,13 @@ class Builder extends Token{
     }
 
     isEnv( name ){
-        const options = this.getOptions();
+        const options = this.compiler.options;
         return name === options.env;
     }
 
     getOutputAbsolutePath(module){
-        const options = this.getOptions();
-        const config = this.getConfig();
+        const options = this.compiler.options;
+        const config = this.plugin.options;
         const suffix = config.suffix||".js";
         const workspace = config.workspace || this.compiler.workspace;
         const output = config.output || options.output;
@@ -290,29 +285,6 @@ class Builder extends Token{
 
     getFileRelativePath(currentFile, destFile){
         return './'+PATH.relative( PATH.dirname(currentFile), destFile ).replace(/\\/g,'/');
-    }
-
-    getOptions(){
-        return this.compiler.options || {};
-    }
-    
-    getConfig( name ){
-        const config = this.plugin.config();
-        if( name ){
-            if( name.lastIndexOf(".") > 0 ){
-                const keys = name.split('.');
-                let object = config;
-                do{
-                    if( typeof object !=="object" ){
-                        return null;
-                    }
-                    object = object[ keys.shift() ] || null;
-                }while( keys.length > 0 );
-                return object;
-            }
-            return config[name];
-        }
-        return config;
     }
 
     checkMetaTypeSyntax( metaTypes ){
@@ -409,7 +381,7 @@ class Builder extends Token{
 
     getProgramAssets(){
         const dataset = new Map();
-        const config = this.getConfig();
+        const config = this.plugin.options;
         const externals = config.external;
         const assets = this.compilation.assets;
         this.crateAssetItems(null, dataset, assets, externals, this.compilation.file);
@@ -431,7 +403,7 @@ class Builder extends Token{
                     });
                 }
             }else if( asset.type ==="style" && module ){
-                const config = this.getConfig();
+                const config = this.plugin.options;
                 const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve);
                 const source = (config.styleLoader || []).concat( file ).join('!');
                 dataset.set(source,{
@@ -447,7 +419,7 @@ class Builder extends Token{
     getModuleAssets(module, dataset){
         if(!module || !(module.assets.size > 0 || module.requires.size > 0) )return [];
         dataset = dataset || new Map();
-        const config = this.getConfig();
+        const config = this.plugin.options;
         const assets = module.assets;
         const externals = config.external;
         if( assets ){
@@ -492,7 +464,7 @@ class Builder extends Token{
     }
 
     getModuleImportSource(source,module){
-        const config = this.getConfig();
+        const config = this.plugin.options;
         const isString = typeof source === 'string';
         if( isString && source.includes('/node_modules/') ){
             return source;
@@ -526,7 +498,7 @@ class Builder extends Token{
     }
 
     createGenerator(ast, compilation, module ){
-        var sourceMaps = this.getConfig('sourceMaps');
+        var sourceMaps = this.plugin.options.sourceMaps;
         var sourceMapObject = null;
         if( sourceMaps && !( (module && module.isDeclaratorModule) || compilation.isDescriptionType ) ){
             const file = this.getOutputAbsolutePath(module ? module : compilation.file);

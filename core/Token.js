@@ -4,21 +4,6 @@ const FUNCTION_SCOPE = ["MethodDefinition","MethodGetterDefinition","MethodSette
 const SCOPE_MAP = new Map();
 class Token extends events.EventEmitter {
 
-    static createRootNode(stack, builder){
-        const obj = new Token();
-        obj.stack = stack;
-        obj.scope = stack.scope;
-        obj.compilation = stack.compilation;
-        obj.compiler = stack.compiler;
-        obj.module =  stack.module;
-        obj.plugin = builder.plugin;
-        obj.name = builder.name;
-        obj.platform = builder.platform;
-        obj.parent = null;
-        obj.builder = builder;
-        return obj.createToken( stack );
-    }
-
     constructor(type){
         super();
         this.type = type;
@@ -60,7 +45,7 @@ class Token extends events.EventEmitter {
         if( !stack )return null;
         const type = stack.toString();
         if( type ==='TypeStatement')return null;
-        const creator = this.plugin.getStack( type );
+        const creator = this.plugin.getTokenNode( type );
         if( creator ){
             try{
                 return creator(this, stack, type);

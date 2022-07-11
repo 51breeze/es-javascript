@@ -4,7 +4,7 @@ const Builder = require("./core/Builder");
 const Polyfill = require("./core/Polyfill");
 const {merge} = require("lodash");
 const modules = new Map();
-const dirname = path.join(__dirname,"transforms");
+const dirname = path.join(__dirname,"tokens");
 fs.readdirSync( dirname ).forEach( (filename)=>{
     const info = path.parse( filename );
     modules.set(info.name, require( path.join(dirname,filename) ) );
@@ -12,8 +12,7 @@ fs.readdirSync( dirname ).forEach( (filename)=>{
 
 const defaultConfig ={
     "webpack":false,
-    "reserved":{},
-    "useDefineProperty":false,
+    "reserved":[],
     "module":'cjs',
     "emitFile":false,
     "suffix":'.js',
@@ -21,135 +20,81 @@ const defaultConfig ={
     "babel":false,
     "ns":'core',
     "sourceMaps":false,
+    "useDefineProperty":false,
     'useAbsolutePathImport':false,
 }
-const package = require("./package.json");
-const key = Symbol('configKey');
-const properties ={
-    name:package.name,
-    version:package.version,
-    platform:'client',
-    config(options){
-        const data = this[key] || (this[key] = Object.create(defaultConfig));
-        if(options){
-            merge(data, options);
-        }
-        return data;
-    },
-    getPolyfill(name){
-        return Polyfill.modules.get(name);
-    },
-    getStack(name){
-        return modules.get(name);
-    },
-    start(compilation, done, options){
-        if(options)this.config(options);
-        const builder = new Builder( compilation.stack );
-        this.builder = builder;
-        builder.name = this.name;
-        builder.platform = this.platform;
-        builder.plugin = this;
-        builder.start(done);
-    },
-    build(compilation, done, options){
-        if(options)this.config(options);
-        const builder = new Builder( compilation.stack );
-        this.builder = builder;
-        builder.name = this.name;
-        builder.platform = this.platform;
-        builder.plugin = this;
-        builder.build(done);
-    },
-}
+
+const pkg = require("./package.json");
+const generatedCodeMaps = new Map();
+const generatedSourceMaps = new Map();
 
 function registerError(define, cn, en){
     if(registerError.loaded)return;
     registerError.loaded=true;
-    define(10000,'BINDING_PROPERTY_CAN_ONLY_ACCESSOR',[
+    define(10000,'',[
         '绑定的属性(%s)必须是一个可赋值的成员属性',
         "Binding the '%s' property must be an assignable member property"
     ]);
 }
 
-function plugin(complier){
-    registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
-    this.complier = complier;
-    const dir = path.join(__dirname,'types');
-    const files = fs.readdirSync( dir ).filter( item=>!(item === '.' || item === '..') ).map( item=>path.join(dir,item) );
-    complier.loadTypes(files,true);
-};
-
-for(var name in properties){
-    Object.defineProperty(plugin.prototype,name,{
-        value:properties[name],
-        enumerable:false,
-        configurable:false
-    });
-    if( ['name','platform','version'].includes(name) ){
-        Object.defineProperty(plugin,name,{
-            value:properties[name],
-            enumerable:false,
-            configurable:false
-        });
-    }
-}
-
-Object.defineProperty(plugin,'modules',{
-    value:modules,
-    enumerable:true,
-    configurable:false
-});
-
-
 class Plugin{
 
     constructor(complier,options){
         this.complier = complier;
-        this.options = merge({},  options, defaultConfig);
-        this.generatedCodeMaps = new Map();
-        this.generatedSourceMaps = new Map();
-        this.name = package.name;
-        this.version = package.version;
-        this.platform = 'client';
+        this.options = merge({},defaultConfig, options);
+        this.generatedCodeMaps = generatedCodeMaps;
+        this.generatedSourceMaps = generatedSourceMaps;
+        this.name = pkg.name;
+        this.version = pkg.version;
+        this.platform = 'client'; 
+        const dir = path.join(__dirname,'types');
+        const files = fs.readdirSync( dir ).filter( item=>!(item === '.' || item === '..') ).map( item=>path.join(dir,item) );
+        complier.loadTypes(files,true);
+        registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
     }
 
-    getGeneratedCodeByFile( file ){
-        return this.generatedCodeMaps.get( file );
+    getGeneratedCodeByFile(file){
+        return this.generatedCodeMaps.get(file);
     }
 
-    getGeneratedSourceMapByFile( file ){
-        return this.generatedCodeMaps.get( file );
+    getGeneratedSourceMapByFile(file){
+        return this.generatedCodeMaps.get(file);
     }
 
-    getPolyfillModules(){
+    getPolyfillModules( name ){
+        if( name ){
+            return Polyfill.modules.get(name);
+        }
         return Polyfill.modules;
     }
 
-    getTokenModules(){
+    getTokens(){
         return modules;
     }
 
-    getStack(name){
+    getTokenNode(name){
         return modules.get(name);
     }
 
-    start(compilation, done, options){
-        if(options)this.config(options);
-        const builder = new Builder( compilation.stack );
-        builder.name = this.name;
-        builder.platform = this.platform;
-        builder.plugin = this;
+    start(compilation, done){
+        const builder = this.getBuilder( compilation );
         builder.start(done);
+        return builder;
     }
 
-    build(compilation, done, options){
-        if(options)this.config(options);
+    build(compilation, done){
+        const builder = this.getBuilder( compilation );
+        builder.build(done);
+        return builder;
+    } 
+
+    getBuilder( compilation ){
         const builder = new Builder( compilation.stack );
         builder.name = this.name;
         builder.platform = this.platform;
         builder.plugin = this;
-        builder.build(done);
-    } 
+        return builder;
+    }
 }
 
 

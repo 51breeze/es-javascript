@@ -7,7 +7,7 @@ module.exports = function(ctx,stack){
             ns = xmlns.value.value();
         }else {
             const nsStack = stack.getNamespaceStack();
-            const ops = ctx.builder.getOptions();
+            const ops = stack.compiler.options;
             ns = ops.jsx.xmlns.default[ nsStack.namespace.value() ] || ns;
         }
     }

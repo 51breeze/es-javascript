@@ -6,7 +6,7 @@ module.exports = function(ctx,stack){
     if( xmlns ){
         node.value = xmlns.value.value();
     }else {
-        const ops = ctx.builder.getOptions();
+        const ops = stack.compiler.options;
         node.value = ops.jsx.xmlns.default[ stack.namespace.value() ] || null;
     }
     node.value = node.name.value;

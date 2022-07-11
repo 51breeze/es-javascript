@@ -414,7 +414,7 @@ class ClassBuilder extends Token{
     }
 
     createImportDeclaration(source, specifiers){
-        const type = this.builder.getConfig('module');
+        const type = this.plugin.options.module;
         if( type ==='cjs'){
             const specifier = specifiers[0];
             if( specifier ){
@@ -437,7 +437,7 @@ class ClassBuilder extends Token{
     }
 
     createExportDeclaration( id ){
-        const type = this.builder.getConfig('module');
+        const type = this.plugin.options.module;
         if( type ==='cjs'){
             return this.createStatementNode( 
                 this.createAssignmentNode(
