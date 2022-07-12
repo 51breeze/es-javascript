@@ -12,7 +12,7 @@ fs.readdirSync( dirname ).forEach( (filename)=>{
 const defaultConfig ={
     "webpack":false,
     "reserved":[],
-    "module":'cjs',
+    "module":'es',
     "emitFile":false,
     "suffix":'.js',
     "strict":true,
