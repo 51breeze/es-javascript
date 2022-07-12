@@ -57,7 +57,7 @@ class Plugin{
     }
 
     getGeneratedSourceMapByFile(file){
-        return this.generatedCodeMaps.get(file);
+        return this.generatedSourceMaps.get(file);
     }
 
     getTokenNode(name){
