@@ -441,11 +441,7 @@ class Generator{
             case "ObjectPattern" :
                 this.withBraceL();
                 token.properties.forEach( (item,index)=>{
-                    if( item.init && item.init.type ==="AssignmentPattern" ){
-                        this.make( item.init );
-                    }else{
-                        this.make( item.key );
-                    }
+                    this.make( item );
                     if( index < token.properties.length-1 ){
                         this.withComma();
                     }
