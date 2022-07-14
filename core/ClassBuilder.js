@@ -287,7 +287,7 @@ class ClassBuilder extends Token{
         modifier = modifier || node.modifier;
         const properties = [];
         properties.push( this.createPropertyNode('m', this.createLiteralNode( MODIFIER_MAP[ modifier ] ) ) );
-        properties.push( this.createPropertyNode('id', this.createLiteralNode(kind) ) );
+        properties.push( this.createPropertyNode('d', this.createLiteralNode(kind) ) );
         if( kind === Constant.DECLARE_PROPERTY_VAR ){
             properties.push( this.createPropertyNode('writable', this.createLiteralNode(true) ) );
         }

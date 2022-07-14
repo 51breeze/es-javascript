@@ -822,7 +822,7 @@ class JSXTransform extends Token{
         if( stack.hasAttributeSlot ){
             const attrSlot = stack.openingElement.attributes.find( attr=>!!attr.isAttributeSlot );
             if( attrSlot ){
-                hasScopedSlot = !!item.value;
+                hasScopedSlot = !!attrSlot.value;
             }
         }
 
@@ -885,7 +885,8 @@ class JSXTransform extends Token{
                 const block =  this.getParentByType( ctx=>{
                     return ctx.type === "BlockStatement" && ctx.parent.type ==="MethodDefinition"
                 });
-                if( block ){
+                if( block && !block.existCreateElementHandle ){
+                    block.existCreateElementHandle = true;
                     block.body.unshift( this.createElementHandleNode(stack) );
                 }
             }
