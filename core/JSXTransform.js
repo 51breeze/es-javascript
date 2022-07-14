@@ -123,7 +123,6 @@ class JSXTransform extends Token{
                         )
                     );
                 }else{
-                    const name = stack.parentStack.openingElement.name.value();
                     data.slot = this.createLiteralNode(name);
                 }
                 return;
