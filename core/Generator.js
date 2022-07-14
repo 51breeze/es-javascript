@@ -387,12 +387,10 @@ class Generator{
                 this.make( token.local );
             break;
             case "ImportExpression" :
-                this.newLine();
                 this.withString('import');
                 this.withParenthesL();
-                this.make( token.local );
+                this.make( token.source );
                 this.withParenthesR();
-                this.newLine();
             break;
             case "LabeledStatement" :
                 this.newLine();
