@@ -196,12 +196,12 @@ class JSXTransform extends Token{
                     }
                 }
                 if( !isDOMAttribute ){
-                    data.props.push( this.createPropertyNode( this.createIdentifierNode(propName, value.name.stack ), value.value ) );
+                    data.props.push( this.createPropertyNode( this.createPropertyKeyNode(propName, value.name.stack ), value.value ) );
                     return;
                 }
             }
 
-            const property = this.createPropertyNode( this.createIdentifierNode(propName, value.name.stack), value.value );
+            const property = this.createPropertyNode( this.createPropertyKeyNode(propName, value.name.stack), value.value );
             switch(name){
                 case "class" :
                 case "style" :
@@ -223,6 +223,13 @@ class JSXTransform extends Token{
         });
     }
 
+    createPropertyKeyNode(name, stack){
+        if( name.includes('-') ){
+            return this.createLiteralNode(name, void 0, stack);
+        }
+        return this.createIdentifierNode(name, stack);
+    }
+
     makeProperties(children, data ){
         children.forEach( child=>{
             if( child.isProperty ){
@@ -237,6 +244,7 @@ class JSXTransform extends Token{
     }
 
     makeDirectives(child, element, prevResult){
+        if( !element )return null;
         const cmd=[];
         let content = [element];
         if( !child.directives || !(child.directives.length > 0) ){
@@ -322,7 +330,7 @@ class JSXTransform extends Token{
         const next = ()=>{
             if( index<len ){
                 const child = children[index++];
-                const elem = this.makeDirectives(child, this.createToken(child) , last);
+                const elem = this.makeDirectives(child, this.createToken(child) , last) || next();
                 if( child.isSlot && !child.isSlotDeclared ){
                     const name = child.openingElement.name.value();
                     if( child.attributes.length > 0 ){

@@ -417,13 +417,21 @@ class Builder extends Token{
     }
 
     getModuleAssets(module, dataset){
-        if(!module || !(module.assets.size > 0 || module.requires.size > 0) )return [];
+        if(!module)return [];
         dataset = dataset || new Map();
         const config = this.plugin.options;
         const assets = module.assets;
         const externals = config.external;
         if( assets ){
            this.crateAssetItems(module, dataset , assets, externals);
+        }
+
+        if( compilation.modules.size > 1 ){
+            if( Array.from( compilation.modules.values() )[0] === module ){
+                this.crateAssetItems(module, dataset, compilation.assets, externals);
+            }
+        }else{
+            this.crateAssetItems(module, dataset, compilation.assets, externals);
         }
 
         const requires = module.requires;
