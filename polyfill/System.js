@@ -205,3 +205,74 @@ System.getEventDispatcher=function getEventDispatcher(){
      }
      return null;
  };
+
+ (function(System){
+    var env = {
+        'BROWSER_IE': 'IE',
+        'BROWSER_FIREFOX': 'FIREFOX',
+        'BROWSER_CHROME': 'CHROME',
+        'BROWSER_OPERA': 'OPERA',
+        'BROWSER_SAFARI': 'SAFARI',
+        'BROWSER_MOZILLA': 'MOZILLA',
+        'NODE_JS': 'NODE_JS',
+        'IS_CLIENT': false,
+    };
+    var _platform = [];
+    if (typeof navigator !== "undefined"){
+        var ua = navigator.userAgent.toLowerCase();
+        var s;
+        (s = ua.match(/msie ([\d.]+)/)) ? _platform = [env.BROWSER_IE, parseFloat(s[1])] :
+        (s = ua.match(/firefox\/([\d.]+)/)) ? _platform = [env.BROWSER_FIREFOX, parseFloat(s[1])] :
+        (s = ua.match(/chrome\/([\d.]+)/)) ? _platform = [env.BROWSER_CHROME, parseFloat(s[1])] :
+        (s = ua.match(/opera.([\d.]+)/)) ? _platform = [env.BROWSER_OPERA, parseFloat(s[1])] :
+        (s = ua.match(/version\/([\d.]+).*safari/)) ? _platform = [env.BROWSER_SAFARI, parseFloat(s[1])] :
+        (s = ua.match(/^mozilla\/([\d.]+)/)) ? _platform = [env.BROWSER_MOZILLA, parseFloat(s[1])] : null;
+        env.IS_CLIENT = true;
+    } else{
+        var nodejs = eval("(typeof process !== 'undefined' ? process.versions.node : 0)");
+        _platform = [env.NODE_JS, nodejs];
+    }
+
+    /**
+     * 获取当前运行平台
+     * @returns {*}
+     */
+    env.platform = function platform(name, version)
+    {
+        if ( typeof name === "string" )
+        {
+            name = name.toUpperCase();
+            if( version > 0 )return name == _platform[0] && env.version( version );
+            return name == _platform[0];
+        }
+        return _platform[0];
+    };
+
+    /**
+     * 判断是否为指定的浏览器
+     * @param type
+     * @returns {string|null}
+     */
+    env.version = function version(value, expr) {
+        var result = _platform[1];
+        if (value == null)return result;
+        value = parseFloat(value);
+        switch (expr) {
+            case '=' :
+                return result == value;
+            case '!=' :
+                return result != value;
+            case '>' :
+                return result > value;
+            case '>=' :
+                return result >= value;
+            case '<=' :
+                return result <= value;
+            case '<' :
+                return result < value;
+            default:
+                return result <= value;
+        }
+    };
+    System.env = env;
+}(System));
