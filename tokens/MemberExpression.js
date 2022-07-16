@@ -14,11 +14,9 @@ function createSuperMemberNode(ctx, object, property, ...args ){
 function MemberExpression(ctx,stack){
     const module = stack.module;
     const description = stack.description();
-    let isStatic = false;
     if( description && description.isModule && stack.compiler.callUtils("isTypeModule",description) ){
         ctx.addDepend( description );
     }else if( stack.compiler.callUtils("isTypeModule", stack.object.description()) ){
-        isStatic = true;
         ctx.addDepend( stack.object.description() );
     }
 
@@ -64,12 +62,18 @@ function MemberExpression(ctx,stack){
         }
     }
 
-    if(description && description.isPropertyDefinition && !isStatic && description.modifier && description.modifier.value() === "private"){
+    if(description && description.isPropertyDefinition && !(description.static || description.module.static) ){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
-        if( "private" ===modifier ){
-            const object = ctx.createMemberNode([ctx.createToken(stack.object),ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)]);
+        if( "private" === modifier ){
+            const object = ctx.createMemberNode([
+                ctx.createToken(stack.object),
+                ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)
+            ]);
             object.computed = true;
-            return ctx.createMemberNode([object, ctx.createToken(stack.property)]);
+            return ctx.createMemberNode([
+                object, 
+                ctx.createToken(stack.property)
+            ]);
         }
     }
 
@@ -77,11 +81,16 @@ function MemberExpression(ctx,stack){
         const pStack = stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isCallExpression || stack.isExpressionStatement));
         if( pStack && pStack.jsxElement ){
             return ctx.createCalleeNode(
-                ctx.createMemberNode([ ctx.createToken(stack.object), ctx.createToken(stack.property), 'bind']),
+                ctx.createMemberNode([ 
+                    ctx.createToken(stack.object), 
+                    ctx.createToken(stack.property),
+                    ctx.createIdentifierNode('bind')
+                ]),
                 [ctx.createThisNode()]
             );
         }
     }
+
     const node = ctx.createNode(stack);
     node.computed = !!stack.computed;
     node.object = node.createToken( stack.object );

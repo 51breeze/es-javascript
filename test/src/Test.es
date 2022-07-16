@@ -236,6 +236,16 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
         });
 
+         it("private property",()=>{
+            var _bss  =  this.bbss;
+            var bs = _bss;
+            expect( _bss === bbss ).toEqual( true );
+            _bss = _bss+'name';
+            bbss = _bss
+            expect( _bss === bbss ).toEqual( true );
+            this.bbss = bs;
+         })
+
 
         this.testEnumerableProperty();
         this.testComputeProperty();
