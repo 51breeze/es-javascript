@@ -422,6 +422,7 @@ class Builder extends Token{
         const config = this.plugin.options;
         const assets = module.assets;
         const externals = config.external;
+        const compilation = this.compilation;
         if( assets ){
            this.crateAssetItems(module, dataset , assets, externals);
         }
