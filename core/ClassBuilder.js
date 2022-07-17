@@ -44,6 +44,13 @@ class ClassBuilder extends Token{
         this.body = [];
         this.implements = [];
         this.inherit = null;
+        this.privateSymbolNode = null;
+        this.addListener('onCreateRefsName',(event)=>{
+            if( event.name === Constant.REFS_DECLARE_PRIVATE_NAME && event.top===true ){
+                event.prevent = true;
+                this.privateSymbolNode = this.createPrivateSymbolNode(event.value);
+            }
+        });
     }
 
     create(){
@@ -57,6 +64,11 @@ class ClassBuilder extends Token{
         this.createClassStructuralBody();
         this.createDependencies(module, multiModule, mainModule).forEach( item=>body.push( item ) );
         this.createModuleAssets(module, multiModule, mainModule).forEach( item=>body.push( item ) );
+
+        if( this.privateSymbolNode ){
+            body.push( this.privateSymbolNode );
+        }
+
         this.beforeBody.forEach( item=>item && body.push( item ) );
         this.construct && body.push( this.construct );
         body.push( this.createStatementMember('methods', this.methods ) );
@@ -119,19 +131,10 @@ class ClassBuilder extends Token{
         }
 
         if( this.privateProperties.length ){
-            this.privateName = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME);
-            this.beforeBody.push( this.createDeclarationNode(
-                'const',
-                [
-                    this.createDeclaratorNode(
-                        this.privateName,
-                        this.createCalleeNode( 
-                            this.createIdentifierNode('Symbol'),
-                            [this.createLiteralNode('private')]
-                        )
-                    )
-                ]
-            ));
+            this.privateName = this.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME, true, this, false);
+            if( !this.privateSymbolNode ){
+                this.privateSymbolNode = this.createPrivateSymbolNode(this.privateName);
+            }
 
             if( this.construct ){
                 const index = this.construct.body.body.findIndex( item=>{
@@ -151,6 +154,21 @@ class ClassBuilder extends Token{
         this.checkConstructMethod();
 
         return this;
+    }
+
+    createPrivateSymbolNode(name){
+        return this.createDeclarationNode(
+            'const',
+            [
+                this.createDeclaratorNode(
+                    name,
+                    this.createCalleeNode( 
+                        this.createIdentifierNode('Symbol'),
+                        [this.createLiteralNode('private')]
+                    )
+                )
+            ]
+        );
     }
 
     checkConstructMethod(){

@@ -2,6 +2,8 @@ package;
 
 import com.TestInterface;
 
+import Request as _private;
+
 public class Person<T> extends Object implements TestInterface
 {
 
@@ -14,6 +16,7 @@ public class Person<T> extends Object implements TestInterface
     constructor( name:string ){
         super();
         this._name = name;
+        var _private = 1;
     }
 
     get target(){
@@ -22,6 +25,7 @@ public class Person<T> extends Object implements TestInterface
 
     public setType(a:T):T{
         this._type = a;
+         var _private = 1;
         return a;
     }
 

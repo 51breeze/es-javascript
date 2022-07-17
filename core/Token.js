@@ -333,9 +333,9 @@ class Token extends events.EventEmitter {
         return parent;
     }
 
-    checkRefsName(name,top=true,scopeContext=null){
+    checkRefsName(name,top=true,context=null){
 
-        const context = this.getParentByType(parent=>{
+        const ctx = context || this.getParentByType(parent=>{
             if( top ){
                 return TOP_SCOPE.includes( parent.type );
             }else{
@@ -343,39 +343,37 @@ class Token extends events.EventEmitter {
             }
         });
 
-        if( !context )return name;
-        var scope = scopeContext;
-        if( !scopeContext ){
-            scope = this.scope || context.scope;
-        }
-
-        var dataset = SCOPE_MAP.get(scope);
+        if( !ctx )return name;
+        const scope = context && context.scope ? context.scope : this.scope || context.scope;
+        var dataset = SCOPE_MAP.get( ctx );
         if( !dataset ){
-            SCOPE_MAP.set(scope, dataset={
+            SCOPE_MAP.set(ctx, dataset={
                 scope,
-                cached:new Set(),
                 result:new Map(),
-                check( name ){
-                    return this.scope.isDefine(name) || this.cached.has(name);
+                check(name, scope){
+                    return (scope||this.scope).isDefine(name) || this.result.has(name);
                 }
             });
         }else if( dataset.result.has(name) ){
             return dataset.result.get(name);
         }
 
-        if( dataset.check(name) ){
+        if( dataset.check(name,scope) ){
             var index = 1;
-            while( dataset.check( name+index ) && index++ );
+            while( dataset.check(name+index, scope) && index++ );
             var value = name+index;
-            dataset.cached.add( name );
             dataset.result.set(name,value);
-            const block = top ? context : context.body;
-            (block.beforeBody || block.body).splice(0,0,block.createDeclarationNode('const', [
-                block.createDeclaratorNode(
-                    block.createIdentifierNode(value),
-                    block.createIdentifierNode(name),
-                )
-            ]));
+            const event = {name,value,top,context:ctx,scope,prevent:false};
+            ctx.emit('onCreateRefsName', event);
+            if( !event.prevent ){
+                const block = top ? ctx : ctx.body;
+                (block.beforeBody||block.body).push(block.createDeclarationNode('const', [
+                    block.createDeclaratorNode(
+                        block.createIdentifierNode(value),
+                        block.createIdentifierNode(name),
+                    )
+                ]));
+            }
             return value;
         }
         return name;

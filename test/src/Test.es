@@ -89,10 +89,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     * a constructor method
     */
     constructor( name:string, age?:U){
+
         super(name);
         super.setType('1');
         this.target;
-
         new Http();
 
         const map = new Map<string,[]>();
@@ -112,6 +112,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
    
     start(){
+
+       
 
         it(`static get uuName accessor`, ()=>{
         
