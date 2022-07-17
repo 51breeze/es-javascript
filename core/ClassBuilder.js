@@ -419,14 +419,15 @@ class ClassBuilder extends Token{
         if( multiModule && mainModule && mainModule !== module ){
             excludes = this.builder.getModuleAssets(mainModule);
         }
-        const assets = this.builder.getModuleAssets( module ).map( item=>{
+        const assets = [];
+        this.builder.getModuleAssets( module ).forEach( item=>{
             if( excludes ){
                 const res = excludes.find( value=>value.source ===item.source && item.local===value.local );
                 if( res ){
                     return;
                 }
             }
-            return this.createImportDeclaration(item.source, item.local ? [[item.local,item.imported]] : []);
+            assets.push( this.createImportDeclaration(item.source, item.local ? [[item.local,item.imported]] : []) );
         });
         return assets;
     }
