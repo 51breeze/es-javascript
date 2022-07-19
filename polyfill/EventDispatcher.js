@@ -76,7 +76,7 @@ EventDispatcher.prototype.addEventListener=function addEventListener(type,callba
         listener.proxyTarget = target.proxy;
         listener.proxyType = [type];
         if( Object.prototype.hasOwnProperty.call(Event.fix.hooks,type) ){
-            Event.fix.hooks[ type ].call(target, listener, listener.proxyHandle);
+            Event.fix.hooks[ type ].call(this, listener, listener.proxyHandle);
         }else {
             type = Event.type(type);
             try {
