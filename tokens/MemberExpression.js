@@ -29,8 +29,12 @@ function MemberExpression(ctx,stack){
         if( isReflect ){
             ctx.addDepend( stack.getGlobalTypeById("Reflect") );
             return ctx.createCalleeNode(
-                ctx.createMemberNode([ctx.checkRefsName("Reflect"),'get']),
-                [ctx.createIdentifierNode(module.id), ctx.createToken(stack.object), ctx.createLiteralNode(stack.property.value(), void 0, stack.property)],
+                ctx.createMemberNode([ctx.checkRefsName("Reflect"), ctx.createIdentifierNode('get')]),
+                [
+                    ctx.createIdentifierNode(module.id), 
+                    ctx.createToken(stack.object), 
+                    stack.computed ? ctx.createToken(stack.property) : ctx.createLiteralNode(stack.property.value(), void 0, stack.property),
+                ],
                 stack
             );
         }
@@ -41,7 +45,11 @@ function MemberExpression(ctx,stack){
         const refModule = description.module;
         if(modifier==="private" && refModule.children.length > 0){
             return ctx.createMemberNode(
-                [ ctx.createIdentifierNode(module.id), ctx.createIdentifierNode('prototype'), ctx.createToken(stack.property)],
+                [ 
+                    ctx.createIdentifierNode(module.id), 
+                    ctx.createIdentifierNode('prototype'), 
+                    ctx.createToken(stack.property)
+                ],
                 stack
             );
         }

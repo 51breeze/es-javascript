@@ -24,11 +24,11 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
     *  返回一个类的引用
     */
     static getClass(){
-        var a = Test as class<Test<any>>;
+        var a = Test as class<Test<string>>;
         var buname = {a:1}
         buname.test = a;
         buname.person = Person;
-        var {test=Test} = buname;
+        var {test = Test} = buname;                                                                                          
     
         expect( Test ).toBe( test );
         expect( Test ).toBe( test.getClassObject() );
@@ -43,7 +43,7 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         return buname
     }
 
-    static getClassObject():class<Test<any>>{
+    static getClassObject():class<Test<string>>{
         var a = Test;
         var b = {
             test:a

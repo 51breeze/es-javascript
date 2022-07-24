@@ -1,6 +1,3 @@
-@Reference('./style.d.es');
-@Reference('./lib.d.es');
-
 declare interface ElementDefinitionOptions {
     extends?: string;
 }
@@ -367,7 +364,6 @@ declare interface IdleDeadline {
     timeRemaining(): number;
 }
 
-@Dynamic;
 declare interface Window implements IEventDispatcher,GlobalEventHandlers{
 
     const location:Location;
@@ -481,9 +477,10 @@ declare interface Window implements IEventDispatcher,GlobalEventHandlers{
     /** Cancels the document load. */
     stop(): void;
     [index: number]: Window;
+    [key:string]:any;
 }
-declare const window:Window;
 
+declare const window:Window;
 
 declare interface DocumentAndElementEventHandlers {
     oncopy: (ev: ClipboardEvent) => any;
@@ -491,7 +488,6 @@ declare interface DocumentAndElementEventHandlers {
     onpaste: (ev: ClipboardEvent) => any;
 }
 
-@Dynamic;
 declare interface Document implements IEventDispatcher,GlobalEventHandlers,DocumentAndElementEventHandlers{
     get activeElement():HTMLElement;
     get body():HTMLElement;
@@ -577,6 +573,8 @@ declare interface Document implements IEventDispatcher,GlobalEventHandlers,Docum
      */
     onreadystatechange: (ev: Event) => any;
     onvisibilitychange: (ev: Event) => any;
+
+    [key:string]:any;
 }
 
 declare const document:Document;
@@ -587,7 +585,6 @@ declare interface HTMLImageElement extends HTMLElement{}
 declare interface HTMLCanvasElement extends HTMLElement{}
 declare interface HTMLAnchorElement extends HTMLElement{}
 declare interface HTMLAreaElement extends HTMLElement{}
-
 
 declare interface NodeList {
     /**
@@ -991,6 +988,619 @@ declare interface DOMTokenList {
     forEach(callbackfn: (value: string, key: number, parent: DOMTokenList) => void, thisArg?: any): void;
 }
 
+
+/** An object that is a CSS declaration block, and exposes style information and various style-related methods and properties. */
+declare interface CSSStyleDeclaration {
+    const length: number;
+    accentColor: string;
+    alignContent: string;
+    alignItems: string;
+    alignSelf: string;
+    alignmentBaseline: string;
+    all: string;
+    animation: string;
+    animationDelay: string;
+    animationDirection: string;
+    animationDuration: string;
+    animationFillMode: string;
+    animationIterationCount: string;
+    animationName: string;
+    animationPlayState: string;
+    animationTimingFunction: string;
+    appearance: string;
+    aspectRatio: string;
+    backfaceVisibility: string;
+    background: string;
+    backgroundAttachment: string;
+    backgroundBlendMode: string;
+    backgroundClip: string;
+    backgroundColor: string;
+    backgroundImage: string;
+    backgroundOrigin: string;
+    backgroundPosition: string;
+    backgroundPositionX: string;
+    backgroundPositionY: string;
+    backgroundRepeat: string;
+    backgroundSize: string;
+    baselineShift: string;
+    blockSize: string;
+    border: string;
+    borderBlock: string;
+    borderBlockColor: string;
+    borderBlockEnd: string;
+    borderBlockEndColor: string;
+    borderBlockEndStyle: string;
+    borderBlockEndWidth: string;
+    borderBlockStart: string;
+    borderBlockStartColor: string;
+    borderBlockStartStyle: string;
+    borderBlockStartWidth: string;
+    borderBlockStyle: string;
+    borderBlockWidth: string;
+    borderBottom: string;
+    borderBottomColor: string;
+    borderBottomLeftRadius: string;
+    borderBottomRightRadius: string;
+    borderBottomStyle: string;
+    borderBottomWidth: string;
+    borderCollapse: string;
+    borderColor: string;
+    borderEndEndRadius: string;
+    borderEndStartRadius: string;
+    borderImage: string;
+    borderImageOutset: string;
+    borderImageRepeat: string;
+    borderImageSlice: string;
+    borderImageSource: string;
+    borderImageWidth: string;
+    borderInline: string;
+    borderInlineColor: string;
+    borderInlineEnd: string;
+    borderInlineEndColor: string;
+    borderInlineEndStyle: string;
+    borderInlineEndWidth: string;
+    borderInlineStart: string;
+    borderInlineStartColor: string;
+    borderInlineStartStyle: string;
+    borderInlineStartWidth: string;
+    borderInlineStyle: string;
+    borderInlineWidth: string;
+    borderLeft: string;
+    borderLeftColor: string;
+    borderLeftStyle: string;
+    borderLeftWidth: string;
+    borderRadius: string;
+    borderRight: string;
+    borderRightColor: string;
+    borderRightStyle: string;
+    borderRightWidth: string;
+    borderSpacing: string;
+    borderStartEndRadius: string;
+    borderStartStartRadius: string;
+    borderStyle: string;
+    borderTop: string;
+    borderTopColor: string;
+    borderTopLeftRadius: string;
+    borderTopRightRadius: string;
+    borderTopStyle: string;
+    borderTopWidth: string;
+    borderWidth: string;
+    bottom: string;
+    boxShadow: string;
+    boxSizing: string;
+    breakAfter: string;
+    breakBefore: string;
+    breakInside: string;
+    captionSide: string;
+    caretColor: string;
+    clear: string;
+    /** @deprecated */
+    clip: string;
+    clipPath: string;
+    clipRule: string;
+    color: string;
+    colorInterpolation: string;
+    colorInterpolationFilters: string;
+    colorScheme: string;
+    columnCount: string;
+    columnFill: string;
+    columnGap: string;
+    columnRule: string;
+    columnRuleColor: string;
+    columnRuleStyle: string;
+    columnRuleWidth: string;
+    columnSpan: string;
+    columnWidth: string;
+    columns: string;
+    contain: string;
+    content: string;
+    contentVisibility: string;
+    counterIncrement: string;
+    counterReset: string;
+    counterSet: string;
+    cssFloat: string;
+    cssText: string;
+    cursor: string;
+    direction: string;
+    display: string;
+    dominantBaseline: string;
+    emptyCells: string;
+    fill: string;
+    fillOpacity: string;
+    fillRule: string;
+    filter: string;
+    flex: string;
+    flexBasis: string;
+    flexDirection: string;
+    flexFlow: string;
+    flexGrow: string;
+    flexShrink: string;
+    flexWrap: string;
+    float: string;
+    floodColor: string;
+    floodOpacity: string;
+    font: string;
+    fontFamily: string;
+    fontFeatureSettings: string;
+    fontKerning: string;
+    fontOpticalSizing: string;
+    fontSize: string;
+    fontSizeAdjust: string;
+    fontStretch: string;
+    fontStyle: string;
+    fontSynthesis: string;
+    fontVariant: string;
+    fontVariantAlternates: string;
+    fontVariantCaps: string;
+    fontVariantEastAsian: string;
+    fontVariantLigatures: string;
+    fontVariantNumeric: string;
+    fontVariantPosition: string;
+    fontVariationSettings: string;
+    fontWeight: string;
+    gap: string;
+    grid: string;
+    gridArea: string;
+    gridAutoColumns: string;
+    gridAutoFlow: string;
+    gridAutoRows: string;
+    gridColumn: string;
+    gridColumnEnd: string;
+    /** @deprecated This is a legacy alias of `columnGap`. */
+    gridColumnGap: string;
+    gridColumnStart: string;
+    /** @deprecated This is a legacy alias of `gap`. */
+    gridGap: string;
+    gridRow: string;
+    gridRowEnd: string;
+    /** @deprecated This is a legacy alias of `rowGap`. */
+    gridRowGap: string;
+    gridRowStart: string;
+    gridTemplate: string;
+    gridTemplateAreas: string;
+    gridTemplateColumns: string;
+    gridTemplateRows: string;
+    height: string;
+    hyphens: string;
+    /** @deprecated */
+    imageOrientation: string;
+    imageRendering: string;
+    inlineSize: string;
+    inset: string;
+    insetBlock: string;
+    insetBlockEnd: string;
+    insetBlockStart: string;
+    insetInline: string;
+    insetInlineEnd: string;
+    insetInlineStart: string;
+    isolation: string;
+    justifyContent: string;
+    justifyItems: string;
+    justifySelf: string;
+    left: string;
+    letterSpacing: string;
+    lightingColor: string;
+    lineBreak: string;
+    lineHeight: string;
+    listStyle: string;
+    listStyleImage: string;
+    listStylePosition: string;
+    listStyleType: string;
+    margin: string;
+    marginBlock: string;
+    marginBlockEnd: string;
+    marginBlockStart: string;
+    marginBottom: string;
+    marginInline: string;
+    marginInlineEnd: string;
+    marginInlineStart: string;
+    marginLeft: string;
+    marginRight: string;
+    marginTop: string;
+    marker: string;
+    markerEnd: string;
+    markerMid: string;
+    markerStart: string;
+    mask: string;
+    maskClip: string;
+    maskComposite: string;
+    maskImage: string;
+    maskMode: string;
+    maskOrigin: string;
+    maskPosition: string;
+    maskRepeat: string;
+    maskSize: string;
+    maskType: string;
+    maxBlockSize: string;
+    maxHeight: string;
+    maxInlineSize: string;
+    maxWidth: string;
+    minBlockSize: string;
+    minHeight: string;
+    minInlineSize: string;
+    minWidth: string;
+    mixBlendMode: string;
+    objectFit: string;
+    objectPosition: string;
+    offset: string;
+    offsetDistance: string;
+    offsetPath: string;
+    offsetRotate: string;
+    opacity: string;
+    order: string;
+    orphans: string;
+    outline: string;
+    outlineColor: string;
+    outlineOffset: string;
+    outlineStyle: string;
+    outlineWidth: string;
+    overflow: string;
+    overflowAnchor: string;
+    overflowWrap: string;
+    overflowX: string;
+    overflowY: string;
+    overscrollBehavior: string;
+    overscrollBehaviorBlock: string;
+    overscrollBehaviorInline: string;
+    overscrollBehaviorX: string;
+    overscrollBehaviorY: string;
+    padding: string;
+    paddingBlock: string;
+    paddingBlockEnd: string;
+    paddingBlockStart: string;
+    paddingBottom: string;
+    paddingInline: string;
+    paddingInlineEnd: string;
+    paddingInlineStart: string;
+    paddingLeft: string;
+    paddingRight: string;
+    paddingTop: string;
+    pageBreakAfter: string;
+    pageBreakBefore: string;
+    pageBreakInside: string;
+    paintOrder: string;
+    const parentRule: CSSRule | null;
+    perspective: string;
+    perspectiveOrigin: string;
+    placeContent: string;
+    placeItems: string;
+    placeSelf: string;
+    pointerEvents: string;
+    position: string;
+    printColorAdjust: string;
+    quotes: string;
+    resize: string;
+    right: string;
+    rotate: string;
+    rowGap: string;
+    rubyPosition: string;
+    scale: string;
+    scrollBehavior: string;
+    scrollMargin: string;
+    scrollMarginBlock: string;
+    scrollMarginBlockEnd: string;
+    scrollMarginBlockStart: string;
+    scrollMarginBottom: string;
+    scrollMarginInline: string;
+    scrollMarginInlineEnd: string;
+    scrollMarginInlineStart: string;
+    scrollMarginLeft: string;
+    scrollMarginRight: string;
+    scrollMarginTop: string;
+    scrollPadding: string;
+    scrollPaddingBlock: string;
+    scrollPaddingBlockEnd: string;
+    scrollPaddingBlockStart: string;
+    scrollPaddingBottom: string;
+    scrollPaddingInline: string;
+    scrollPaddingInlineEnd: string;
+    scrollPaddingInlineStart: string;
+    scrollPaddingLeft: string;
+    scrollPaddingRight: string;
+    scrollPaddingTop: string;
+    scrollSnapAlign: string;
+    scrollSnapStop: string;
+    scrollSnapType: string;
+    scrollbarGutter: string;
+    shapeImageThreshold: string;
+    shapeMargin: string;
+    shapeOutside: string;
+    shapeRendering: string;
+    stopColor: string;
+    stopOpacity: string;
+    stroke: string;
+    strokeDasharray: string;
+    strokeDashoffset: string;
+    strokeLinecap: string;
+    strokeLinejoin: string;
+    strokeMiterlimit: string;
+    strokeOpacity: string;
+    strokeWidth: string;
+    tabSize: string;
+    tableLayout: string;
+    textAlign: string;
+    textAlignLast: string;
+    textAnchor: string;
+    textCombineUpright: string;
+    textDecoration: string;
+    textDecorationColor: string;
+    textDecorationLine: string;
+    textDecorationSkipInk: string;
+    textDecorationStyle: string;
+    textDecorationThickness: string;
+    textEmphasis: string;
+    textEmphasisColor: string;
+    textEmphasisPosition: string;
+    textEmphasisStyle: string;
+    textIndent: string;
+    textOrientation: string;
+    textOverflow: string;
+    textRendering: string;
+    textShadow: string;
+    textTransform: string;
+    textUnderlineOffset: string;
+    textUnderlinePosition: string;
+    top: string;
+    touchAction: string;
+    transform: string;
+    transformBox: string;
+    transformOrigin: string;
+    transformStyle: string;
+    transition: string;
+    transitionDelay: string;
+    transitionDuration: string;
+    transitionProperty: string;
+    transitionTimingFunction: string;
+    translate: string;
+    unicodeBidi: string;
+    userSelect: string;
+    verticalAlign: string;
+    visibility: string;
+    /** @deprecated This is a legacy alias of `alignContent`. */
+    webkitAlignContent: string;
+    /** @deprecated This is a legacy alias of `alignItems`. */
+    webkitAlignItems: string;
+    /** @deprecated This is a legacy alias of `alignSelf`. */
+    webkitAlignSelf: string;
+    /** @deprecated This is a legacy alias of `animation`. */
+    webkitAnimation: string;
+    /** @deprecated This is a legacy alias of `animationDelay`. */
+    webkitAnimationDelay: string;
+    /** @deprecated This is a legacy alias of `animationDirection`. */
+    webkitAnimationDirection: string;
+    /** @deprecated This is a legacy alias of `animationDuration`. */
+    webkitAnimationDuration: string;
+    /** @deprecated This is a legacy alias of `animationFillMode`. */
+    webkitAnimationFillMode: string;
+    /** @deprecated This is a legacy alias of `animationIterationCount`. */
+    webkitAnimationIterationCount: string;
+    /** @deprecated This is a legacy alias of `animationName`. */
+    webkitAnimationName: string;
+    /** @deprecated This is a legacy alias of `animationPlayState`. */
+    webkitAnimationPlayState: string;
+    /** @deprecated This is a legacy alias of `animationTimingFunction`. */
+    webkitAnimationTimingFunction: string;
+    /** @deprecated This is a legacy alias of `appearance`. */
+    webkitAppearance: string;
+    /** @deprecated This is a legacy alias of `backfaceVisibility`. */
+    webkitBackfaceVisibility: string;
+    /** @deprecated This is a legacy alias of `backgroundClip`. */
+    webkitBackgroundClip: string;
+    /** @deprecated This is a legacy alias of `backgroundOrigin`. */
+    webkitBackgroundOrigin: string;
+    /** @deprecated This is a legacy alias of `backgroundSize`. */
+    webkitBackgroundSize: string;
+    /** @deprecated This is a legacy alias of `borderBottomLeftRadius`. */
+    webkitBorderBottomLeftRadius: string;
+    /** @deprecated This is a legacy alias of `borderBottomRightRadius`. */
+    webkitBorderBottomRightRadius: string;
+    /** @deprecated This is a legacy alias of `borderRadius`. */
+    webkitBorderRadius: string;
+    /** @deprecated This is a legacy alias of `borderTopLeftRadius`. */
+    webkitBorderTopLeftRadius: string;
+    /** @deprecated This is a legacy alias of `borderTopRightRadius`. */
+    webkitBorderTopRightRadius: string;
+    /** @deprecated This is a legacy alias of `boxAlign`. */
+    webkitBoxAlign: string;
+    /** @deprecated This is a legacy alias of `boxFlex`. */
+    webkitBoxFlex: string;
+    /** @deprecated This is a legacy alias of `boxOrdinalGroup`. */
+    webkitBoxOrdinalGroup: string;
+    /** @deprecated This is a legacy alias of `boxOrient`. */
+    webkitBoxOrient: string;
+    /** @deprecated This is a legacy alias of `boxPack`. */
+    webkitBoxPack: string;
+    /** @deprecated This is a legacy alias of `boxShadow`. */
+    webkitBoxShadow: string;
+    /** @deprecated This is a legacy alias of `boxSizing`. */
+    webkitBoxSizing: string;
+    /** @deprecated This is a legacy alias of `filter`. */
+    webkitFilter: string;
+    /** @deprecated This is a legacy alias of `flex`. */
+    webkitFlex: string;
+    /** @deprecated This is a legacy alias of `flexBasis`. */
+    webkitFlexBasis: string;
+    /** @deprecated This is a legacy alias of `flexDirection`. */
+    webkitFlexDirection: string;
+    /** @deprecated This is a legacy alias of `flexFlow`. */
+    webkitFlexFlow: string;
+    /** @deprecated This is a legacy alias of `flexGrow`. */
+    webkitFlexGrow: string;
+    /** @deprecated This is a legacy alias of `flexShrink`. */
+    webkitFlexShrink: string;
+    /** @deprecated This is a legacy alias of `flexWrap`. */
+    webkitFlexWrap: string;
+    /** @deprecated This is a legacy alias of `justifyContent`. */
+    webkitJustifyContent: string;
+    webkitLineClamp: string;
+    /** @deprecated This is a legacy alias of `mask`. */
+    webkitMask: string;
+    /** @deprecated This is a legacy alias of `maskBorder`. */
+    webkitMaskBoxImage: string;
+    /** @deprecated This is a legacy alias of `maskBorderOutset`. */
+    webkitMaskBoxImageOutset: string;
+    /** @deprecated This is a legacy alias of `maskBorderRepeat`. */
+    webkitMaskBoxImageRepeat: string;
+    /** @deprecated This is a legacy alias of `maskBorderSlice`. */
+    webkitMaskBoxImageSlice: string;
+    /** @deprecated This is a legacy alias of `maskBorderSource`. */
+    webkitMaskBoxImageSource: string;
+    /** @deprecated This is a legacy alias of `maskBorderWidth`. */
+    webkitMaskBoxImageWidth: string;
+    /** @deprecated This is a legacy alias of `maskClip`. */
+    webkitMaskClip: string;
+    webkitMaskComposite: string;
+    /** @deprecated This is a legacy alias of `maskImage`. */
+    webkitMaskImage: string;
+    /** @deprecated This is a legacy alias of `maskOrigin`. */
+    webkitMaskOrigin: string;
+    /** @deprecated This is a legacy alias of `maskPosition`. */
+    webkitMaskPosition: string;
+    /** @deprecated This is a legacy alias of `maskRepeat`. */
+    webkitMaskRepeat: string;
+    /** @deprecated This is a legacy alias of `maskSize`. */
+    webkitMaskSize: string;
+    /** @deprecated This is a legacy alias of `order`. */
+    webkitOrder: string;
+    /** @deprecated This is a legacy alias of `perspective`. */
+    webkitPerspective: string;
+    /** @deprecated This is a legacy alias of `perspectiveOrigin`. */
+    webkitPerspectiveOrigin: string;
+    webkitTextFillColor: string;
+    webkitTextStroke: string;
+    webkitTextStrokeColor: string;
+    webkitTextStrokeWidth: string;
+    /** @deprecated This is a legacy alias of `transform`. */
+    webkitTransform: string;
+    /** @deprecated This is a legacy alias of `transformOrigin`. */
+    webkitTransformOrigin: string;
+    /** @deprecated This is a legacy alias of `transformStyle`. */
+    webkitTransformStyle: string;
+    /** @deprecated This is a legacy alias of `transition`. */
+    webkitTransition: string;
+    /** @deprecated This is a legacy alias of `transitionDelay`. */
+    webkitTransitionDelay: string;
+    /** @deprecated This is a legacy alias of `transitionDuration`. */
+    webkitTransitionDuration: string;
+    /** @deprecated This is a legacy alias of `transitionProperty`. */
+    webkitTransitionProperty: string;
+    /** @deprecated This is a legacy alias of `transitionTimingFunction`. */
+    webkitTransitionTimingFunction: string;
+    /** @deprecated This is a legacy alias of `userSelect`. */
+    webkitUserSelect: string;
+    whiteSpace: string;
+    widows: string;
+    width: string;
+    willChange: string;
+    wordBreak: string;
+    wordSpacing: string;
+    /** @deprecated */
+    wordWrap: string;
+    writingMode: string;
+    zIndex: string;
+    getPropertyPriority(property: string): string;
+    getPropertyValue(property: string): string;
+    item(index: number): string;
+    removeProperty(property: string): string;
+    setProperty(property: string, value: string | null, priority?: string): void;
+    [index: number]: string;
+}
+
+/** A CSSRuleList is an (indirect-modify only) array-like object containing an ordered collection of CSSRule objects. */
+declare interface CSSRuleList {
+    const length: number;
+    item(index: number): CSSRule | null;
+    [index: number]: CSSRule;
+}
+
+declare interface LinkStyle {
+    const sheet: CSSStyleSheet | null;
+}
+
+/** A processing instruction embeds application-specific instructions in XML which can be ignored by other applications that don't recognize them. */
+declare interface ProcessingInstruction extends LinkStyle {
+    const ownerDocument: Document;
+    const target: string;
+}
+
+/** A single style sheet. CSS style sheets will further implement the more specialized CSSStyleSheet interface. */
+declare interface StyleSheet {
+    disabled: boolean;
+    const href: string | null;
+    const media: MediaList;
+    const ownerNode: Element | ProcessingInstruction | null;
+    const parentStyleSheet: CSSStyleSheet | null;
+    const title: string | null;
+    const type: string;
+}
+
+declare interface MediaList {
+    const length: number;
+    mediaText: string;
+    toString(): string;
+    appendMedium(medium: string): void;
+    deleteMedium(medium: string): void;
+    item(index: number): string | null;
+    [index: number]: string;
+}
+
+/** A single CSS style sheet. It inherits properties and methods from its parent, StyleSheet. */
+declare interface CSSStyleSheet extends StyleSheet {
+    const cssRules: CSSRuleList;
+    const ownerRule: CSSRule | null;
+    /** @deprecated */
+    const rules: CSSRuleList;
+    /** @deprecated */
+    addRule(selector?: string, style?: string, index?: number): number;
+    deleteRule(index: number): void;
+    insertRule(rule: string, index?: number): number;
+    /** @deprecated */
+    removeRule(index?: number): void;
+}
+
+/** A single CSS rule. There are several types of rules, listed in the Type constants section below. */
+declare interface CSSRule {
+    cssText: string;
+    const parentRule: CSSRule | null;
+    const parentStyleSheet: CSSStyleSheet | null;
+    /** @deprecated */
+    const type: number;
+    const CHARSET_RULE: number;
+    const FONT_FACE_RULE: number;
+    const IMPORT_RULE: number;
+    const KEYFRAMES_RULE: number;
+    const KEYFRAME_RULE: number;
+    const MEDIA_RULE: number;
+    const NAMESPACE_RULE: number;
+    const PAGE_RULE: number;
+    const STYLE_RULE: number;
+    const SUPPORTS_RULE: number;
+}
+
+declare interface ElementCSSInlineStyle {
+    const style: CSSStyleDeclaration;
+}
+
 declare type ShadowRootMode = "closed" | "open";
 
 declare interface ShadowRoot {
@@ -1006,7 +1616,6 @@ declare interface ShadowRootInit {
     var mode: ShadowRootMode;
     var slotAssignment?: SlotAssignmentMode;
 }
-
 
 declare interface DOMRectReadOnly {
     const bottom: number;
@@ -1282,40 +1891,9 @@ declare interface Location {
 
 declare const location:Location;
 
-/** EventTarget is a DOM interface implemented by objects that can receive events and may have listeners for them. */
-declare interface IEventDispatcher {
-    /**
-     * Appends an event listener for events whose type attribute value is type. 
-     * The callback argument sets the callback that will be invoked when the event is dispatched.
-     */
-    addEventListener(type: string, listener: (event?:Event)=>void ): this;
-    /**
-     * Dispatches a synthetic event event to target and returns true 
-     * if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise.
-     */
-    dispatchEvent(event: Event): boolean;
-    /**
-     * Removes the event listener in target's event listener list with the same type, callback, and options.
-     */
-    removeEventListener(type: string, listener?: (event?:Event)=>void ): boolean;
-
-    /**
-    * Checks whether a listener of the specified type has been added
-    */
-    hasEventListener(type: string, listener?: (event?:Event)=>void):boolean;
-}
-
-/** EventTarget is a DOM interface implemented by objects that can receive events and may have listeners for them. */
-declare class EventDispatcher extends Object implements IEventDispatcher{
-    constructor(target?:object);
-}
-
-
-type PresentationStyle = "attachment" | "inline" | "unspecified";
 declare interface ClipboardItemOptions {
-    presentationStyle?: PresentationStyle;
+    presentationStyle?: "attachment" | "inline" | "unspecified";
 }
-
 
 /** Available only in secure contexts. */
 declare class ClipboardItem {
@@ -1332,71 +1910,118 @@ declare class Clipboard extends EventDispatcher {
     writeText(data: string): Promise<void>;
 }
 
-
-/** An event which takes place in the DOM. */
-@Dynamic;
-declare class Event extends Object{
-    /**
-     * Returns true or false depending on how event was initialized. True if event goes through its target's ancestors in reverse tree order, and false otherwise.
-     */
-    const bubbles:boolean;
-    /**
-     * Returns true or false depending on how event was initialized. Its return value does not always carry meaning, but true can indicate that part of the operation during which event was dispatched, can be canceled by invoking the preventDefault() method.
-     */
-    const cancelable:boolean;
-    /**
-     * Returns true or false depending on how event was initialized. True if event invokes listeners past a ShadowRoot node that is the root of its target, and false otherwise.
-     */
-    const composed: boolean;
-    /**
-     * Returns the object whose event listener's callback is currently being invoked.
-     */
-    const currentTarget: IEventDispatcher | null;
-    /**
-     * Returns true if preventDefault() was invoked successfully to indicate cancelation, and false otherwise.
-     */
-    const defaultPrevented: boolean;
-    /**
-     * Returns the event's phase, which is one of NONE, CAPTURING_PHASE, AT_TARGET, and BUBBLING_PHASE.
-     */
-    const eventPhase: number;
-    /**
-     * Returns true if event was dispatched by the user agent, and false otherwise.
-     */
-    const isTrusted: boolean;
-    var returnValue: boolean;
-   
-    /**
-     * Returns the object to which event is dispatched (its target).
-     */
-    const target: IEventDispatcher | null;
-    /**
-     * Returns the event's timestamp as the number of milliseconds measured relative to the time origin.
-     */
-    const timeStamp: number;
-    /**
-     * Returns the type of event, e.g. "click", "hashchange", or "submit".
-     */
-    const type: string;
-    
-    /**
-     * If invoked when the cancelable attribute value is true, and while executing a listener for the event with passive set to false, signals to the operation that caused event to be dispatched that it needs to be canceled.
-     */
-    preventDefault(): void;
-    /**
-     * Invoking this method prevents event from reaching any registered event listeners after the current one finishes running and, when dispatched in a tree, also prevents event from reaching any other objects.
-     */
-    stopImmediatePropagation(): void;
-    /**
-     * When dispatched in a tree, invoking this method prevents event from reaching any objects other than the current object.
-     */
-    stopPropagation(): void;
-
-    constructor(type:string, bubbles?:boolean,cancelable?:boolean);
+declare interface ReadableStreamGenericReader {
+    const closed: Promise<void>;
+    cancel(reason?: any): Promise<void>;
 }
 
+declare interface ReadableStreamDefaultReader<R = any> extends ReadableStreamGenericReader {
+    read(): Promise<{done:boolean,value?:R}>;
+    releaseLock(): void;
+}
+
+declare interface WritableStreamDefaultWriter<W = any> {
+    const closed: Promise<void>;
+    const desiredSize: number | null;
+    const ready: Promise<void>;
+    abort(reason?: any): Promise<void>;
+    close(): Promise<void>;
+    releaseLock(): void;
+    write(chunk?: W): Promise<void>;
+}
+
+/** This Streams API interface provides a standard abstraction for writing streaming data to a destination, known as a sink. This object comes with built-in backpressure and queuing. */
+declare interface WritableStream<W = any> {
+    const locked: boolean;
+    abort(reason?: any): Promise<void>;
+    close(): Promise<void>;
+    getWriter(): WritableStreamDefaultWriter<W>;
+}
+
+declare interface ReadableWritablePair<R = any, W = any> {
+    readable: ReadableStream<R>;
+    /**
+     * Provides a convenient, chainable way of piping this readable stream through a transform stream (or any other { writable, readable } pair). It simply pipes the stream into the writable side of the supplied pair, and returns the readable side for further use.
+     *
+     * Piping a stream will lock it for the duration of the pipe, preventing any other consumer from acquiring a reader.
+     */
+    writable: WritableStream<W>;
+}
+
+/** A signal object that allows you to communicate with a DOM request (such as a Fetch) and abort it if required via an AbortController object. */
+declare interface AbortSignal extends EventDispatcher {
+    /** Returns true if this AbortSignal's AbortController has signaled to abort, and false otherwise. */
+    const aborted: boolean;
+    onabort:(ev:Event)=>any;
+    const reason: any;
+    throwIfAborted(): void;
+}
+
+declare interface StreamPipeOptions {
+    preventAbort?: boolean;
+    preventCancel?: boolean;
+    /**
+     * Pipes this readable stream to a given writable stream destination. The way in which the piping process behaves under various error conditions can be customized with a number of passed options. It returns a promise that fulfills when the piping process completes successfully, or rejects if any errors were encountered.
+     *
+     * Piping a stream will lock it for the duration of the pipe, preventing any other consumer from acquiring a reader.
+     *
+     * Errors and closures of the source and destination streams propagate as follows:
+     *
+     * An error in this source readable stream will abort destination, unless preventAbort is truthy. The returned promise will be rejected with the source's error, or with any error that occurs during aborting the destination.
+     *
+     * An error in destination will cancel this source readable stream, unless preventCancel is truthy. The returned promise will be rejected with the destination's error, or with any error that occurs during canceling the source.
+     *
+     * When this source readable stream closes, destination will be closed, unless preventClose is truthy. The returned promise will be fulfilled once this process completes, unless an error is encountered while closing the destination, in which case it will be rejected with that error.
+     *
+     * If destination starts out closed or closing, this source readable stream will be canceled, unless preventCancel is true. The returned promise will be rejected with an error indicating piping to a closed stream failed, or with any error that occurs during canceling the source.
+     *
+     * The signal option can be set to an AbortSignal to allow aborting an ongoing pipe operation via the corresponding AbortController. In this case, this source readable stream will be canceled, and destination aborted, unless the respective options preventCancel or preventAbort are set.
+     */
+    preventClose?: boolean;
+    signal?: AbortSignal;
+}
+
+
+/** This Streams API interface represents a readable stream of byte data. The Fetch API offers a concrete instance of a ReadableStream through the body property of a Response object. */
+declare interface ReadableStream<R = any> {
+    const locked: boolean;
+    cancel(reason?: any): Promise<void>;
+    getReader(): ReadableStreamDefaultReader<R>;
+    pipeThrough<T>(transform: ReadableWritablePair<T, R>, options?: StreamPipeOptions): ReadableStream<T>;
+    pipeTo(destination: WritableStream<R>, options?: StreamPipeOptions): Promise<void>;
+    tee(): [ReadableStream<R>, ReadableStream<R>];
+}
+
+/** A file-like object of immutable, raw data. Blobs represent data that isn't necessarily in a JavaScript-native format. The File interface is based on Blob, inheriting blob functionality and expanding it to support files on the user's system. */
+declare interface Blob {
+    const size: number;
+    const type: string;
+    arrayBuffer(): Promise<ArrayBuffer>;
+    slice(start?: number, end?: number, contentType?: string): Blob;
+    stream(): ReadableStream<Uint8Array>;
+    text(): Promise<string>;
+}
+
+/** Provides information about files and allows JavaScript in a web page to access their content. */
+declare class File extends Blob {
+    const lastModified: number;
+    const name: string;
+    const webkitRelativePath: string;
+}
+
+declare class FormData {
+    append(name: string, value: string | Blob, fileName?: string): void;
+    delete(name: string): void;
+    get(name: string): File | string;
+    getAll(name: string): (File | string)[];
+    has(name: string): boolean;
+    set(name: string, value: string | Blob, fileName?: string): void;
+    forEach(callbackfn: (value: File | string, key: string, parent: FormData) => void, thisArg?: any): void;
+}
+
+
+
 /** Simple user interface events. */
-@Dynamic;
 declare class UIEvent extends Event {
     const detail: number;
     const view: Window | null;
@@ -1404,7 +2029,6 @@ declare class UIEvent extends Event {
 }
 
 /** Events that occur due to the user interacting with a pointing device (such as a mouse). Common events using this interface include click, dblclick, mouseup, mousedown. */
-@Dynamic;
 declare class MouseEvent extends UIEvent {
 
     static const MOUSE_DOWN:string='mousedown';
@@ -1462,7 +2086,6 @@ declare class MouseEvent extends UIEvent {
 * each event describes a single interaction between the user and a key (or combination of a key with modifier keys) 
 * on the keyboard. 
 */
-@Dynamic;
 declare class KeyboardEvent extends UIEvent{
     const altKey: boolean;
     const code: string;
@@ -1481,8 +2104,6 @@ declare class KeyboardEvent extends UIEvent{
     getModifierState(keyArg: string): boolean;
 }
 
-declare type TouchType =  "direct" | "stylus";
-
 declare class Touch extends Object{
     const altitudeAngle: number;
     const azimuthAngle: number;
@@ -1498,7 +2119,7 @@ declare class Touch extends Object{
     const screenX: number;
     const screenY: number;
     const target: EventDispatcher;
-    const touchType: TouchType;
+    const touchType: "direct" | "stylus";
 }
 
 declare interface TouchList {
@@ -1506,7 +2127,6 @@ declare interface TouchList {
     item(index: number):Touch;
 }
 
-@Dynamic;
 declare class TouchEvent extends UIEvent {
     const altKey: boolean;
     const changedTouches: TouchList;
@@ -1518,14 +2138,15 @@ declare class TouchEvent extends UIEvent {
     constructor(type:string, bubbles?:boolean,cancelable?:boolean);
 }
 
-declare interface DataTransfer extends Object{}
+declare interface DataTransfer extends Object{
+    [key:string]:any
+}
 
 /** A DOM event that represents a drag and drop interaction. 
 The user initiates a drag by placing a pointer device (such as a mouse) on the touch surface and then dragging 
 the pointer to a new location (such as another DOM element). Applications are free to interpret a drag and 
 drop interaction in an application-specific way.
  */
- @Dynamic;
 declare class DragEvent extends MouseEvent {
     /**
      * Returns the DataTransfer object for the event.
