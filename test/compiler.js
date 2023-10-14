@@ -1,6 +1,6 @@
-const Compiler = require("../../easescript2/lib/core/Compiler");
-const Diagnostic = require("../../easescript2/lib/core/Diagnostic");
-const Compilation = require("../../easescript2/lib/core/Compilation");
+const Compiler = require("../../easescript/lib/core/Compiler");
+const Diagnostic = require("../../easescript/lib/core/Diagnostic");
+const Compilation = require("../../easescript/lib/core/Compilation");
 const path =require("path");
 const plugin = require("../index");
 class Creator {
