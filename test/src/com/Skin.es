@@ -2,6 +2,7 @@ package com;
 import web.components.Component;
 import com.State;
 
+@Runtime(server)
 class Skin extends Component{
 
     public set state(vlaue:State){

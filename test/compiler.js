@@ -19,6 +19,9 @@ class Creator {
         this._compiler = compiler;
         this.plugin = compiler.applyPlugin({plugin, options:{
             emitFile:true,
+            metadata:{
+                env:{NODE_ENV:'development'},
+            },
             module:"cjs",
             env:{NODE_ENV:'development'}
         }});

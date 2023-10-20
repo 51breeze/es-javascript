@@ -4,6 +4,8 @@ import com.TestInterface;
 
 import Request as _private;
 
+import com.Skin;
+
 public class Person<T> extends Object implements TestInterface
 {
 
@@ -16,6 +18,9 @@ public class Person<T> extends Object implements TestInterface
     constructor( name:string ){
         super();
         this._name = name;
+        when( Runtime(server) ){
+            const skin = new Skin()
+        }
     }
 
     get target(){

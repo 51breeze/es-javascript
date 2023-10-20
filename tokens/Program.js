@@ -112,17 +112,18 @@ module.exports = function(ctx,stack){
     node.body = [];
     node.afterBody = [];
     node.imports = [];
-    const syntaxAnnotation = stack.annotations && stack.annotations.find( annotation=>annotation.name.toLowerCase() ==='syntax');
-    if( syntaxAnnotation ){
-        const args = syntaxAnnotation.getArguments();
-        if( args[0] ){
-            if( ctx.builder.isSyntax( args[0].value ) ){
-                ctx.compilation.setClientPolicy();
-            }else{
-                return;
-            }
-        }
-    }
+
+    // const syntaxAnnotation = stack.annotations && stack.annotations.find( annotation=>annotation.name.toLowerCase() ==='syntax');
+    // if( syntaxAnnotation ){
+    //     const args = syntaxAnnotation.getArguments();
+    //     if( args[0] ){
+    //         if( ctx.builder.isSyntax( args[0].value ) ){
+    //             ctx.compilation.setClientPolicy();
+    //         }else{
+    //             return;
+    //         }
+    //     }
+    // }
 
     const rawBuilders = [];
     const rawJsx = ctx.builder.isRawJsx();

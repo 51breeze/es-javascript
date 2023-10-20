@@ -88,8 +88,8 @@ class Builder extends Token{
     emitAssets(assets, module, emitFile){
         if( !module || !assets )return;
         assets.forEach( asset=>{
-            const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
             if( !asset.file && asset.type ==="style" ){
+                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
                 this.emitContent(file, asset.content);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
@@ -300,11 +300,12 @@ class Builder extends Token{
     }
 
     isRuntime( name ){
+        const metadata = this.plugin.options.metadata || {};
         switch( name.toLowerCase() ){
             case "client" :
-                return this.platform === "client";
+                return this.platform === "client" || metadata.platform=== "client";
             case  "server" :
-                return this.platform === "server";
+                return this.platform === "server" || metadata.platform === "server";
         }
         return false;
     }
@@ -534,12 +535,28 @@ class Builder extends Token{
         }) : true;
     }
 
+    ckeckRuntimeOrSyntaxAnnotations(items){
+        if( !items || !items.length )return true;
+        return items.every( item=>{
+            const args = item.getArguments();
+            const _expect = this.getAnnotationArgument('expect', args, [,'expect'], true)
+            const value = args[0].value;
+            const expect = _expect ? _expect.value !== false : true;
+            switch( item.name.toLowerCase() ){
+                case "runtime" :
+                    return this.isRuntime(value) === expect;
+                case "syntax" :
+                    return this.isSyntax(value) === expect;
+            }
+            return true;
+        });
+    }
+
     getIdByModule( module ){
-        const file = ( typeof module ==='string' ? module : this.getModuleFile(module) ).replace(/\\/g,'/');
-        if( !ModuleMapIds.has(file) ){
-            ModuleMapIds.set(file,ModuleMapIds.size);
+        if( !ModuleMapIds.has(module) ){
+            ModuleMapIds.set(module,ModuleMapIds.size+1);
         }
-        return ModuleMapIds.get(file);
+        return ModuleMapIds.get(module);
     }
 
     getIdByNamespace( namespace ){
@@ -623,7 +640,11 @@ class Builder extends Token{
         if( !isUsed )return false;
         const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
         const isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
-        return isRequire || isPolyfill;
+        if( !(isRequire || isPolyfill) )return false;
+        if( !this.ckeckRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(depModule, ['runtime', 'syntax'])) ){
+            return false;
+        }
+        return true;
     }
 
     isPluginInContext(doucment){
@@ -680,8 +701,15 @@ class Builder extends Token{
         return Array.from( dataset.values() );
     }
 
+    crateAssetFilter(asset, module, context, dataset){
+        return true;
+    }
+
     crateAssetItems(module, dataset, assets, context){
         assets.forEach( asset=>{
+            if( !this.crateAssetFilter(asset, module, context, dataset) ){
+                return false;
+            }
             if( asset.file ){
                 if( !this.isExternalDependence(asset.resolve, module) ){
                     const source = this.getModuleImportSource(asset.resolve, module || context , asset.file );
