@@ -240,6 +240,19 @@ class Generator{
                 if(token.newLine)this.newLine();
                 this.withParenthesR();
             break;
+            case "ClassStatement" :
+                this.withString('class')
+                this.withSpace();
+                this.make(token.key);
+                if( token.extends){
+                    this.withSpace();
+                    this.withString('extends')
+                    this.withSpace();
+                    this.make(token.extends)
+                }
+                this.make(token.body);
+                this.newLine();
+            break;
             case "ConditionalExpression" :
                 if(token.newLine)this.newLine();
                 this.make(token.test);

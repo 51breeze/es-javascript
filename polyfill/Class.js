@@ -6,18 +6,109 @@
  * @author Jun Ye <664371281@qq.com>
 */
 
-var __MODULES__=[];
-var privateKey=Symbol("privateKey");
-var Class={
+const __MODULES__=[];
+const privateKey=Symbol("privateKey");
+const _proto = Object.prototype;
+const merge = (obj, target, isInstance)=>{
+    if(!obj || !target || _proto===obj || obj===Object || obj===Function)return;
+    const keys = Object.getOwnPropertyNames(obj);
+    if( keys ){
+        keys.forEach( key=>{
+            if(key==='constructor' || key==='prototype' || key==='__proto__')return;
+            if(!(key in target)){
+                const desc = Reflect.getOwnPropertyDescriptor(obj, key);
+                if(desc){
+                    if(!isInstance){
+                        desc.configurable = false;
+                        desc.enumerable = false;
+                    }
+                    Object.defineProperty(target,key,desc);
+                }
+            }
+        });
+    }
+    merge(Reflect.getPrototypeOf(obj), target, isInstance);
+}
+
+const Class={
     key:privateKey,
     modules:__MODULES__,
     require:function(id){
         return __MODULES__[id];
     },
-    creator:function(id,moduleClass,description){
+    callSuper(moduleClass, target, args=[]){
+        if(!moduleClass)return;
+        const description = moduleClass[privateKey];
+        const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
+        if(_extends && _extends.length > 0){
+            _extends.forEach( (classTarget)=>{
+                if(typeof classTarget ==='function'){
+                    const newObject = Reflect.construct(classTarget, args, moduleClass);
+                    merge(newObject, target, true);
+                }else if(typeof classTarget ==='object'){
+                    merge(newObject, target, true);
+                }
+            });
+        }
+    },
+    callSuperMethod(moduleClass, methodName, target, kind='method', args=[]){
+        if(!moduleClass)return;
+        let description = moduleClass[privateKey];
+        let parent = null;
+        if( description.inherit ){
+            parent = description.inherit[privateKey];
+        }
+
+        if(parent && parent.members){
+            const desc = parent.members[methodName];
+            if(desc && Class.CONSTANT.MODIFIER_PRIVATE !== (desc.m & Class.CONSTANT.MODIFIER_PUBLIC) ){
+                if( desc.d === Class.CONSTANT.PROPERTY_ACCESSOR ){
+                    if(desc.set && kind==='setter'){
+                        return desc.set.apply(target, args);
+                    }else if(desc.get && kind==='getter'){
+                        return desc.get.call(target);
+                    }
+                }else if( desc.d === Class.CONSTANT.PROPERTY_FUN){
+                    return desc.value.apply(target, args);
+                }
+            }
+        }
+
+        const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
+        if(_extends && _extends.length > 0){
+            const getDesc = (obj)=>{
+                if( !obj )return null;
+                const desc = Reflect.getOwnPropertyDescriptor(obj, methodName);
+                if(desc)return desc;
+                if(_proto===obj || obj===Object || obj===Function)return;
+                return getDesc( Reflect.getPrototypeOf(obj) );
+            }
+            for(let i=0; i<_extends.length;i++){
+                const objectClass =_extends[i];
+                const desc = typeof objectClass === "function" ? getDesc(objectClass.prototype) : getDesc(objectClass);
+                if( desc ){
+                    if(desc.set && kind==='setter'){
+                        return desc.set.apply(target, args);
+                    }else if(desc.get && kind==='getter'){
+                        return desc.get.call(target);
+                    }else if(typeof desc.value ==='function'){
+                        return desc.value.apply(target, args);
+                    }
+                }
+            }
+        }
+    },
+    creator:function(id, moduleClass, description){
         if( description ){
+            const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
             if( description.inherit ){
                 Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+            }else if(_extends && _extends.length>0 ){
+                const inheritObject = _extends.shift();
+                if(typeof inheritObject ==='function'){
+                    Object.defineProperty(moduleClass,'prototype',{value:Object.create(inheritObject.prototype)});
+                }
+                merge(inheritObject, moduleClass);
             }
             if( description.methods ){
                 Object.defineProperties(moduleClass,description.methods);
@@ -25,6 +116,14 @@ var Class={
             if( description.members ){
                 Object.defineProperties(moduleClass.prototype,description.members);
             }
+
+            if(_extends && _extends.length>0){
+                _extends.forEach( (object)=>{
+                    merge(object, moduleClass);
+                    merge(object.prototype, moduleClass.prototype);
+                });
+            }
+
             Object.defineProperty(moduleClass,privateKey,{value:description});
             Object.defineProperty(moduleClass,'name',{value:description.name});
             Object.defineProperty(moduleClass,'toString',{value:function toString(){
@@ -52,17 +151,20 @@ var Class={
         if( id >= 0 ){
             __MODULES__[id] = moduleClass;
         }
+        return moduleClass;
     },
     getClassByName:function(name){
         var len = __MODULES__.length;
         var index = 0;
         for(;index<len;index++){
             var classModule = __MODULES__[index];
-            var description = classModule[privateKey];
-            if( description ){
-                var key = description.ns ? description.ns+'.'+description.name : description.name;
-                if( key === name){
-                    return classModule;
+            if(classModule){
+                var description = classModule[privateKey];
+                if( description ){
+                    var key = description.ns ? description.ns+'.'+description.name : description.name;
+                    if( key === name){
+                        return classModule;
+                    }
                 }
             }
         }

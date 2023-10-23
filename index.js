@@ -31,6 +31,11 @@ const defaultConfig ={
         exclude:null,
         only:false
     },
+    hooks:{
+        annotations:{
+            assignmentValue:()=>null
+        }
+    },
     rawJsx:{
         enable:false,
         jsx:false,

@@ -397,7 +397,7 @@ class Token extends events.EventEmitter {
             }
             return this.createStatementNode( node );
         }else{
-            return this.createImportNode( source, specifiers);
+            return this.createImportNode( source, specifiers, stack);
         }
     }
 
@@ -442,8 +442,16 @@ class Token extends events.EventEmitter {
         if( !(stack && stack.isMemberProperty && stack.value && desc) )return null;
         const hookAnnot = this.builder.getClassMemberHook( desc );
         if( hookAnnot ){
-            let [type,] = hookAnnot;
-            if( type && String(type).toLowerCase()==='compiling:create-route-path'){
+            let [type,annotation] = hookAnnot;
+            let lower = type && String(type).toLowerCase()
+            if(lower==='compiling:invoke-hooks-assign-value'){
+                const hooks = this.plugin.options.hooks;
+                const annots = hooks && hooks.annotations;
+                if(annots && annots.assignmentValue){
+                    return annots.assignmentValue(ctx, stack, {annotation, desc, type})
+                }
+                return null;
+            }else if(lower==='compiling:create-route-path'){
                 if( stack.value && stack.value.isJSXExpressionContainer ){
                     const value = stack.value.description();
                     if(value && value.isModule && stack.isModuleForWebComponent(value)){

@@ -45,6 +45,8 @@ class ClassBuilder extends Token{
         this.implements = [];
         this.inherit = null;
         this.privateSymbolNode = null;
+        this.moduleReferenceTarget = null;
+        this.inheritReferenceTarget = null;
         this.addListener('onCreateRefsName',(event)=>{
             if( event.name === Constant.REFS_DECLARE_PRIVATE_NAME && event.top===true ){
                 event.prevent = true;
@@ -144,7 +146,7 @@ class ClassBuilder extends Token{
         if(module.inherit){
             this.addDepend(module.inherit);
         }
-        if( this.isActiveForModule(module.inherit) ){
+        if( this.isActiveForModule(module.inherit, module) ){
             this.inherit = module.inherit;
         }
         this.implements = module.implements.filter( impModule=>{
@@ -279,6 +281,8 @@ class ClassBuilder extends Token{
             const program = this.getParentByType('Program');
             if( program.isProgram && program.afterBody ){
                 program.afterBody.push( mainEnterMethods );
+            }else{
+                this.afterBody.push(mainEnterMethods);
             }
             node.mainEnterMethod = true;
         }
@@ -405,6 +409,29 @@ class ClassBuilder extends Token{
         if( this.members && this.members.length ){
             description.push(this.createPropertyNode('members', this.createIdentifierNode(this.checkRefsName('members')) ) );
         }
+
+        const refsExtends = [this.moduleReferenceTarget, this.inheritReferenceTarget].filter( val=>!!val ).map( name=>this.createIdentifierNode(name) );
+        if( refsExtends.length>0 ){
+            description.push(this.createPropertyNode('extends',this.createArrayNode(refsExtends)));
+            const construct = this.construct
+            if( construct ){
+                if( construct.body.type==='BlockStatement' ){
+                    construct.body.body.unshift(
+                        this.createStatementNode( 
+                            this.createCalleeNode(
+                                this.createMemberNode([this.checkRefsName('Class'),'callSuper']),
+                                [
+                                    this.createIdentifierNode(module.id),
+                                    this.createThisNode(),
+                                    this.createCalleeNode(this.createMemberNode(['Array','from']),[this.createIdentifierNode('arguments')])
+                                ]
+                            )
+                        )
+                    );
+                }
+            }
+        }
+
         const id = this.builder.getIdByModule( module );
         const args = [
             this.createLiteralNode(id), 
@@ -414,6 +441,7 @@ class ClassBuilder extends Token{
         if( module && module.isFragment ){
             args[0] = this.createIdentifierNode(null);
         }
+        
         return this.createStatementNode( this.createCalleeNode( this.createMemberNode([this.checkRefsName('Class'),'creator']), args) );
     }
 
@@ -498,6 +526,8 @@ class ClassBuilder extends Token{
         if( multiModule && mainModule && mainModule !== module ){
             excludes = this.builder.getModuleAssets(mainModule);
         }
+
+        const inherit = module && module.isModule && module.inherit;
         this.builder.getModuleAssets( module ).forEach( item=>{
             if( excludes ){
                 const res = excludes.find( value=>value.source ===item.source && item.local===value.local );
@@ -505,10 +535,21 @@ class ClassBuilder extends Token{
                     return;
                 }
             }
-            this.createImportAssetsIfNotExists(module, item, item.source, item.local, item.imported, !!item.namespaced);
+           
+            let local = item.local;
+            if(inherit && inherit.id===item.local){
+                local = this.checkRefsName( '__$'+item.local );
+                this.inheritReferenceTarget = local;
+            }else if(module.id===item.local){
+                local = this.checkRefsName( '__$'+item.local );
+                this.moduleReferenceTarget = local;
+            }
+
+            this.createImportAssetsIfNotExists(module, item, item.source, local, item.imported, !!item.namespaced);
         });
+
         if( module && module.isModule ){
-            this.addImportReferenceNode( module );
+            this.addImportReferenceNode(module);
         }
     }
 
@@ -516,6 +557,7 @@ class ClassBuilder extends Token{
         if( !this.builder.isNeedImportDependence(source, module) ){
             return;
         }
+        
         if(!this.builder.hasImportReference(module, source)){
             if( this.builder.addAsset(module, source, 'assets', originAsset) ){
                 let _source = this.builder.getSourceFileMappingFolder(source);
@@ -538,14 +580,53 @@ class ClassBuilder extends Token{
 
     addImportReferenceNode(module, sameModuleNameFlag=false, contextModule=null){
         const stack = module && module.isModule ? this.compilation.getStackByModule(module) : module.stack;
+        const inherit = module && module.isModule && module.inherit;
+
         if( stack && stack.imports && stack.imports.length > 0 ){
+            const ckeckItem = (target, local)=>{
+                if(!target)return false;
+                if(inherit && inherit.id===target.value){
+                    target.value = this.checkRefsName( '__$'+target.value );
+                    if(!fetchDepNameFlag){
+                        this.inheritReferenceTarget = target.value;
+                    }
+                }else if(module.id === target.value){
+                    if(local){
+                        target.value = local;
+                    }else{
+                        target.value = this.checkRefsName( '__$'+target.value );
+                        if(!fetchDepNameFlag){
+                            this.moduleReferenceTarget = target.value;
+                        }
+                    }
+                }
+            }
+            const checkSameId = (node, local)=>{
+                if( node.type==='ImportDeclaration'){
+                    node.specifiers.forEach( specifier=>{
+                        ckeckItem(specifier.local, local);
+                    });
+                }else if( node.type==='VariableDeclaration'){
+                    node.declarations.forEach( declare=>{
+                        if( declare.type==='VariableDeclarator' ){
+                            if( declare.id.type==='Identifier' ){
+                                ckeckItem(declare.id, local);
+                            }else if(declare.id.type==='ObjectPattern'){
+                                declare.id.properties.forEach( property=>{
+                                    ckeckItem(property.key, local);
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+
             stack.imports.forEach( item=>{
                 if( item.source.isLiteral ){
                     const desc = item.description();
                     if( !desc ){
                         let source = item.source.value();
                         if( source ){
-
                             if( !this.builder.isNeedImportDependence(source, module) ){
                                 return;
                             }
@@ -554,49 +635,21 @@ class ClassBuilder extends Token{
                             if( item.specifiers.length >0 ){
                                 const owner = item.additional;
                                 flag = item.specifiers.some( item=>{
-                                    if( owner && owner.module && owner.module.id === item.value() ){
+                                    if(!sameModuleNameFlag && inherit && inherit.id===item.value()){
+                                        return true;
+                                    }
+                                    if(owner && owner.module && owner.module.id === item.value()){
                                         return owner.module.used;
                                     }
                                     return item.isDeclarator ? item.useRefItems.size > 0 : false;
-                                });  
+                                });
                             }
 
                             if(flag /*&& !this.builder.hasImportReference(this.module, source)*/){
                                 const node = this.createToken( item );
                                 if( node ){
-                                    if( sameModuleNameFlag && contextModule){
-                                        const local = this.builder.getModuleReferenceName(module, contextModule);
-                                        if(local){
-                                            if( node.type==='ImportDeclaration'){
-                                                node.specifiers.some( specifier=>{
-                                                    if( specifier.local && module.id === specifier.local.value){
-                                                        specifier.local.value = local;
-                                                        return true;
-                                                    }
-                                                    return false;
-                                                });
-                                            }else if( node.type==='VariableDeclaration'){
-                                                node.declarations.some( declare=>{
-                                                    if( declare.type==='VariableDeclarator' ){
-                                                        if( declare.id.type==='Identifier' ){
-                                                            if( module.id === declare.id.value){
-                                                                declare.id.value = local;
-                                                                return true;
-                                                            }
-                                                        }else if(declare.id.type==='ObjectPattern'){
-                                                            return declare.id.properties.some( property=>{
-                                                                if( module.id === property.key.value){
-                                                                    property.key.value = local;
-                                                                    return true;
-                                                                }
-                                                            });
-                                                        }
-                                                    }
-                                                    return false;
-                                                });
-                                            }
-                                        }
-                                    }
+                                    const local = sameModuleNameFlag && contextModule ? this.builder.getModuleReferenceName(module, contextModule) : null; 
+                                    checkSameId(node, local);  
                                     let resolve = this.builder.getSourceFileMappingFolder(source, true);
                                     this.builder.addAsset(module, source, 'assets', {source, resolve, isImport:true, type:'assets', stack:item});
                                     this.builder.addImportReference(this.module, source , node);
@@ -608,6 +661,10 @@ class ClassBuilder extends Token{
             });
         }
     }
+
+
+
+
 
     createExportDeclaration( id ){
         const type = this.plugin.options.module;

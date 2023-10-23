@@ -10,6 +10,28 @@ module.exports = function(ctx,stack){
     const isMember = stack.callee.isMemberExpression;
     const desc = stack.callee.description();
     const module = stack.module;
+    if(stack.callee.isSuperExpression){
+        const parent = module && module.inherit;
+        if( parent ){
+            if( !ctx.isActiveForModule(parent, stack.module) ){
+                return null;
+            }
+        }
+    }else if( isMember && stack.callee.object.isSuperExpression){
+        const parent = module && module.inherit;
+        if( parent ){
+            if( !ctx.isActiveForModule(parent, stack.module) ){
+                return ctx.createCalleeNode( ctx.createMemberNode([ctx.checkRefsName('Class'),'callSuperMethod']), [
+                    ctx.createIdentifierNode(module.id),
+                    ctx.createLiteralNode(stack.callee.property.value(), void 0, stack.callee.property),
+                    ctx.createThisNode(),
+                    ctx.createLiteralNode('methods'),
+                    ctx.createArrayNode( stack.arguments.map( item=>ctx.createToken(item) ) )
+                ]);
+            }
+        }
+    }
+
     // if( !isMember ){
     //     let callee = stack.callee.value();
     //     if( callee === "date" ){

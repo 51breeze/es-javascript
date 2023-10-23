@@ -67,12 +67,12 @@ function MemberExpression(ctx,stack){
         }
     }
 
+    const resolveName = ctx.builder.getClassMemberName(description);
     const enablePrivateChain = ctx.plugin.options.enablePrivateChain;
     if(enablePrivateChain && description && description.isMethodDefinition){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
         const refModule = description.module;
         if(modifier==="private" && refModule.children.length > 0){
-            let resolveName = ctx.builder.getClassMemberName(description);
             let property = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
             return ctx.createMemberNode(
                 [ 
@@ -91,7 +91,6 @@ function MemberExpression(ctx,stack){
     }
     
     if( stack.object.isSuperExpression ){
-        let resolveName = ctx.builder.getClassMemberName(description);
         let property = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
         if( description && description.isMethodGetterDefinition ){
             return createSuperGetterExpressionNode(ctx, ctx.createToken(stack.object), property );
@@ -102,11 +101,11 @@ function MemberExpression(ctx,stack){
         }
     }
 
+    
+    let propertyNode = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
     if(enablePrivateChain && description && description.isPropertyDefinition && !(description.static || description.module.static) ){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
         if( "private" === modifier ){
-            let resolveName = ctx.builder.getClassMemberName(description);
-            let property = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
             const object = ctx.createMemberNode([
                 ctx.createToken(stack.object),
                 ctx.checkRefsName(Constant.REFS_DECLARE_PRIVATE_NAME)
@@ -114,15 +113,12 @@ function MemberExpression(ctx,stack){
             object.computed = true;
             return ctx.createMemberNode([
                 object, 
-                property
+                propertyNode
             ]);
         }
     }
 
-    let propertyNode = null;
     if( description && (!description.isAccessor && description.isMethodDefinition) ){
-        let resolveName = ctx.builder.getClassMemberName(description);
-        propertyNode = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
         if( !ctx.isRawJsx() ){
             const pStack = stack.getParentStack( stack=>!!(stack.jsxElement || stack.isBlockStatement || stack.isCallExpression || stack.isExpressionStatement));
             if( pStack && pStack.jsxElement ){
@@ -141,7 +137,7 @@ function MemberExpression(ctx,stack){
     const node = ctx.createNode(stack);
     node.computed = !!stack.computed;
     node.object = node.createToken( stack.object );
-    node.property = propertyNode || node.createToken( stack.property );
+    node.property = propertyNode;
     return node;
 }
 
