@@ -8,7 +8,7 @@
 
 ///<references from='Class' />
 ///<references from='EventDispatcher' />
-
+const hasOwn = Object.prototype.hasOwnProperty;
 function System(){
     throw new SyntaxError('System is not constructor.');
 };
@@ -213,7 +213,7 @@ System.getEventDispatcher=function getEventDispatcher(){
     let object = globalConfig;
     key = segments.pop();
     while( name = segments.shift() ){
-        if( !Object.prototype.hasOwnProperty.call(object,name) ){
+        if( !hasOwn.call(object,name) ){
             object = object[name] = {};
         }else{
             object = object[name];
@@ -232,13 +232,13 @@ System.getEventDispatcher=function getEventDispatcher(){
     let object = globalConfig;
     key = segments.pop();
     while( name = segments.shift() ){
-        if( !Object.prototype.hasOwnProperty.call(object,name) ){
+        if( !hasOwn.call(object,name) ){
            return null;
         }else{
             object = object[name];
         }
     }
-    return Object.prototype.hasOwnProperty.call(object,key) ? object[key] : null;
+    return hasOwn.call(object,key) ? object[key] : null;
  }
 
  System.createHttpRoute=function createHttpRoute(url, params, flag=false){
@@ -248,13 +248,13 @@ System.getEventDispatcher=function getEventDispatcher(){
         let key = c;
         let value = null;
         let prefix = b ? b : '';
-        if( Object.prototype.hasOwnProperty.call(params,key) ){
+        if( hasOwn.call(params,key) ){
             value = params[key];
             if(flag){
                 params[key]=null;
                 delete params[key];
             }
-        }else if( Object.prototype.hasOwnProperty.call(params,key) || Object.prototype.hasOwnProperty.call(params,key=key.toLowerCase()) ){
+        }else if( hasOwn.call(params,key) || hasOwn.call(params,key=key.toLowerCase()) ){
             value = params[key];
             if(flag){
                 params[key]=null;
@@ -343,22 +343,42 @@ System.getEventDispatcher=function getEventDispatcher(){
 }
 
 const globalInvokes = Object.create(null);
+const invokeRecords = {};
 System.invokeHook=function invokeHook(type, ...args){
     const items = globalInvokes[type];
+    const len = items && items.length;
+    if( !hasOwn.call(invokeRecords, type) ){
+        invokeRecords[type] = {type, items:[], called:[]};
+    }
+    const records = invokeRecords[type];
+    if( !records.items.some( arr=>{
+        if(arr.length !== args.length)return false;
+        return args.every( (item,index)=>arr[index]===item );
+    })){
+        records.items.push(args);
+    }
+    return len > 0 ? _invokeHook(items, args, records) : args[0];
+}
+
+function _invokeHook(items, args, records){
     let len = items && items.length;
     let result = args[0];
     if( len > 0 ){
         let i = 0;
         let ctx = {
-            stop:false
+            stop:false,
+            previous:null
         };
         args = args.slice(1);
         for(;i<len;i++){
-            const invoke = items[i][0];
-            ctx.previous = result;
-            result = invoke.call(ctx, result, ...args);
-            if( ctx.stop ){
-                return result;
+            const [invoke] = items[i];
+            if(!records.called.includes(invoke) ){
+                records.called.push(invoke);
+                result = invoke.call(ctx, result, ...args);
+                if( ctx.stop ){
+                    return result;
+                }
+                ctx.previous = result;
             }
         }
     }
@@ -369,12 +389,15 @@ System.registerHook=function registerHook(type, processer, priority){
     if( typeof processer !== 'function' ){
         throw new Error(`System.registerInvoke processer must is Function`);
     }else{
+
         if( typeof priority !== "number" || isNaN(priority) ){
             priority = 0;
         }
-        if( !Object.prototype.hasOwnProperty.call(globalInvokes, type) ){
+
+        if( !hasOwn.call(globalInvokes, type) ){
             globalInvokes[type] = [];
         }
+
         const items = globalInvokes[type];
         items.push( [processer,priority] );
         if( items.length > 1 ){
@@ -383,17 +406,18 @@ System.registerHook=function registerHook(type, processer, priority){
                 return a[1] > b[1] ? -1 : 1;
             });
         }
-        if(type ==='httpRequestCreated' && HTTP_REQUEST){
-            const ctx = {
-                stop:false
-            };
-            processer.call(ctx, HTTP_REQUEST);
+
+        if( hasOwn.call(invokeRecords, type) ){
+            const records = invokeRecords[type];
+            records.items.forEach( args=>{
+                _invokeHook(items, args, records)
+            });
         }
     }
 }
 
 System.hasRegisterHook=function hasRegisterHook(type, processer){
-    if( Object.prototype.hasOwnProperty.call(globalInvokes, type) ){
+    if( hasOwn.call(globalInvokes, type) ){
         const items = globalInvokes[type];
         if(processer){
             return items.some(item=>item[0] === processer);
@@ -407,7 +431,7 @@ const globalProvides = Object.create(null);
 System.registerProvide=function registerProvide(name, value, prefix='global'){
     if( name && typeof name === "string" ){
         const key = prefix+':'+name;
-        if( Object.prototype.hasOwnProperty.call(globalProvides, key) ){
+        if( hasOwn.call(globalProvides, key) ){
             throw new Error(`Provider arguments the '${name}' already exists.`);
         }else{
             globalProvides[key] = value;
@@ -420,7 +444,7 @@ System.registerProvide=function registerProvide(name, value, prefix='global'){
 System.getProvide=function getProvide(name, prefix='global'){
     if( name && typeof name === "string" ){
         const key = prefix+':'+name;
-        if( Object.prototype.hasOwnProperty.call(globalProvides, key) ){
+        if( hasOwn.call(globalProvides, key) ){
             return globalProvides[key];
         }else{
            return null;
