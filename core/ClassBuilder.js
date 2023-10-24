@@ -139,6 +139,10 @@ class ClassBuilder extends Token{
         return true;
     }
 
+    makeInheritClass(inheritClass){
+
+    }
+
     createClassStructuralBody(){
         const stack = this.stack;
         const module = this.module;
@@ -148,6 +152,7 @@ class ClassBuilder extends Token{
         }
         if( this.isActiveForModule(module.inherit, module) ){
             this.inherit = module.inherit;
+            this.makeInheritClass(module.inherit);
         }
         this.implements = module.implements.filter( impModule=>{
             if( !impModule.isDeclaratorModule && impModule.isInterface ){

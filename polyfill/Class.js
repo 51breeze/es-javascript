@@ -153,6 +153,9 @@ const Class={
         }
         return moduleClass;
     },
+    getDescriptor(moduleClass){
+        return moduleClass[privateKey];
+    },
     getClassByName:function(name){
         var len = __MODULES__.length;
         var index = 0;

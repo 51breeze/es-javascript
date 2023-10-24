@@ -51,6 +51,7 @@ class Builder extends Token{
         this.platform = null;
         this.filesystem = null;
         this.buildModules = new Set();
+        this.buildAstCache = new WeakSet();
         this.assets = new Map();
         this.moduleReferenceNameMap = new Map();
         this.moduleDependencies = new Map();
@@ -208,8 +209,10 @@ class Builder extends Token{
         }
     }
 
-    make(compilation, stack, module){
-        if(compilation.completed(this.plugin) )return;
+    make(compilation, stack, module, flag=false){
+        if( !flag && compilation.completed(this.plugin) )return;
+        if(this.buildAstCache.has(stack))return;
+        this.buildAstCache.add(stack);
         const config = this.plugin.options;
         const ast = this.createAstToken(stack);
         const gen = ast ? this.createGenerator(ast, compilation, module) : null;
