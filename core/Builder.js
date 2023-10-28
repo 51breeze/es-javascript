@@ -279,7 +279,7 @@ class Builder extends Token{
     isNeedBuild(module, ctxModule){
         if(!module || !this.compiler.callUtils('isTypeModule', module))return false;
         if( !this.isActiveForModule(module, ctxModule) )return false;
-        if( !this.compiler.isPluginInContext(this.plugin, module) ){
+        if( !this.isPluginInContext(module) ){
             return false;
         }
         return true;
@@ -306,9 +306,9 @@ class Builder extends Token{
         const metadata = this.plugin.options.metadata || {};
         switch( name.toLowerCase() ){
             case "client" :
-                return this.platform === "client" || metadata.platform=== "client";
+                return (metadata.platform || this.platform) === "client";
             case  "server" :
-                return this.platform === "server" || metadata.platform === "server";
+                return (metadata.platform || this.platform) === "server";
         }
         return false;
     }
@@ -644,7 +644,14 @@ class Builder extends Token{
         const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
         const isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
         if( !(isRequire || isPolyfill) )return false;
-        if( !this.ckeckRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(depModule, ['runtime', 'syntax'])) ){
+        if( !this.checkRuntimeModule(depModule) ){
+            return false;
+        }
+        return true;
+    }
+
+    checkRuntimeModule(module){
+        if( !this.ckeckRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(module, ['runtime', 'syntax'])) ){
             return false;
         }
         return true;
@@ -747,7 +754,14 @@ class Builder extends Token{
         const stack = module.moduleStack;
         let annotations = stack.annotations;
         if(annotations){
-            return annotations.filter( annotation=>allows.includes(annotation.name.toLowerCase()))
+            const result = annotations.filter( annotation=>allows.includes(annotation.name.toLowerCase()));
+            if( result.length>0 ){
+                return result;
+            }
+        }
+        const inherit = module.inherit
+        if( inherit && inherit!== module){
+            return this.getModuleAnnotations(inherit, allows);
         }
         return [];
     }

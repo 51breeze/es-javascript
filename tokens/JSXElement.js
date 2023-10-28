@@ -10,6 +10,12 @@ function getTransform(root, ctx){
 }
 
 function JSXElement(ctx, stack){
+    if( stack && stack.isComponent ){
+        const desc = stack.description();
+        if(desc && desc.isModule && !ctx.builder.checkRuntimeModule(desc) ){
+            return null;
+        }
+    }
     if(ctx.isRawJsx()){
         const node = ctx.createNode( stack );
         node.openingElement = node.createToken( stack.openingElement );
