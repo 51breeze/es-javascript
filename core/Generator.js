@@ -779,6 +779,12 @@ class Generator{
                     }
                 }
             break;
+
+            case "JSXSpreadAttribute":
+                this.withString('{...');
+                this.make(token.argument)
+                this.withString('}');
+            break;
             case "JSXNamespacedName":
                 this.make(token.name);
             break;

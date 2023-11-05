@@ -75,7 +75,7 @@ function registerError(define, cn, en){
     registerError.loaded=true;
     define(10000,'',[
         '绑定的属性(%s)必须是一个可赋值的成员属性',
-        "Binding the '%s' property must be an assignable member property"
+        "Binding the '%s' property must be an assignable members property"
     ]);
 
     define(10101,'',[

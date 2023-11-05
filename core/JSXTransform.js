@@ -66,7 +66,8 @@ class JSXTransform extends Token{
             if( value ){
                 if( Array.isArray(value) ){
                     if( value.length > 0 ){
-                        const isObject = value[0].type ==='Property';
+                        const type = value[0].type;
+                        const isObject = type ==='Property' || type ==='JSXSpreadAttribute' || type ==='SpreadElement';
                         if( isObject ){
                             items.push( this.createPropertyNode( this.createIdentifierNode(key), this.createObjectNode(value) ) );
                         }else{
@@ -144,7 +145,11 @@ class JSXTransform extends Token{
                 }
                 return;
             }else if( item.isJSXSpreadAttribute ){
-                spreadAttributes && spreadAttributes.push( this.createToken( item ) );
+                if( item.argument ){
+                    const node = this.createNode(item.argument, 'SpreadElement')
+                    node.argument = node.createToken(item.argument)
+                    data.props.push(node);
+                }
                 return;
             }else if( item.isAttributeSlot ){
                 const name = item.name.value();
@@ -1248,11 +1253,11 @@ class JSXTransform extends Token{
         }
 
         const scopedSlot = stack.hasAttributeSlot && stack.openingElement.attributes.find( attr=>!!(attr.isAttributeSlot && attr.value) );
-        const spreadAttributes = [];
+       // const spreadAttributes = [];
         this.makeDirectiveComponentProperties(stack, data);
-        this.makeAttributes(stack, childNodes, data, spreadAttributes);
+        this.makeAttributes(stack, childNodes, data, /*spreadAttributes*/);
         this.makeProperties(children, data);
-        this.makeSpreadAttributes(spreadAttributes,data);
+        //this.makeSpreadAttributes(spreadAttributes,data);
 
         const isRoot = stack.jsxRootElement === stack;
         var nodeElement = null;

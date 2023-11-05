@@ -46,7 +46,7 @@ module.exports = function(ctx,stack){
             }
         }
         if( !has ){
-            stack.value.error(10000, stack.value.value());
+            stack.value.error(10000, stack.value.raw());
         } 
     }
 
