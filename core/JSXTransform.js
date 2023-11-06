@@ -754,14 +754,19 @@ class JSXTransform extends Token{
         return node;
     }
 
-    createSlotCalleeNode(child, ...args){
-        return this.createCalleeNode(
-            this.createMemberNode([
-                this.createThisNode(), 
-                this.createIdentifierNode('slot')
-            ]),
-            child ? args.concat( child ) : args
-        );
+    createSlotCalleeNode(stack,child, ...args){
+        if(stack.isSlotDeclared){
+            return this.createCalleeNode(
+                this.createMemberNode([
+                    this.createThisNode(), 
+                    this.createIdentifierNode('slot')
+                ]),
+                child ? args.concat( child ) : args,
+                stack
+            );
+        }else{
+            return child || this.createArrowFunctionNode([],this.createArrayNode())
+        }
     }
 
     makeSlotElement(stack , children, scopedSlot){
@@ -836,7 +841,8 @@ class JSXTransform extends Token{
         if( stack.isSlotDeclared ){
             if( attributes.length > 0 ){
                 const params = stack.openingElement.attributes.map( attr=>this.createToken(attr.name) );
-                return this.createSlotCalleeNode( 
+                return this.createSlotCalleeNode(
+                    stack,
                     children ? this.createArrowFunctionNode(params,children) : null,
                     name, 
                     this.createLiteralNode(true),
@@ -844,6 +850,7 @@ class JSXTransform extends Token{
                 );
             }else{
                 return this.createSlotCalleeNode(
+                    stack,
                     children ? this.createArrowFunctionNode([],children) : null,
                     name
                 );
@@ -851,12 +858,14 @@ class JSXTransform extends Token{
         }else{
             if( attributes.length > 0 ){
                 return this.createSlotCalleeNode(
+                    stack,
                     this.createArrowFunctionNode(attributes, children),
                     name, 
                     this.createLiteralNode(true),
                 );
             }else{
                 return this.createSlotCalleeNode(
+                    stack,
                     children ? this.createArrowFunctionNode([],children) : null,
                     name
                 );
