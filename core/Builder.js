@@ -538,7 +538,7 @@ class Builder extends Token{
         }) : true;
     }
 
-    ckeckRuntimeOrSyntaxAnnotations(items){
+    checkRuntimeOrSyntaxAnnotations(items){
         if( !items || !items.length )return true;
         return items.every( item=>{
             const args = item.getArguments();
@@ -642,24 +642,52 @@ class Builder extends Token{
         const isUsed = this.isUsed(depModule, ctxModule);
         if( !isUsed )return false;
         const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
-        const isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
-        if( !(isRequire || isPolyfill) )return false;
-        if( !this.checkRuntimeModule(depModule) ){
+        let isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
+        if( !(isRequire || isPolyfill) ){
+            return false;
+        }
+        return true;
+    }
+
+    isDeclaratorModuleDependency(module){
+        if(!module || !module.isClass)return false
+        if(module.required && module.isAnnotationCreated){
+            return true;
+        }else if(module.isDeclaratorModule){
+            const stack = module.moduleStack;
+            if(stack && stack.imports.length>0){
+                return stack.imports.some( item=>{
+                    if(item.isImportDeclaration && item.source.isLiteral){
+                        return item.specifiers.some(spec=>spec.value() === module.id)
+                    }
+                    return false;
+                });
+            }
             return false;
         }
         return true;
     }
 
     checkRuntimeModule(module){
-        if( !this.ckeckRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(module, ['runtime', 'syntax'])) ){
+        if( !this.checkRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(module, ['runtime', 'syntax'])) ){
             return false;
         }
         return true;
     }
 
+    checkModuleIsEs6Class(module){
+        if(!module || !module.isDeclaratorModule || !module.isClass)return false;
+        return this.getModuleAnnotations(module, ['define'], false).some( annot=>{
+            const args = annot.getArguments();
+            if(args[0])return String(args[0].value).toLowerCase() === 'es6class';
+            return false;
+        });
+    }
+
     isPluginInContext(doucment){
-        const options = this.plugin.options;
-        if(!options.crossDependenciesCheck && options.hot)return true;
+        if(module && module.isModule && !this.checkRuntimeModule(module) ){
+            return false;
+        }
         return this.compiler.isPluginInContext(this.plugin, doucment||this.compilation);
     }
 
@@ -749,7 +777,7 @@ class Builder extends Token{
         });
     }
 
-    getModuleAnnotations(module, allows = ['get','post','put','delete','option','router']){
+    getModuleAnnotations(module, allows = ['get','post','put','delete','option','router'], inheritFlag=true){
         if(!module||!module.isClass)return [];
         const stack = module.moduleStack;
         let annotations = stack.annotations;
@@ -760,8 +788,8 @@ class Builder extends Token{
             }
         }
         const inherit = module.inherit
-        if( inherit && inherit!== module){
-            return this.getModuleAnnotations(inherit, allows);
+        if( inherit && inherit!== module && inheritFlag){
+            return this.getModuleAnnotations(inherit, allows, inheritFlag);
         }
         return [];
     }

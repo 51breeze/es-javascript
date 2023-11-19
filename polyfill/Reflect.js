@@ -10,7 +10,7 @@
 ///<export name='_Reflect' />
 
 const _Reflect = (function(_Reflect){
-    const _construct = _Reflect ? _Reflect.construct : function construct(theClass,args){
+    const _construct = _Reflect ? _Reflect.construct : function construct(theClass, args, newTarget){
         if( !isFun(theClass) ){
             throw new TypeError('is not class or function');
         }
@@ -62,6 +62,7 @@ const _Reflect = (function(_Reflect){
     function isClass(objClass){
         if( !objClass || !objClass.constructor)return false;
         var desc = objClass[ Class.key ];
+        if( !desc )return isFun(objClass);
         return desc && desc.id === Reflect.MODULE_CLASS;
     }
 
@@ -107,9 +108,9 @@ const _Reflect = (function(_Reflect){
         return Reflect.apply( Reflect.get(scope,target,propertyKey), thisArgument||target, argumentsList);    
     };
 
-    Reflect.construct=function construct(target, args){
-        if( !isClass(target) )throw new TypeError('target is not class');
-        return _construct(target, args || []);
+    Reflect.construct=function construct(target, args, newTarget){
+        if( !isClass(target) )throw new TypeError('target is not instantiable object.');
+        return _construct(target, args || [], newTarget);
     };
 
     Reflect.deleteProperty=function deleteProperty(target, propertyKey){

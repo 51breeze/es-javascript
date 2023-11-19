@@ -213,12 +213,44 @@ class ClassBuilder extends Token{
         );
     }
 
+    checkCallSuperES6Class(construct, module){
+        if(construct && module){
+            const inherit = module.inherit
+            if(inherit && this.builder.isDeclaratorModuleDependency(inherit)){
+                this.addDepend( this.builder.getGlobalModuleById("Reflect") );
+                const ctx = construct.body;
+                const wrap = this.createNode('FunctionExpression');
+                const block = construct.createNode('BlockStatement');
+                const node = this.createReturnNode(
+                    ctx.createCalleeNode(this.createMemberNode([ctx.checkRefsName("Reflect"),'apply']), [
+                        wrap,
+                        ctx.createCalleeNode(
+                            this.createMemberNode([ctx.checkRefsName("Reflect"),'construct']),
+                            [
+                                this.createIdentifierNode(ctx.getModuleReferenceName(inherit)),
+                                ctx.createIdentifierNode('arguments'),
+                                ctx.createIdentifierNode(module.id)
+                            ]
+                        )
+                    ])
+                );
+                ctx.body.push(wrap.createReturnNode(wrap.createThisNode()))
+                wrap.body = ctx;
+                ctx.parent = wrap;
+                block.body = [node];
+                node.parent = block;
+                construct.body = block;
+            }
+        }
+    }
+
     checkConstructMethod(){
         const stack = this.stack;
         const module = this.module;
         if( !this.construct && (stack.isInterfaceDeclaration || stack.isClassDeclaration || stack.isEnumDeclaration) ){
             this.construct = this.createDefaultConstructMethod(module.id);
         }
+        this.checkCallSuperES6Class(this.construct, module);
     }
 
     createPrivatePropertyNode(stack,child,isStatic){
@@ -406,9 +438,11 @@ class ClassBuilder extends Token{
         }
         if( this.inherit ){
             description.push(this.createPropertyNode('inherit', this.createIdentifierNode( this.getModuleReferenceName(this.inherit) ) ) );
+        }else if(this.builder.isDeclaratorModuleDependency(module.inherit)){
+            description.push(this.createPropertyNode('inherit', this.createIdentifierNode( this.getModuleReferenceName(module.inherit) ) ) );
         }
+
         if( this.methods && this.methods.length ){
-            
             description.push(this.createPropertyNode('methods', this.createIdentifierNode(this.checkRefsName('methods')) ));
         }
         if( this.members && this.members.length ){
@@ -478,13 +512,13 @@ class ClassBuilder extends Token{
             polyfillModule = this.builder.getPolyfillModule( module.getName() );
         }
         dependencies.forEach( depModule =>{
-            if( this.builder.isPluginInContext(depModule) ){
-                if( this.isActiveForModule( depModule ) && !(excludes && excludes.includes( depModule )) ){
+            if( !(excludes && excludes.includes( depModule )) && this.builder.isPluginInContext(depModule) ){
+                if( this.isActiveForModule( depModule ) ){
                     const name = this.builder.getModuleReferenceName(depModule, module);
                     const source = this.builder.getModuleImportSource(depModule, module);
                     this.builder.addAsset(module, source, 'normal',depModule);
                     items.push( this.createImportDeclaration(source, [[name]]) );
-                }else if( depModule.isDeclaratorModule && !this.builder.getPolyfillModule( depModule.getName() ) ){
+                }else if(depModule.isDeclaratorModule && this.builder.isUsed(depModule, module)){
                     this.addImportReferenceNode(depModule, true, module);
                     this.builder.getModuleAssets(depModule).forEach( item=>{
                         let local = item.local;

@@ -155,9 +155,20 @@ module.exports = function(ctx,stack){
         // const external = ctx.createStatementNode( parenthes );
         // external.comment = '/*externals code*/';
         //node.body.push( external );
+        const dependencies = stack.compilation.modules.size > 0 && stack.compilation.mainModule && stack.compilation.mainModule.isClass ? 
+                                new Set(node.builder.moduleDependencies.get(stack.compilation)) : null;
+        const importedLocalKeyMap = {};
         stack.externals.forEach( item=>{
             if( item.isImportDeclaration ){
-                node.imports.push( node.createToken(item) );
+                const importNode = node.createToken(item);
+                if(importNode){
+                    node.imports.push( importNode );
+                    if( importNode.type==='ImportDeclaration'){
+                        importNode.specifiers.forEach( sepc=>{
+                            importedLocalKeyMap[sepc.local.value] = item.source.value
+                        })
+                    }
+                }
             }else{
                 const obj = node.createToken(item);
                 if( obj ){
@@ -165,6 +176,52 @@ module.exports = function(ctx,stack){
                 }
             }
         });
+
+        if(dependencies){
+
+            const newDeps = node.builder.moduleDependencies.get(stack.compilation);
+            stack.compilation.modules.forEach( module=>{
+                const items = node.builder.geImportReferences(module);
+                if( items ){
+                    items.forEach( item=>{
+                        item.specifiers.forEach( sepc=>{
+                            importedLocalKeyMap[sepc.local.value] = item.source.value
+                        })
+                    })
+                }
+            });
+
+            if( newDeps.size> 0 ){
+
+                const findClassDeclaration=(body)=>{
+                    if(!Array.isArray(node.body))return;
+                    body.forEach( item=>{
+                        if(!item)return;
+                        if( item.type === 'PackageDeclaration' ){
+                            findClassDeclaration(item.body);
+                        }else if(item.type==='ClassDeclaration'){
+                            findClassDeclaration(item.body)
+                        }else if(item.type==="ImportDeclaration"){
+                            item.specifiers.forEach( sepc=>{
+                                importedLocalKeyMap[sepc.local.value] = item.source.value;
+                            })
+                        }
+                    });
+                }
+
+                findClassDeclaration(node.body);
+                newDeps.forEach( depModule=>{
+                    if(!dependencies.has(depModule)){
+                        const name = node.builder.getModuleReferenceName(depModule, stack.compilation);
+                        if(!importedLocalKeyMap[name] && node.builder.isActiveForModule(depModule) && node.builder.isPluginInContext(depModule)){
+                            const source = node.builder.getModuleImportSource(depModule, stack.compilation);
+                            node.builder.addAsset(stack.compilation, source, 'externals', depModule);
+                            node.imports.push( node.createImportDeclaration(source, [[name]]) );
+                        }
+                    }
+                })
+            }
+        }
     }
 
     if( stack.exports.length > 0 ){
