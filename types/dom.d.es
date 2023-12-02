@@ -3298,12 +3298,13 @@ declare interface Element extends Node implements ParentNode, ChildNode, GlobalE
      * Allows for manipulation of element's class content attribute as a set of whitespace-separated tokens through a DOMTokenList object.
      */
     const classList: DOMTokenList;
-    /**
+   
     const clientHeight: number;
     const clientLeft: number;
     const clientTop: number;
     const clientWidth: number;
-   
+    
+    /**
      * Returns the local name.
      */
     const localName: string;
@@ -4319,4 +4320,51 @@ declare interface GlobalEventHandlers {
     onwebkittransitionend: (ev: Event) => any;
     onwheel: (ev: WheelEvent) => any;
     
+}
+
+/** provides a way to asynchronously observe changes in the intersection of a target element with an ancestor element or with a top-level document's viewport. */
+declare class IntersectionObserver {
+    const root: Element | Document | null;
+    const rootMargin: string;
+    const thresholds: Array<number>;
+    constructor(callback: (entries: IntersectionObserverEntry[], observer: IntersectionObserver)=>void, options?: IntersectionObserverInit)
+    disconnect(): void;
+    observe(target: Element): void;
+    takeRecords(): IntersectionObserverEntry[];
+    unobserve(target: Element): void;
+}
+
+/** This Intersection Observer API interface describes the intersection between the target element and its root container at a specific moment of transition. */
+declare class IntersectionObserverEntry {
+    const boundingClientRect: DOMRectReadOnly;
+    const intersectionRatio: number;
+    const intersectionRect: DOMRectReadOnly;
+    const isIntersecting: boolean;
+    const rootBounds: DOMRectReadOnly | null;
+    const target: Element;
+    const time: number;
+    constructor(intersectionObserverEntryInit: IntersectionObserverEntryInit): IntersectionObserverEntry;
+}
+
+declare interface IntersectionObserverInit {
+    root?: Element | Document | null;
+    rootMargin?: string;
+    threshold?: number | number[];
+}
+
+declare interface IntersectionObserverEntryInit {
+    boundingClientRect: DOMRectInit;
+    intersectionRatio: number;
+    intersectionRect: DOMRectInit;
+    isIntersecting: boolean;
+    rootBounds: DOMRectInit | null;
+    target: Element;
+    time: number;
+}
+
+declare interface DOMRectInit {
+    height?: number;
+    width?: number;
+    x?: number;
+    y?: number;
 }
