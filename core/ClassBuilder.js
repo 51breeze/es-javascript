@@ -217,17 +217,19 @@ class ClassBuilder extends Token{
         if(construct && module){
             const inherit = module.inherit
             if(inherit && this.builder.isDeclaratorModuleDependency(inherit)){
-                this.addDepend( this.builder.getGlobalModuleById("Reflect") );
+                const ReflectModule = this.builder.getGlobalModuleById("Reflect")
+                this.addDepend(ReflectModule);
+                const reflectName = this.builder.getModuleReferenceName(ReflectModule, module);
                 const ctx = construct.body;
                 const wrap = this.createNode('FunctionExpression');
                 const block = construct.createNode('BlockStatement');
                 const node = this.createReturnNode(
-                    ctx.createCalleeNode(this.createMemberNode([ctx.checkRefsName("Reflect"),'apply']), [
+                    ctx.createCalleeNode(this.createMemberNode([reflectName,'apply']), [
                         wrap,
                         ctx.createCalleeNode(
-                            this.createMemberNode([ctx.checkRefsName("Reflect"),'construct']),
+                            this.createMemberNode([reflectName,'construct']),
                             [
-                                this.createIdentifierNode(ctx.getModuleReferenceName(inherit)),
+                                this.createIdentifierNode(ctx.getModuleReferenceName(inherit,module)),
                                 ctx.createIdentifierNode('arguments'),
                                 ctx.createIdentifierNode(module.id)
                             ]
@@ -458,7 +460,7 @@ class ClassBuilder extends Token{
                     construct.body.body.unshift(
                         this.createStatementNode( 
                             this.createCalleeNode(
-                                this.createMemberNode([this.checkRefsName('Class'),'callSuper']),
+                                this.createMemberNode([this.builder.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),'callSuper']),
                                 [
                                     this.createIdentifierNode(module.id),
                                     this.createThisNode(),
@@ -480,8 +482,11 @@ class ClassBuilder extends Token{
         if( module && module.isFragment ){
             args[0] = this.createIdentifierNode(null);
         }
-        
-        return this.createStatementNode( this.createCalleeNode( this.createMemberNode([this.checkRefsName('Class'),'creator']), args) );
+
+        return this.createStatementNode( this.createCalleeNode( this.createMemberNode([
+            this.builder.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),
+            'creator'
+        ]), args) );
     }
 
     createStatementMember(name, members){
@@ -512,6 +517,7 @@ class ClassBuilder extends Token{
             polyfillModule = this.builder.getPolyfillModule( module.getName() );
         }
         dependencies.forEach( depModule =>{
+           
             if( !(excludes && excludes.includes( depModule )) && this.builder.isPluginInContext(depModule) ){
                 if( this.isActiveForModule( depModule ) ){
                     const name = this.builder.getModuleReferenceName(depModule, module);

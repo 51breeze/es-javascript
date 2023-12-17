@@ -3,12 +3,13 @@
   "version": "0.4.2",
   "description": "test",
   "main": "index.js",
-  "typings": "types",
+  "typings": "typings.json",
   "scripts": {
     "es": "es -V",
     "dev": "jasmine ./test/index.js",
     "run": "jasmine ./test/build/Test.js",
-    "test": "npm run dev & npm run run"
+    "test": "npm run dev & npm run run",
+    "manifest": "node ./scripts/manifest.js"
   },
   "repository": {
     "type": "git",
@@ -44,6 +45,7 @@
   },
   "esconfig": {
     "scope": "es-javascript",
+    "typings":["types/global.d.es"],
     "inherits": []
   }
 }

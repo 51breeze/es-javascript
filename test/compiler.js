@@ -15,7 +15,6 @@ class Creator {
                 locations:true
             }
         },options || {}));
-        compiler.initialize();
         this._compiler = compiler;
         this.plugin = compiler.applyPlugin({plugin, options:{
             emitFile:true,
@@ -32,11 +31,18 @@ class Creator {
     }
 
     factor(file,source){
-        return new Promise((resolved,reject)=>{
+        return new Promise( async(resolved,reject)=>{
             const compiler = this.compiler;
+            await compiler.initialize();
+            await compiler.loadTypes([
+                'types/cookie.d.es',
+                'types/dom.d.es',
+                'types/global.d.es',
+                'types/socket.d.es',
+            ], {scope:'es-javascript'})
             try{
-                const compilation=file ? compiler.createCompilation(file) : new Compilation( compiler );
-                compilation.parser(source);
+                const compilation=file ? await compiler.createCompilation(file) : new Compilation( compiler );
+                await compilation.parserAsync(source);
                 if(compilation.stack){
                     resolved(compilation);
                 }else{

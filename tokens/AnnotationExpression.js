@@ -26,7 +26,7 @@ function createHttpAnnotation(ctx,stack){
     const methodArg = getAnnotationArgItem(indexes[4], args, indexes);
     const configArg = getAnnotationArgItem(indexes[5], args, indexes);
 
-    const providerModule = stack.getModuleById(moduleClass.value , true);
+    const providerModule = stack.getModuleById(moduleClass.value);
     if( !providerModule ){
         ctx.error(`Class '${moduleClass.value}' is not exists.`);
     }else{
@@ -98,7 +98,7 @@ function createRouterAnnotation(ctx,stack){
     const args = stack.getArguments();
     const indexes=['classname','action','param'];
     const moduleClass = getAnnotationArgItem(indexes[0],args, indexes);
-    const module = stack.getModuleById(moduleClass.value , true);
+    const module = stack.getModuleById(moduleClass.value);
     if( !module ){
         ctx.error(`Class '${moduleClass.value}' is not exists.`);
     }else{
@@ -251,7 +251,7 @@ module.exports = function(ctx,stack,type){
             const moduleClass = getItem( indexMap[0] );
             const action = getItem( indexMap[1] );
             const method = getItem( indexMap[2] ) || {value:'Get'};
-            const providerModule = stack.getModuleById(moduleClass.value , true);
+            const providerModule = stack.getModuleById(moduleClass.value);
             if( !providerModule ){
                 ctx.error(`Class '${moduleClass.value}' is not exists.`);
             }else{

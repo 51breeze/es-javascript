@@ -641,9 +641,14 @@ class Builder extends Token{
         ctxModule = ctxModule || this.compilation;
         const isUsed = this.isUsed(depModule, ctxModule);
         if( !isUsed )return false;
-        const isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);         
-        let isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
-        if( !(isRequire || isPolyfill) ){
+        let isRequire = false;
+        let isPolyfill = false;
+        if(depModule.isDeclaratorModule){
+            isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
+        }else{
+            isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
+        }
+        if(!(isRequire || isPolyfill)){
             return false;
         }
         return true;
@@ -698,7 +703,7 @@ class Builder extends Token{
     getModuleReferenceName(module,context){
         context = context || this.compilation;
         if( !module || !module.isModule)return null;
-        let scope = context || this.compilation;
+        let scope = this.compilation;
         let dataset = this.moduleReferenceNameMap.get(scope);
         if(!dataset)this.moduleReferenceNameMap.set(scope, dataset=new Map());
         let name = dataset.get(module);
