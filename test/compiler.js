@@ -39,9 +39,10 @@ class Creator {
                 'types/dom.d.es',
                 'types/global.d.es',
                 'types/socket.d.es',
-            ], {scope:'es-javascript'})
+            ], {scope:'es-javascript'});
+            let compilation = null;
             try{
-                const compilation=file ? await compiler.createCompilation(file) : new Compilation( compiler );
+                compilation=file ? await compiler.createCompilation(file) : new Compilation( compiler );
                 await compilation.parserAsync(source);
                 if(compilation.stack){
                     resolved(compilation);

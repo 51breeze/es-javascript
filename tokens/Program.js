@@ -144,7 +144,10 @@ module.exports = function(ctx,stack){
 
     if( stack.imports && stack.imports.length > 0 ){
         stack.imports.forEach( item=>{
-            node.imports.push( node.createToken(item) );
+            const desc = item.description();
+            if( !desc || desc !== stack.compilation.mainModule){
+                node.imports.push( node.createToken(item) );
+            }
         });
     }
 

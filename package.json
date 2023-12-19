@@ -3,7 +3,7 @@
   "version": "0.4.2",
   "description": "test",
   "main": "index.js",
-  "typings": "typings.json",
+  "typings": "types/typings.json",
   "scripts": {
     "es": "es -V",
     "dev": "jasmine ./test/index.js",

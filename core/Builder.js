@@ -638,15 +638,16 @@ class Builder extends Token{
     }
 
     isActiveForModule(depModule,ctxModule){
+        if(!depModule)return false;
         ctxModule = ctxModule || this.compilation;
         const isUsed = this.isUsed(depModule, ctxModule);
         if( !isUsed )return false;
         let isRequire = false;
         let isPolyfill = false;
         if(depModule.isDeclaratorModule){
-            isPolyfill = depModule.isDeclaratorModule && !!this.getPolyfillModule( depModule.getName() );
+            isPolyfill = !!this.getPolyfillModule( depModule.getName() );
         }else{
-            isRequire = this.compiler.callUtils("isLocalModule", depModule) && !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
+            isRequire = !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
         }
         if(!(isRequire || isPolyfill)){
             return false;
