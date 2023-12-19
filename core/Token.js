@@ -564,7 +564,7 @@ class Token extends events.EventEmitter {
                 check(name, scope){
                     if( this.result.has(name) )return true;
                     if( flags === Token.SCOPE_REFS_All ){
-                        return scope.topDeclarations.has(name);
+                        return scope.checkDocumentDefineScope(name, ['class']);
                     }
                     if( scope.isDefine(name) ){
                         return true;

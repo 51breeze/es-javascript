@@ -460,7 +460,10 @@ class ClassBuilder extends Token{
                     construct.body.body.unshift(
                         this.createStatementNode( 
                             this.createCalleeNode(
-                                this.createMemberNode([this.builder.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),'callSuper']),
+                                this.createMemberNode([
+                                    this.checkRefsName(this.builder.getModuleReferenceName(this.builder.getGlobalModuleById('Class'))),
+                                    'callSuper'
+                                ]),
                                 [
                                     this.createIdentifierNode(module.id),
                                     this.createThisNode(),
