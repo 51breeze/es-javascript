@@ -545,14 +545,22 @@ class ClassBuilder extends Token{
         
         if( polyfillModule && polyfillModule.requires.size > 0 ){
             polyfillModule.requires.forEach( item=>{
-                if( !this.builder.isNeedImportDependence(item.from, module) ){
+
+                let source = item.from;
+                if( module && source && source.includes('${__filename}')){
+                    source = this.builder.getModuleImportSource(source, module)
+                }
+
+                if( !this.builder.isNeedImportDependence(source, module) ){
                     return;
                 }
+
                 const name = item.key;
-                let source = this.builder.getSourceFileMappingFolder(item.from);
-                if( source === null ){
-                    source = item.from;
+                let resolveSource = this.builder.getSourceFileMappingFolder(source);
+                if( resolveSource ){
+                    source = resolveSource;
                 }
+
                 if( source ){
                     const extract = item.extract;
                     if( name && item.value && name !== item.value || extract ){
@@ -602,6 +610,11 @@ class ClassBuilder extends Token{
     }
 
     createImportAssetsIfNotExists(module, originAsset, source, local, imported, namespaced=false){
+
+        if( source.includes('${__filename}')){
+            source = this.builder.getModuleImportSource(source, module)
+        }
+
         if( !this.builder.isNeedImportDependence(source, module) ){
             return;
         }
@@ -675,6 +688,9 @@ class ClassBuilder extends Token{
                     if( !desc ){
                         let source = item.source.value();
                         if( source ){
+                            if( source.includes('${__filename}')){
+                                source = this.builder.getModuleImportSource(source, module)
+                            }
                             if( !this.builder.isNeedImportDependence(source, module) ){
                                 return;
                             }
@@ -697,7 +713,7 @@ class ClassBuilder extends Token{
                                 const node = this.createToken( item );
                                 if( node ){
                                     const local = sameModuleNameFlag && contextModule ? this.builder.getModuleReferenceName(module, contextModule) : null; 
-                                    checkSameId(node, local);  
+                                    checkSameId(node, local); 
                                     let resolve = this.builder.getSourceFileMappingFolder(source, true);
                                     this.builder.addAsset(module, source, 'assets', {source, resolve, isImport:true, type:'assets', stack:item});
                                     this.builder.addImportReference(this.module, source , node);

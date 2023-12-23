@@ -252,6 +252,25 @@ const _Reflect = (function(_Reflect){
         return flag === true ? val : result;
     }
 
+    function getObjectDescriptor(target, name){
+        try{
+            if(!target)return null;
+            let result = Class.getObjectDescriptor(target, name);
+            if(result)return result;
+            if(name in target){
+                const configurable = hasOwn.call(target, name);
+                result = {
+                    value:target[name],
+                    writable:configurable,
+                    configurable:configurable,
+                    enumerable:configurable
+                }
+            }
+            return result;
+        }catch(e){}
+        return null;
+    }
+
     Reflect.getDescriptor=function getDescriptor(target,name){
 
         if(target===null||target === void 0)return false;
@@ -268,18 +287,7 @@ const _Reflect = (function(_Reflect){
         if( !description ){
             let result = null;
             if( name ){
-                try{
-                    result = Object.getOwnPropertyDescriptor(target, name);
-                    if( !result && name in target){
-                        const configurable = hasOwn.call(target, name);
-                        result = {
-                            value:target[name],
-                            writable:configurable,
-                            configurable:configurable,
-                            enumerable:configurable
-                        }
-                    }
-                }catch(e){}
+                result = getObjectDescriptor(typeof target ==='function' ? target.prototype : target, name);
             }
             return result;
         }
@@ -365,6 +373,10 @@ const _Reflect = (function(_Reflect){
                 return item;
             }
             objClass = description.inherit;
+        }
+
+        if(objClass && !description){
+            return getObjectDescriptor(typeof objClass ==='function' ? objClass.prototype : objClass, name);
         }
 
         return null;

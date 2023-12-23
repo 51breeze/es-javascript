@@ -92,13 +92,32 @@ function MemberExpression(ctx,stack){
     
     if( stack.object.isSuperExpression ){
         let property = resolveName ? ctx.createIdentifierNode(resolveName, stack.property) : ctx.createToken(stack.property);
-        if( description && description.isMethodGetterDefinition ){
-            return createSuperGetterExpressionNode(ctx, ctx.createToken(stack.object), property );
-        }else if(description && description.isMethodSetterDefinition ){
-            return createSuperMemberNode(ctx, ctx.createToken(stack.object), property ,'set');
+        if( description && description.isMethodGetterDefinition){
+            if(property.type === 'Identifier')property = ctx.createLiteralNode(property.value, void 0 , stack.property)
+            const args = [ctx.createIdentifierNode(module.id), property ,ctx.createThisNode(),  ctx.createLiteralNode('getter')]
+            return ctx.createCalleeNode(
+                ctx.createMemberNode([
+                    ctx.createIdentifierNode(ctx.checkRefsName('Class')),
+                    ctx.createIdentifierNode('callSuperMethod')
+                ]),
+                args
+            );
+            //return createSuperGetterExpressionNode(ctx, ctx.createToken(stack.object), property );
+        }else if(description && description.isMethodSetterDefinition){
+            if(property.type === 'Identifier')property = ctx.createLiteralNode(property.value, void 0 , stack.property)
+            const args = [ctx.createIdentifierNode(module.id), property, ctx.createLiteralNode('setter')]
+            return ctx.createCalleeNode(
+                ctx.createMemberNode([
+                    ctx.createIdentifierNode(ctx.checkRefsName('Class')),
+                    ctx.createIdentifierNode('fetchSuperMethod')
+                ]),
+                args
+            );
+            //return createSuperMemberNode(ctx, ctx.createToken(stack.object), property ,'set');
         }else{
             return ctx.createMemberNode([ctx.createToken(stack.object), ctx.createIdentifierNode('prototype'), property ]);
         }
+  
     }
 
     

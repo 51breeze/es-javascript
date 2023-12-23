@@ -11,5 +11,6 @@ module.exports = function(ctx,stack){
             node.builder.make(compilation, compilation.stack);
         }
     }
+    if(!node.declaration && !node.specifiers)return null;
     return node;
  }

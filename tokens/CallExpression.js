@@ -71,15 +71,19 @@ module.exports = function(ctx,stack){
         const strict = ctx.plugin.options.strict;
         if(strict){
             ctx.addDepend( stack.getGlobalTypeById("Reflect") );
-            const property = stack.callee.computed ? ctx.createToken(stack.callee.property) : ctx.createLiteralNode(stack.callee.property.value(), void 0, stack.callee.property)
+            const property = stack.callee.computed ? ctx.createToken(stack.callee.property) : ctx.createLiteralNode(stack.callee.property.value(), void 0, stack.callee.property);
+            const args = [
+                module ? ctx.createIdentifierNode(module.id) : ctx.createLiteralNode(null),
+                ctx.createToken(stack.callee.object),
+                property,
+                ctx.createArrayNode( stack.arguments.map( item=>ctx.createToken(item) ) )
+            ];
+            if( stack.callee.object.isSuperExpression ){
+                args.push(ctx.createThisNode())
+            }
             return ctx.createCalleeNode(
                 ctx.createMemberNode([ctx.checkRefsName("Reflect"),'call']),
-                [
-                    module ? ctx.createIdentifierNode(module.id) : ctx.createLiteralNode(null),
-                    ctx.createToken(stack.callee.object),
-                    property,
-                    ctx.createArrayNode( stack.arguments.map( item=>ctx.createToken(item) ) )
-                ],
+                args,
                 stack
             );
         }

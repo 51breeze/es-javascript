@@ -1,6 +1,6 @@
 module.exports = function(ctx,stack){
     if( !stack.flag && !stack.parentStack.isPropertyDefinition && !(stack.id.isArrayPattern || stack.id.isObjectPattern) ){
-        if( !stack.useRefItems.size ){
+        if(!stack.parentStack.parentStack.isExportNamedDeclaration && !stack.useRefItems.size){
             if( !stack.init )return null;
         }
     }

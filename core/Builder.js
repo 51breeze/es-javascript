@@ -1000,6 +1000,9 @@ class Builder extends Token{
     getModuleImportSource(source, module, identifier){
         const config = this.plugin.options;
         const isString = typeof source === 'string';
+        if(isString && module && module.isModule && source.includes('${__filename}')){
+            source = source.replace('${__filename}', module.compilation.file);
+        }
         if( isString && source.includes('/node_modules/') ){
             if( path.isAbsolute(source) )return source;
             if( !identifier ){

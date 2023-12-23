@@ -5,11 +5,11 @@
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
 */
-
 const __MODULES__=[];
 const privateKey=Symbol("privateKey");
 const _proto = Object.prototype;
-const merge = (obj, target, isInstance)=>{
+
+function merge(obj, target, isInstance){
     if(!obj || !target || _proto===obj || obj===Object || obj===Function)return;
     const keys = Object.getOwnPropertyNames(obj);
     if( keys ){
@@ -30,13 +30,26 @@ const merge = (obj, target, isInstance)=>{
     merge(Reflect.getPrototypeOf(obj), target, isInstance);
 }
 
+function getDescriptor(obj, name){
+    if( !obj )return null;
+    const desc = Reflect.getOwnPropertyDescriptor(obj, name);
+    if(desc)return desc;
+    if(_proto===obj || obj===Object || obj===Function)return;
+    return getDescriptor( Reflect.getPrototypeOf(obj) );
+}
+
 const Class={
     key:privateKey,
     modules:__MODULES__,
     require:function(id){
         return __MODULES__[id];
     },
-    callSuper(moduleClass, target, args=[]){
+
+    getObjectDescriptor(obj, name){
+        return getDescriptor(obj, name);
+    },
+
+    callSuper(moduleClass, thisArg, args=[]){
         if(!moduleClass)return;
         const description = moduleClass[privateKey];
         const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
@@ -44,65 +57,94 @@ const Class={
             _extends.forEach( (classTarget)=>{
                 if(typeof classTarget ==='function'){
                     const newObject = Reflect.construct(classTarget, args, moduleClass);
-                    merge(newObject, target, true);
+                    merge(newObject, thisArg, true);
                 }else if(typeof classTarget ==='object'){
-                    merge(newObject, target, true);
+                    merge(newObject, thisArg, true);
                 }
             });
         }
     },
-    callSuperMethod(moduleClass, methodName, target, kind='method', args=[]){
-        if(!moduleClass)return;
+
+    callSuperMethod(moduleClass, methodName, thisArg, kind='method', args=[]){
+        const method = this.fetchSuperMethod(moduleClass, methodName,kind);
+        if(method){
+            return method.apply(thisArg, args);
+        }else{
+            throw new ReferenceError(`Call the '${methodName}' method is not exists. on Class.callSuperMethod`)
+        }
+    },
+
+    fetchSuperMethod(moduleClass, methodName, kind='method'){
+
+        if(!moduleClass)return null;
         let description = moduleClass[privateKey];
         let parent = null;
-        if( description.inherit ){
+        const parentMethods = [];
+        if(description && description.inherit){
             parent = description.inherit[privateKey];
+            if(!parent || !parent.members){
+                parentMethods.push(description.inherit);
+            }
         }
 
-        if(parent && parent.members){
+        while(parent && parent.members){
             const desc = parent.members[methodName];
             if(desc && Class.CONSTANT.MODIFIER_PRIVATE !== (desc.m & Class.CONSTANT.MODIFIER_PUBLIC) ){
                 if( desc.d === Class.CONSTANT.PROPERTY_ACCESSOR ){
                     if(desc.set && kind==='setter'){
-                        return desc.set.apply(target, args);
+                        return desc.set
                     }else if(desc.get && kind==='getter'){
-                        return desc.get.call(target);
+                        return desc.get
                     }
                 }else if( desc.d === Class.CONSTANT.PROPERTY_FUN){
-                    return desc.value.apply(target, args);
+                    return desc.value
+                }
+            }
+            
+            if(parent.inherit){
+                const _parent = parent.inherit[privateKey];
+                if(!_parent || !_parent.members){
+                    parentMethods.push(parent.inherit);
+                }else{
+                    parent = _parent;
+                }
+            }else{
+                break;
+            }
+        }
+
+        let _extends = description && description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : [];
+        if( !description ){
+            _extends.push(moduleClass);
+        }else{
+            _extends.push( ...parentMethods );
+        }
+
+        for(let i=0; i<_extends.length;i++){
+            const objectClass =_extends[i];
+            const desc = typeof objectClass === "function" ? getDescriptor(objectClass.prototype, methodName) : getDescriptor(objectClass, methodName);
+            if( desc ){
+                if(desc.set && kind==='setter'){
+                    return desc.set
+                }else if(desc.get && kind==='getter'){
+                    return desc.get
+                }else if(typeof desc.value ==='function'){
+                    return desc.value
                 }
             }
         }
 
-        const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
-        if(_extends && _extends.length > 0){
-            const getDesc = (obj)=>{
-                if( !obj )return null;
-                const desc = Reflect.getOwnPropertyDescriptor(obj, methodName);
-                if(desc)return desc;
-                if(_proto===obj || obj===Object || obj===Function)return;
-                return getDesc( Reflect.getPrototypeOf(obj) );
-            }
-            for(let i=0; i<_extends.length;i++){
-                const objectClass =_extends[i];
-                const desc = typeof objectClass === "function" ? getDesc(objectClass.prototype) : getDesc(objectClass);
-                if( desc ){
-                    if(desc.set && kind==='setter'){
-                        return desc.set.apply(target, args);
-                    }else if(desc.get && kind==='getter'){
-                        return desc.get.call(target);
-                    }else if(typeof desc.value ==='function'){
-                        return desc.value.apply(target, args);
-                    }
-                }
-            }
-        }
+        return null;
     },
+
     creator:function(id, moduleClass, description){
         if( description ){
             const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
             if( description.inherit ){
-                Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+                let isProto = typeof description.inherit === 'function' ? moduleClass.prototype instanceof description.inherit : true;
+                if(!isProto){
+                    Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
+                }
             }else if(_extends && _extends.length>0 ){
                 const inheritObject = _extends.shift();
                 if(typeof inheritObject ==='function'){
@@ -125,7 +167,10 @@ const Class={
             }
 
             Object.defineProperty(moduleClass,privateKey,{value:description});
-            Object.defineProperty(moduleClass,'name',{value:description.name});
+            if( !Object.hasOwnProperty.call(moduleClass,'name') ){
+                Object.defineProperty(moduleClass,'name',{value:description.name});
+            }
+            
             Object.defineProperty(moduleClass,'toString',{value:function toString(){
                 var name = description.ns ? description.ns+'.'+description.name : description.name;
                 var id = description.id;

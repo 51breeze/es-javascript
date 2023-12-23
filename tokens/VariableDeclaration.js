@@ -9,7 +9,7 @@ module.exports = function(ctx,stack){
             node.declarations.push( variable );
         }
     });
-    if(  !node.declarations.length ){
+    if( !node.declarations.length ){
         return null;
     }
     return node;

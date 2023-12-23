@@ -3,6 +3,9 @@ const path = require("path");
 const modules = new Map();
 const dirname = path.join(__dirname,"../","polyfill");
 
+const TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import|createClass|referenceAssets)\s+(.*?)\/>/g;
+const ATTRS_REGEXP = /(\w+)(?:[\s+]?=[\s+]?([\'\"])([^\2]*?)\2)?/g;
+
 const parseModule=(modules,file,name)=>{
     const info = path.parse( name );
     let content = fs.readFileSync(file).toString();
@@ -12,13 +15,16 @@ const parseModule=(modules,file,name)=>{
     let requires = new Map();
     let createClass = true;
     let referenceAssets = true;
-    content = content.replace( /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import|createClass|referenceAssets)\s+(.*?)\/>/g, function(a,b,c){
-        const items = c.trim().replace(/[\s+]?=[\s+]?/g,'=').split(/\s+/g);
+    content = content.replace(TAGS_REGEXP, function(a,b,c){
+        const items = c.matchAll(ATTRS_REGEXP);
         const attr = {};
-        items.forEach(item=>{
-           const [key, value] = item.replace(/[\'\"]/g,'').trim().split('=');
-           attr[key] = value || key;
-        });
+        if( items ){
+            for(let item of items){
+                let [,key,,value] = item;
+                if(value)value=value.trim();
+                attr[key] = value || true;
+            }
+        }
         switch( b ){
             case 'references' :
                 if( attr['from'] ){

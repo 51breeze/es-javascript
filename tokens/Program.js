@@ -5,6 +5,9 @@ function createCJSExports(exports, node){
     const insertImports = [];
     exports.forEach( item=>{
         const obj = node.createToken(item);
+        if( !obj ){
+            return;
+        }
         if( obj.type === 'ExportNamedDeclaration' ){
             if( obj.declaration ){
                 if( obj.declaration.type ==='FunctionDeclaration' ){
