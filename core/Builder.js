@@ -784,18 +784,30 @@ class Builder extends Token{
     }
 
     getModuleAnnotations(module, allows = ['get','post','put','delete','option','router'], inheritFlag=true){
-        if(!module||!module.isClass)return [];
-        const stack = module.moduleStack;
-        let annotations = stack.annotations;
-        if(annotations){
-            const result = annotations.filter( annotation=>allows.includes(annotation.name.toLowerCase()));
-            if( result.length>0 ){
-                return result;
+        if(!module||!module.isModule||!module.isClass)return [];
+        const stacks = module.getStacks();
+        for(let i=0;i<stacks.length;i++){
+            const stack = stacks[i];
+            let annotations = stack.annotations;
+            if(annotations){
+                const result = annotations.filter( annotation=>allows.includes(annotation.name.toLowerCase()));
+                if( result.length>0 ){
+                    return result;
+                }
             }
         }
-        const inherit = module.inherit
-        if( inherit && inherit!== module && inheritFlag){
-            return this.getModuleAnnotations(inherit, allows, inheritFlag);
+        
+        const impls = module.extends.concat( module.implements || [] );
+        if( impls.length>0 && inheritFlag){
+            for(let b=0;b<impls.length;b++){
+                const inherit = impls[b];
+                if( inherit !== module ){
+                    const result = this.getModuleAnnotations(inherit, allows, inheritFlag);
+                    if(result.length>0){
+                        return result;
+                    }
+                }
+            }
         }
         return [];
     }

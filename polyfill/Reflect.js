@@ -256,8 +256,7 @@ const _Reflect = (function(_Reflect){
         try{
             if(!target)return null;
             let result = Class.getObjectDescriptor(target, name);
-            if(result)return result;
-            if(name in target){
+            if(!result && name in target){
                 const configurable = hasOwn.call(target, name);
                 result = {
                     value:target[name],
@@ -266,9 +265,95 @@ const _Reflect = (function(_Reflect){
                     enumerable:configurable
                 }
             }
-            return result;
+            if( result ){
+                result.isDescriptor = true;
+                result.isMember = true;
+                result.modifier = Reflect.MODIFIER_PUBLIC;
+                result.permission = 'public';
+                result.type = Reflect.MEMBERS_PROPERTY;
+                result.label = 'property';
+                if(result.get || result.set){
+                    result.type = Reflect.MEMBERS_ACCESSOR;
+                    result.label = 'accessor';
+                }else if(typeof result.value ==='function' && !result.enumerable && !result.writable){
+                    result.type = Reflect.MEMBERS_METHODS;
+                    result.label = 'method';
+                }
+                result.owner = target.prototype && target.prototype.constructor || null;
+                return result;
+            }
         }catch(e){}
         return null;
+    }
+
+    function getModifier(desc){
+        switch( desc.m & Reflect.MODIFIER_PUBLIC ){
+            case Reflect.MODIFIER_PUBLIC : return 'public';
+            case Reflect.MODIFIER_PROTECTED : return 'protected';
+            case Reflect.MODIFIER_PRIVATE : return 'private';
+        }
+        return null;
+    }
+
+    function createMemberDescriptor(key, desc, target, ownerClass, privateScope, privateKey, isStatic=false){
+        const modifier = desc.m & Reflect.MODIFIER_PUBLIC;
+        const item = {
+            'isDescriptor':true,
+            'isMember':true,
+            'key':key,
+            'owner':ownerClass,
+            'type':desc.d,
+            'isStatic':isStatic,
+            'privateKey':null,
+            'modifier':modifier,
+            'permission':getModifier(desc),
+            'enumerable':false,
+            'writable':false,
+            'configurable':false
+        };
+
+        if( desc.d === Reflect.MEMBERS_ACCESSOR ){
+            item.label = 'accessor';
+            item.set = null;
+            item.get = null;
+            if(desc.set){
+                item.writable = true;
+                item.set = desc.set;
+            }
+            if(desc.get){
+                item.enumerable = true;
+                item.get = desc.get;
+            }
+        }else if( desc.d === Reflect.MEMBERS_METHODS ){
+            item.label = 'method';
+            item.value = desc.value;
+        }else{
+            item.label = 'property';
+            item.writable = Reflect.MEMBERS_READONLY !== desc.d;
+            item.enumerable = true;
+            item.value = desc.value || null;
+            if(target){
+                if( isStatic ){
+                    if(key in target)item.value = target[key];
+                }else{
+                    if(item.modifier === Reflect.MODIFIER_PRIVATE ){
+                        const objPrivate = target[privateKey];
+                        item.dataset = objPrivate;
+                        if(objPrivate && key in objPrivate){
+                            item.value = objPrivate[key];
+                        }
+                    }else if(key in target){
+                        item.value = target[key];
+                    }
+                }
+            }
+        }
+        if( item.modifier === Reflect.MODIFIER_PRIVATE ){
+            if( privateScope === ownerClass ){
+                item.privateKey = privateKey;
+            }
+        }
+        return item;
     }
 
     Reflect.getDescriptor=function getDescriptor(target,name){
@@ -287,16 +372,36 @@ const _Reflect = (function(_Reflect){
         if( !description ){
             let result = null;
             if( name ){
-                result = getObjectDescriptor(typeof target ==='function' ? target.prototype : target, name);
+                result = getObjectDescriptor(target, name);
             }
             return result;
         }
 
         if( !name ){
             let d = description;
+            const make = (obj, isStatic=false)=>{
+                if(!obj)return null;
+                const dataset = Object.create(null)
+                Object.keys(obj).forEach( key=>{
+                    const item = createMemberDescriptor(key, obj[key], target, objClass, objClass, description.private, isStatic);
+                    dataset[key] = item;
+                });
+                return dataset;
+            }
+
+            let id = description.id;
+            let label='class';
+            if(id ===3){
+                label='enum';
+            }else if(id ===2){
+                label='interface';
+            }
+
             return {
+                'isDescriptor':true,
                 'isModule':true,
                 'type':d.id,
+                'label':label,
                 'class':objClass,
                 'className':d.name,
                 'namespace':d.ns || null,
@@ -304,8 +409,8 @@ const _Reflect = (function(_Reflect){
                 'isStatic':!!d.static,
                 'privateKey':d.private || null,
                 'implements':d.imps || null,
-                'members':d.members || null,
-                'methods':d.methods || null,
+                'members':make(d.members),
+                'methods':make(d.methods, true),
                 'inherit':d.inherit || null,
             };
         }
@@ -315,64 +420,21 @@ const _Reflect = (function(_Reflect){
             let dataset = isStatic ? description.methods : description.members;
             if( dataset && hasOwn.call(dataset,name) ){
                 const desc = dataset[name];
-                const modifier = desc.m & Reflect.MODIFIER_PUBLIC;
-                const item = {
-                    'isMember':true,
-                    'type':desc.d,
-                    'class':objClass,
-                    'isStatic':isStatic,
-                    'privateKey':null,
-                    'modifier':modifier,
-                    'enumerable':false,
-                    'writable':false,
-                    'configurable':false
-                };
-
-                if( desc.d === Reflect.MEMBERS_ACCESSOR ){
-                    item.label = 'accessor';
-                    item.set = null;
-                    item.get = null;
-                    if(desc.set){
-                        item.writable = true;
-                        item.set = desc.set;
-                    }
-                    if(desc.get){
-                        item.enumerable = true;
-                        item.get = desc.get;
-                    }
-                }else if( desc.d === Reflect.MEMBERS_METHODS ){
-                    item.label = 'method';
-                    item.method = desc.value;
-                }else{
-                    item.label = 'property';
-                    item.writable = Reflect.MEMBERS_READONLY !== desc.d;
-                    item.enumerable = true;
-                    item.value = desc.value || null;
-                    if( isStatic ){
-                        item.value = target[name] || null;
-                    }else{
-                        if( item.modifier === Reflect.MODIFIER_PRIVATE ){
-                            const objPrivate = target[ description.private ];
-                            item.dataset = objPrivate;
-                            if(objPrivate && name in objPrivate){
-                                item.value = objPrivate[name] || null;
-                            }
-                        }else{
-                            item.value = target[name] || null;
-                        }
-                    }
-                }
-
+                const item = createMemberDescriptor(name, desc, target, objClass, privateScope, description.private, isStatic);
                 if( item.modifier === Reflect.MODIFIER_PRIVATE ){
-                    item.privateKey = description.private;
-                    if( privateScope !== objClass ){
-                        continue;
+                    if( privateScope === objClass ){
+                        return item;
                     }
+                }else{
+                    return item;
                 }
-                
-                return item;
             }
-            objClass = description.inherit;
+            const inheritClass=description.inherit;
+            if(inheritClass && inheritClass !== objClass){
+                objClass = inheritClass;
+            }else{
+                break;
+            }
         }
 
         if(objClass && !description){
@@ -381,6 +443,73 @@ const _Reflect = (function(_Reflect){
 
         return null;
     };
+
+    Reflect.getDescriptors=function getDescriptors(target, options={}){
+        if(target===null||target === void 0)return false;
+        target = Object(target);
+        let objClass = target;
+        let description = target[ Class.key ];
+        let isStatic = true;
+        if( !description && target.constructor ){
+            isStatic = false;
+            objClass = target.constructor;
+            description = target.constructor[ Class.key ]
+        }
+
+        let d = description;
+        let id = d.id;
+        let label='class';
+        if(id ===3){
+            label='enum';
+        }else if(id ===2){
+            label='interface';
+        }
+
+        const top = {
+            'isDescriptor':true,
+            'isModule':true,
+            'type':id,
+            'label':label,
+            'class':objClass,
+            'className':d.name,
+            'namespace':d.ns || null,
+            'dynamic':!!d.dynamic,
+            'isStatic':!!d.static,
+            'privateKey':d.private || null,
+            'implements':d.imps || null,
+            'inherit':d.inherit || null,
+            'descriptors':[],
+        };
+
+        const fetchValue = options.fetchValue !== false;
+        const defaultMode = 1;
+        const mode = Math.max(Math.min(options.mode || defaultMode, 3), defaultMode);
+        const parentClass = options.parentClass;
+        const descriptors = top.descriptors;
+        const make = (obj, isStatic=false)=>{
+            if(!obj)return null;
+            const dataset = Object.create(null)
+            Object.keys(obj).forEach( key=>{
+                const item = createMemberDescriptor(key, obj[key], fetchValue ? target : null, objClass, objClass, description.private, isStatic);
+                descriptors.push(item);
+            });
+            return dataset;
+        }
+        
+        while( objClass && (description = objClass[ Class.key ]) ){
+            if(parentClass === objClass)break;
+            if(mode & 1 === 1)make(description.members);
+            if(mode & 2 === 2)make(description.methods);
+            const inheritClass=description.inherit;
+            if(inheritClass && inheritClass !== objClass){
+                objClass = inheritClass;
+            }else{
+                break;
+            }
+        }
+
+        return top;
+    }
 
     return Reflect;
 
