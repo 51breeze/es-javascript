@@ -958,6 +958,18 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
              return null;
 
          }
+
+
+
+         System.registerHook('httpRequestCreated', (request)=>{
+            request.interceptors.response.use((res)=>{
+                if( res && res.status === 200 ){
+                    return res.data;
+                }else{
+                    return {code:500, data:null, msg:'Server error.'};
+                }
+            })
+        });
     
     }
 

@@ -115,6 +115,10 @@ System.isArray=function isArray(object){
     return Array.isArray(object); 
 }
 
+System.isObject=function isObject(object){
+    return typeof object === 'object';
+}
+
 System.toArray=function toArray(object){
     if( Array.isArray(object) ){
         return object;
