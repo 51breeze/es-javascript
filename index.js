@@ -84,14 +84,13 @@ function registerError(define, cn, en){
     ]);
 }
 
-const privateKey = Symbol('privateKey')
 class PluginEsJavascript{
 
     constructor(complier,options){
         this.complier = complier;
         this.options = merge({
             metadata:{
-                env:merge({}, complier.options.env)
+                env:merge({}, process.env, complier.options.env)
             }
         },defaultConfig, options);
         if( this.options.sourceMaps ){
@@ -114,9 +113,6 @@ class PluginEsJavascript{
             });
         }
         registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
-        this[privateKey] = {
-            builders:new Map()
-        }
     }
 
     getGeneratedCodeByFile(file){
@@ -144,13 +140,10 @@ class PluginEsJavascript{
     } 
 
     getBuilder( compilation, builderFactory=Builder){
-        let builder = this[privateKey].builders.get(compilation);
-        if(builder)return builder;
-        builder = new builderFactory( compilation );
+        let builder = new builderFactory(compilation, this);
         builder.name = this.name;
         builder.platform = this.platform;
         builder.plugin = this;
-        this[privateKey].builders.set(compilation,builder);
         return builder;
     }
 

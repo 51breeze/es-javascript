@@ -7,6 +7,9 @@ const Polyfill = require("./Polyfill");
 const PATH = require("path");
 const Babel = require('@babel/core');
 const Lodash = require('lodash');
+const dotenv = require('dotenv')
+const dotenvExpand = require('dotenv-expand')
+
 const defaultBabelOps = {
     babelrc:true,
     presets:[
@@ -90,7 +93,7 @@ class Builder extends Token{
         if( !module || !assets )return;
         assets.forEach( asset=>{
             if( !asset.file && asset.type ==="style" ){
-                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve);
+                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, asset.attrs, 'emitAssets');
                 this.emitContent(file, asset.content);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
@@ -697,8 +700,8 @@ class Builder extends Token{
         return this.compiler.isPluginInContext(this.plugin, doucment||this.compilation);
     }
 
-    getModuleFile(module, uniKey, type, resolve){
-        return this.compiler.normalizeModuleFile(module, uniKey, type, resolve);
+    getModuleFile(module, uniKey, type, resolve, attrs=null){
+        return this.compiler.normalizeModuleFile(module, uniKey, type, resolve, attrs);
     }
 
     getModuleReferenceName(module,context){
@@ -769,7 +772,7 @@ class Builder extends Token{
                 }
             }else if( asset.type ==="style" && module ){
                 const config = this.plugin.options;
-                const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve);
+                const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve, asset.attrs, 'crateAssetItems');
                 const source = (config.styleLoader || []).concat( file ).join('!');
                 dataset.set(source,{
                     source:source,
@@ -1235,6 +1238,181 @@ class Builder extends Token{
 
     getRawOptions(){
         return this.plugin.options.rawJsx;
+    }
+
+    createReadfileAnnotationNode(ctx, stack){
+        const args = stack.getArguments();
+        const depsContext = stack.module || stack.compilation;
+        const indexes = ['dir','load','suffix','relative','lazy'];
+        const [_path, _load, _suffix, _relative, _lazy] = [
+            stack.getAnnotationArgumentItem('dir', args, indexes),
+            stack.getAnnotationArgumentItem('load', args, indexes),
+            stack.getAnnotationArgumentItem('suffix', args, indexes),
+            stack.getAnnotationArgumentItem('relative', args, indexes),
+            stack.getAnnotationArgumentItem('lazy', args, indexes),
+        ].map( item=>{
+            return item ? item.value : null;
+        });
+
+        if(!_path){
+            return null;
+        }
+
+        let dir = String(_path).trim();
+        let suffixPattern = null;
+
+        if(dir.charCodeAt(0) === 64){
+            dir = dir.slice(1);
+            let segs = dir.split('.');
+            let precede = segs.shift();
+            let latter = segs.pop();
+            let options = ctx.plugin[precede];
+            if(precede==='options'){
+                while(options && segs.length>0){
+                    options = options[segs.shift()];
+                }
+            }
+            if(options && Object.prototype.hasOwnProperty.call(options, latter)){
+                dir = options[latter];
+            }
+        }
+
+        if(_suffix){
+            _suffix = String(_suffix).trim();
+            if(_suffix.charCodeAt(0) === 47 && _suffix.charCodeAt(_suffix.length-1) === 47){
+                let index = _suffix.lastIndexOf('/');
+                let flags = '';
+                if(index>0 && index !== _suffix.length-1){
+                    flags = _suffix.slice(index);
+                    _suffix = _suffix(0, index);
+                }
+                _suffix = suffixPattern = new RegExp(_suffix.slice(1,-1), flags);
+            }else{
+                _suffix = _suffix.split(',').map(item=>item.trim());
+            }
+        }
+
+        let suffix = _suffix || ['.es', '.json', '.env', '.js'];
+        let files = [];
+        const checkSuffix=(file)=>{
+            if(suffixPattern){
+                return suffixPattern.test(filepath);
+            }
+            return suffix.some( item=>file.endsWith(item) );
+        }
+
+        const readdir = (dir)=>{
+            if( !fs.existsSync(dir) ){
+                return;
+            }
+            const items = fs.readdirSync(dir);
+            if(items){
+                items.forEach((file)=>{
+                    if(file==='.' || file==='..')return;
+                    let filepath = this.compiler.normalizePath(path.join(dir, file));
+                    if(fs.statSync(filepath).isDirectory()){
+                        files.push(filepath);
+                        readdir(filepath);
+                    }else if(checkSuffix(filepath)){
+                        files.push(filepath);
+                    }
+                });
+            }
+        }
+
+        const context = this.compiler.options.workspace;
+        const localeCxt = context.toLowerCase();
+        const fileMap = {};
+        const getParentFile=(pid)=>{
+            if( fileMap[pid] ){
+                return fileMap[pid]
+            }
+            if(localeCxt !==pid && pid.includes(localeCxt)){
+                return getParentFile(path.dirname(pid))
+            }
+            return null;
+        }
+
+        dir = path.isAbsolute(dir) ? dir : path.join(context, dir);
+        readdir(dir);
+
+        if(!files.length)return null;
+
+        files.sort((a,b)=>{
+            a = a.replaceAll('.', '/').split('/').length;
+            b = b.replaceAll('.', '/').split('/').length;
+            return a - b;
+        });
+
+        const addDeps=(source, local)=>{
+            this.addAsset(depsContext, source, 'assets', {})
+            this.addImportReference( 
+                depsContext, 
+                source, 
+                this.createImportDeclaration( 
+                    source,
+                    local ? [[local]] : []
+                )
+            );
+        }
+
+        const dataset = [];
+        const namedMap = new Set()
+        files.forEach( file=>{
+            const pid = path.dirname(file).toLowerCase();
+            const named = path.basename(file,path.extname(file));
+            const id = (pid+'/'+named).toLowerCase();
+            const filepath = Boolean(_relative)===true ? this.compiler.normalizePath(path.relative(context,file)) : file;
+            let item = {
+                path:filepath,
+                isFile:fs.statSync(file).isFile()
+            }
+
+            if(item.isFile && Boolean(_load) === true){
+                let data = '';
+                if(file.endsWith('.env')){
+                    const content = dotenv.parse(fs.readFileSync(file));
+                    dotenvExpand.expand({parsed:content})
+                    data = JSON.stringify(content);
+                }else{
+                    if(Boolean(_lazy)===true){
+                        data = `import('${file}')`
+                    }else{
+                        namedMap.add(file);
+                        data = '_'+named.replaceAll('-', '_') +namedMap.size;
+                        addDeps(file, data);
+                    }
+                }
+                item.content = data;
+            }
+
+            const parent = getParentFile(pid);
+            if( parent ){
+                const children = parent.children || (parent.children = []);
+                children.push(item);
+            }else{
+                fileMap[id+path.extname(file)] = item;
+                dataset.push(item);
+            }
+        });
+
+        const make = (list)=>{
+            return list.map( object=>{
+                const properties = [ctx.createPropertyNode('path', object.path)];
+                if(object.isFile){
+                    properties.push(ctx.createPropertyNode('isFile', ctx.createLiteralNode(true)))
+                }
+                if(object.content){
+                    properties.push(ctx.createPropertyNode('content',ctx.createChunkNode(object.content)))
+                }
+                if(object.children){
+                    properties.push(ctx.createPropertyNode('children',ctx.createArrayNode(make(object.children))))
+                }
+                return ctx.createObjectNode(properties)
+            });
+        }
+
+        return ctx.createArrayNode(make(dataset))
     }
 }
 

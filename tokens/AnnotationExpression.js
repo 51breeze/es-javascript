@@ -309,6 +309,9 @@ module.exports = function(ctx,stack,type){
                 return ctx.createLiteralNode(null);
             }
         }
+        case 'readfile' :{
+            return ctx.builder.createReadfileAnnotationNode(ctx, stack) || ctx.createLiteralNode(null);
+        }
         default :
             ctx.error( `The '${name}' annotations is not supported.` );
     }
