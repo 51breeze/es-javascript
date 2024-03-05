@@ -16,9 +16,10 @@ declare System{
    
     static registerHook(type:'httpRequestCreated', processer:(value?:net.Http)=>void, priority:number=0):void;
     static registerHook(type:'httpRequestSendBefore', processer:(value?:net.Http,config?:net.HttpConfig)=>void, priority:number=0):void;
+    static registerOnceHook(type:string,processer:(...args)=>void, priority:number=0):any;
+    static dispatchHook(type:string,...args):any;
+    static removeHook(type:string,processer?:Function):boolean;
     static hasRegisterHook(type:string, processer?:Function):boolean;
-    static registerProvide(name:string, value:any, prefix?:string ):void;
-    static getProvide<T=any>(name:string, prefix?:string ):T;
     static setImmediate(callback:(...args)=>void, ...args):ImmediateID;
     static clearImmediate(id:ImmediateID):void;
 }

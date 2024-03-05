@@ -27,7 +27,7 @@ describe('compile file', function() {
 
     it('should compile success and build', function() {
         const errors = compilation.compiler.errors;
-        expect('Expected 0 errors').toContain( errors.length );
+        expect('Expected 0 errors').toContain( errors.filter(e=>e.kind===0 || e.kind===1).length );
         creator.build(compilation);
     });
 

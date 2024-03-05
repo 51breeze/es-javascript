@@ -324,6 +324,9 @@ class Builder extends Token{
         const metadata = this.plugin.options.metadata;
         const env = metadata.env || {};
         if( value !== void 0 ){
+            if(name.toLowerCase()==='mode' && this.plugin.options.mode === value){
+                return true;
+            }
             return env[name] === value;
         }
         return false;
@@ -558,6 +561,47 @@ class Builder extends Token{
         });
     }
 
+    checkAnnotationBuildTactics(items){
+        if( !items || !items.length )return true;
+        return items.every( item=>{
+            const name = item.name.toLowerCase();
+            if(!['runtime', 'syntax','env','version'].includes(name)){
+                return true;
+            }
+            const args = item.getArguments();
+            const indexes = name==='version' ? [,,,'expect'] : (name==='env' ? [,,'expect'] : [,'expect']);
+            const _expect = this.getAnnotationArgument('expect', args, indexes, true);
+            const value = args[0].value;
+            const expect = _expect ? String(_expect.value).trim() !== 'false' : true;
+            switch( name ){
+                case "runtime" :
+                    return this.isRuntime(value) === expect;
+                case "syntax" :
+                    return this.isSyntax(value) === expect;
+                case "env" :{
+                    const name = this.getAnnotationArgument('name', args, ['name','value'], true);
+                    const value = this.getAnnotationArgument('value', args, ['name','value'], true);
+                    if(value && name){
+                        return this.isEnv(name.value, value.value) === expect;
+                    }else{
+                        item.error(`Missing name or value arguments. the '${item.name}' annotations.`);
+                    }
+                }
+                case 'version' :{
+                    const name = this.getAnnotationArgument('name', args, ['name','version','operator'], true);
+                    const version = this.getAnnotationArgument('version', args, ['name','version','operator'], true);
+                    const operator = this.getAnnotationArgument('operator', args, ['name','version','operator'], true);
+                    if(name && version){
+                        return this.isVersion(name.value, version.value, operator ? operator.value : 'elt') === expect;
+                    }else{
+                        item.error(`Missing name or version arguments. the '${item.name}' annotations.`);
+                    }
+                }
+            }
+            return true;
+        });
+    }
+
     getIdByModule( module ){
         if( !ModuleMapIds.has(module) ){
             ModuleMapIds.set(module,ModuleMapIds.size+1);
@@ -678,10 +722,7 @@ class Builder extends Token{
     }
 
     checkRuntimeModule(module){
-        if( !this.checkRuntimeOrSyntaxAnnotations(this.getModuleAnnotations(module, ['runtime', 'syntax'])) ){
-            return false;
-        }
-        return true;
+        return this.checkAnnotationBuildTactics(this.getModuleAnnotations(module, ['runtime', 'syntax']));
     }
 
     checkModuleIsEs6Class(module){

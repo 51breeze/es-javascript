@@ -361,10 +361,16 @@ System.invokeHook=function invokeHook(type, ...args){
     })){
         records.items.push(args);
     }
-    return len > 0 ? _invokeHook(items, args, records) : args[0];
+    return len > 0 ? _invokeHook(items, args, records) : args[0] || null;
 }
 
-function _invokeHook(items, args, records){
+System.dispatchHook=function dispatchHook(type, ...args){
+    const items = globalInvokes[type];
+    return _invokeHook(items, args);
+}
+
+
+function _invokeHook(items, args, records=null){
     let len = items && items.length;
     let result = args[0];
     if( len > 0 ){
@@ -375,9 +381,14 @@ function _invokeHook(items, args, records){
         };
         args = args.slice(1);
         for(;i<len;i++){
-            const [invoke] = items[i];
-            if(!records.called.includes(invoke) ){
-                records.called.push(invoke);
+            const [invoke,,once] = items[i];
+            if(!records || !records.called.includes(invoke)){
+                if(once){
+                    items.splice(i,1);
+                    len--;
+                }else if(records){
+                    records.called.push(invoke);
+                }
                 result = invoke.call(ctx, result, ...args);
                 if( ctx.stop ){
                     return result;
@@ -389,7 +400,7 @@ function _invokeHook(items, args, records){
     return result;
 }
 
-System.registerHook=function registerHook(type, processer, priority){
+System.registerHook=function registerHook(type, processer, priority, once=false){
     if( typeof processer !== 'function' ){
         throw new Error(`System.registerInvoke processer must is Function`);
     }else{
@@ -403,7 +414,7 @@ System.registerHook=function registerHook(type, processer, priority){
         }
 
         const items = globalInvokes[type];
-        items.push( [processer,priority] );
+        items.push( [processer,priority,once] );
         if( items.length > 1 ){
             items.sort( (a, b)=>{
                 if( a[1] == b[1] )return 0;
@@ -420,6 +431,25 @@ System.registerHook=function registerHook(type, processer, priority){
     }
 }
 
+System.registerOnceHook=function registerOnceHook(type, processer, priority){
+    System.registerHook(type, processer, priority,true);
+}
+
+System.removeHook=function removeHook(type, processer){
+    if( hasOwn.call(globalInvokes, type) ){
+        const items = globalInvokes[type];
+        if(processer){
+            const index = items.findIndex(item=>item[0] === processer);
+            items.splice(index,1);
+            return index >= 0;
+        }else{
+            items.splice(0, items.length);
+        }
+        return true;
+    }
+    return false;
+}
+
 System.hasRegisterHook=function hasRegisterHook(type, processer){
     if( hasOwn.call(globalInvokes, type) ){
         const items = globalInvokes[type];
@@ -429,33 +459,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
         return true;
     }
     return false;
-}
-
-const globalProvides = Object.create(null);
-System.registerProvide=function registerProvide(name, value, prefix='global'){
-    if( name && typeof name === "string" ){
-        const key = prefix+':'+name;
-        if( hasOwn.call(globalProvides, key) ){
-            throw new Error(`Provider arguments the '${name}' already exists.`);
-        }else{
-            globalProvides[key] = value;
-        }
-    }else{
-        throw new Error(`Provider arguments the name is not a string.`);
-    }
-}
-
-System.getProvide=function getProvide(name, prefix='global'){
-    if( name && typeof name === "string" ){
-        const key = prefix+':'+name;
-        if( hasOwn.call(globalProvides, key) ){
-            return globalProvides[key];
-        }else{
-           return null;
-        }
-    }else{
-        throw new Error(`Provider arguments the name is not a string.`);
-    }
 }
  
  /**

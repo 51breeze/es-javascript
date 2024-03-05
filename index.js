@@ -22,6 +22,7 @@ const defaultConfig ={
     sourceMaps:false,
     useDefineProperty:false,
     useAbsolutePathImport:false,
+    mode:'production', //production,development
     metadata:{
         env:{}
     },
@@ -70,7 +71,7 @@ const pkg = require("./package.json");
 const generatedCodeMaps = new Map();
 const generatedSourceMaps = new Map();
 
-function registerError(define, cn, en){
+function registerError(define){
     if(registerError.loaded)return;
     registerError.loaded=true;
     define(10000,'',[
@@ -93,6 +94,7 @@ class PluginEsJavascript{
                 env:merge({}, process.env, complier.options.env)
             }
         },defaultConfig, options);
+
         if( this.options.sourceMaps ){
             complier.options.parser.locations = true;
         }
@@ -104,15 +106,7 @@ class PluginEsJavascript{
         this.name = pkg.name;
         this.version = pkg.version;
         this.platform = 'client';
-        if( !complier.options.scanTypings ){
-            const dir = path.join(__dirname,'types');
-            const files = fs.readdirSync( dir ).filter( item=>!(item === '.' || item === '..') ).map( item=>path.join(dir,item) );
-            complier.loadTypes(files, {
-                scope:'es-javascript',
-                inherits:[]
-            });
-        }
-        registerError(complier.diagnostic.defineError, complier.diagnostic.LANG_CN, complier.diagnostic.LANG_EN );
+        registerError(complier.diagnostic.defineError);
     }
 
     getGeneratedCodeByFile(file){
