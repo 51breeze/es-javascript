@@ -22,9 +22,11 @@ const defaultConfig ={
     sourceMaps:false,
     useDefineProperty:false,
     useAbsolutePathImport:false,
-    mode:'production', //production,development
+    mode:process.env.NODE_ENV || 'production', //production,development
     metadata:{
-        env:{}
+        env:{
+            NODE_ENV:process.env.NODE_ENV || 'production'
+        }
     },
     crossDependenciesCheck:true,
     context:{
@@ -89,16 +91,13 @@ class PluginEsJavascript{
 
     constructor(complier,options){
         this.complier = complier;
-        this.options = merge({
-            metadata:{
-                env:merge({}, process.env, complier.options.env)
-            }
-        },defaultConfig, options);
-
+        this.options = merge({},defaultConfig, options);
+        this.options.metadata.version = pkg.version;
+        this.options.metadata.js = pkg.version;
         if( this.options.sourceMaps ){
             complier.options.parser.locations = true;
         }
-        if( this.options.workspace ){
+        if(this.options.workspace){
             complier.setWorkspace( this.options.workspace );
         }
         this.generatedCodeMaps = generatedCodeMaps;

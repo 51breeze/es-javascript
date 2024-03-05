@@ -324,8 +324,10 @@ class Builder extends Token{
         const metadata = this.plugin.options.metadata;
         const env = metadata.env || {};
         if( value !== void 0 ){
-            if(name.toLowerCase()==='mode' && this.plugin.options.mode === value){
-                return true;
+            if(name.toLowerCase()==='mode'){
+                if(this.plugin.options.mode === value || env.NODE_ENV===value){
+                    return true;
+                }
             }
             return env[name] === value;
         }
