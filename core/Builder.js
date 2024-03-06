@@ -63,6 +63,8 @@ class Builder extends Token{
         this.generatedVarRefs = new Map();
         this.scopeVarCache = new Map();
         this.routeCache=new Map();
+        this.checkRuntimeCache = new Map();
+        this.checkPluginContextCache = new Map();
     }
 
     clear(){
@@ -689,19 +691,12 @@ class Builder extends Token{
     isActiveForModule(depModule,ctxModule){
         if(!depModule)return false;
         ctxModule = ctxModule || this.compilation;
-        const isUsed = this.isUsed(depModule, ctxModule);
-        if( !isUsed )return false;
-        let isRequire = false;
-        let isPolyfill = false;
+        if( !this.isUsed(depModule, ctxModule) )return false;
         if(depModule.isDeclaratorModule){
-            isPolyfill = !!this.getPolyfillModule( depModule.getName() );
+            return !!this.getPolyfillModule(depModule.getName());
         }else{
-            isRequire = !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
+            return !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
         }
-        if(!(isRequire || isPolyfill)){
-            return false;
-        }
-        return true;
     }
 
     isDeclaratorModuleDependency(module){
@@ -724,7 +719,12 @@ class Builder extends Token{
     }
 
     checkRuntimeModule(module){
-        return this.checkAnnotationBuildTactics(this.getModuleAnnotations(module, ['runtime', 'syntax']));
+        if(this.checkRuntimeCache.has(module)){
+            return this.checkRuntimeCache.get(module);
+        }
+        const result = this.checkAnnotationBuildTactics(this.getModuleAnnotations(module, ['runtime', 'syntax']));
+        this.checkRuntimeCache.set(module,result);
+        return result;
     }
 
     checkModuleIsEs6Class(module){
@@ -736,11 +736,18 @@ class Builder extends Token{
         });
     }
 
-    isPluginInContext(doucment){
-        if(module && module.isModule && !this.checkRuntimeModule(module) ){
-            return false;
+    isPluginInContext(module){
+        if(this.checkPluginContextCache.has(module)){
+            return this.checkPluginContextCache.get(module)
         }
-        return this.compiler.isPluginInContext(this.plugin, doucment||this.compilation);
+        let result = true;
+        if(module && module.isModule && !this.checkRuntimeModule(module) ){
+            result = false;
+        }else{
+            result = this.compiler.isPluginInContext(this.plugin, module||this.compilation);
+        }
+        this.checkPluginContextCache.set(module,result);
+        return result;
     }
 
     getModuleFile(module, uniKey, type, resolve, attrs=null){
