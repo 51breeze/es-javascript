@@ -94,14 +94,18 @@ class Builder extends Token{
     emitAssets(assets, module, emitFile){
         if( !module || !assets )return;
         assets.forEach( asset=>{
-            if( !asset.file && asset.type ==="style" ){
-                const file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, asset.attrs, 'emitAssets');
+            if(!asset.file && asset.type ==="style"){
+                let file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, asset.attrs, 'emitAssets');
                 this.emitContent(file, asset.content);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
-                    const content = fs.readFileSync( asset.resolve );
+                    let file = asset.resolve;
+                    if(this.isLoadAssetsRawcode(asset.stack, asset.resolve)){
+                        file = this.getModuleFile(module, asset.id, 'embedAssets', null, {index:asset.index, ext:asset.type});
+                    }
+                    let content = fs.readFileSync( asset.resolve , {encoding:'utf-8'});
                     this.emitContent(
-                        asset.resolve, 
+                        file, 
                         content.toString(), 
                         emitFile ? this.getOutputAbsolutePath(asset.resolve) : null
                     );
@@ -802,6 +806,14 @@ class Builder extends Token{
         return true;
     }
 
+    isLoadAssetsRawcode(stack,resolveFile){
+        if(!stack || !resolveFile)return false;
+        if(!stack.isAnnotationDeclaration)return false;
+        if(stack.name.toLowerCase() !== 'embed')return false;
+        if(/\.[m|c]?js$/i.test(resolveFile) )return true;
+        return resolveFile.endsWith(this.compiler.suffix);
+    }
+
     crateAssetItems(module, dataset, assets, context){
         assets.forEach( asset=>{
             if( !this.crateAssetFilter(asset, module, context, dataset) ){
@@ -809,7 +821,12 @@ class Builder extends Token{
             }
             if( asset.file ){
                 if( !this.isExternalDependence(asset.resolve, module) ){
-                    const source = this.getModuleImportSource(asset.resolve, module || context , asset.file );
+                    let source = '';
+                    if(this.isLoadAssetsRawcode(asset.stack, asset.resolve)){
+                        source = this.getModuleFile(module, asset.id, 'embedAssets', null, {index:asset.index, ext:asset.type});
+                    }else{
+                        source = this.getModuleImportSource(asset.resolve, module || context , asset.file );
+                    }
                     dataset.set(source,{
                         source:source,
                         local:asset.assign,
