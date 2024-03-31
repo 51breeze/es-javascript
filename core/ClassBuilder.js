@@ -1,5 +1,6 @@
 const Constant = require("../core/Constant");
 const Token = require("./Token");
+const {createHash} = require('crypto');
 const MODIFIER_MAP={
     "public":Constant.MODIFIER_PUBLIC,
     "protected":Constant.MODIFIER_PROTECTED,
@@ -197,20 +198,54 @@ class ClassBuilder extends Token{
         return this.privateName;
     }
 
+    getModuleHashId(len=8){
+        let moduleHashId = this._moduleHashId;
+        if(!moduleHashId){
+            const name = this.module.getName();
+            const file = this.compilation.file;
+            this._moduleHashId = moduleHashId = createHash("sha256").update(`${file}:${name}`).digest("hex").substring(0, len);
+        }
+        return moduleHashId;
+    }
+
     createPrivateSymbolNode(name){
         if(!this.plugin.options.enablePrivateChain)return null;
-        return this.createDeclarationNode(
-            'const',
-            [
-                this.createDeclaratorNode(
-                    name,
-                    this.createCalleeNode( 
-                        this.createIdentifierNode('Symbol'),
-                        [this.createLiteralNode('private')]
+        const isProd = this.plugin.options.mode === 'production';
+        if(isProd){
+            return this.createDeclarationNode(
+                'const',
+                [
+                    this.createDeclaratorNode(
+                        name,
+                        this.createCalleeNode( 
+                            this.createIdentifierNode('Symbol'),
+                            [
+                                this.createLiteralNode('private')
+                            ]
+                        )
                     )
-                )
-            ]
-        );
+                ]
+            );
+            
+        }else{
+            const ClassModule = this.builder.getGlobalModuleById("Class")
+            this.addDepend(ClassModule);
+            const handle = this.checkRefsName(this.builder.getModuleReferenceName(ClassModule));
+            return this.createDeclarationNode(
+                'const',
+                [
+                    this.createDeclaratorNode(
+                        name,
+                        this.createCalleeNode( 
+                            this.createMemberNode([this.createIdentifierNode(handle), this.createIdentifierNode('getKeySymbols')]),
+                            [
+                                this.createLiteralNode(this.getModuleHashId())
+                            ]
+                        )
+                    )
+                ]
+            );
+        }
     }
 
     checkCallSuperES6Class(construct, module){

@@ -611,10 +611,11 @@ class Builder extends Token{
     }
 
     getIdByModule( module ){
-        if( !ModuleMapIds.has(module) ){
-            ModuleMapIds.set(module,ModuleMapIds.size+1);
+        const key = module.file + ':'+module.id;
+        if( !ModuleMapIds.has(key) ){
+            ModuleMapIds.set(key,ModuleMapIds.size+1);
         }
-        return ModuleMapIds.get(module);
+        return ModuleMapIds.get(key);
     }
 
     getIdByNamespace( namespace ){
@@ -717,9 +718,8 @@ class Builder extends Token{
                     return false;
                 });
             }
-            return false;
         }
-        return true;
+        return false;
     }
 
     checkRuntimeModule(module){

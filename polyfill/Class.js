@@ -7,6 +7,7 @@
 */
 const __MODULES__=[];
 const privateKey=Symbol("privateKey");
+const bindClassKey=Symbol("bindClass");
 const _proto = Object.prototype;
 
 function merge(obj, target, isInstance){
@@ -37,18 +38,20 @@ function getDescriptor(obj, name){
     if(_proto===obj || obj===Object || obj===Function)return;
     return getDescriptor( Reflect.getPrototypeOf(obj) );
 }
-
+const datasetSymbols = Object.create(null);
 const Class={
     key:privateKey,
+    bindClassKey,
     modules:__MODULES__,
     require:function(id){
         return __MODULES__[id];
     },
-
+    getKeySymbols(id){
+        return datasetSymbols[id] || (datasetSymbols[id] = Symbol('private'));
+    },
     getObjectDescriptor(obj, name){
         return getDescriptor(obj, name);
     },
-
     callSuper(moduleClass, thisArg, args=[]){
         if(!moduleClass)return;
         const description = moduleClass[privateKey];
@@ -64,7 +67,6 @@ const Class={
             });
         }
     },
-
     callSuperMethod(moduleClass, methodName, thisArg, kind='method', args=[]){
         const method = this.fetchSuperMethod(moduleClass, methodName,kind);
         if(method){
@@ -73,7 +75,6 @@ const Class={
             throw new ReferenceError(`Call the '${methodName}' method is not exists. on Class.callSuperMethod`)
         }
     },
-
     fetchSuperMethod(moduleClass, methodName, kind='method'){
 
         if(!moduleClass)return null;
@@ -141,12 +142,19 @@ const Class={
         if( description ){
             const _extends = description.extends && Array.isArray(description.extends) ? description.extends.slice(0) : false;
             if( description.inherit ){
-                let isProto = typeof description.inherit === 'function' ? moduleClass.prototype instanceof description.inherit : true;
+                let inherit = description.inherit;
+                if(inherit[bindClassKey]){
+                    inherit = inherit[bindClassKey];
+                }
+                let isProto = typeof inherit === 'function' ? moduleClass.prototype instanceof inherit : true;
                 if(!isProto){
                     Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
                 }
             }else if(_extends && _extends.length>0 ){
-                const inheritObject = _extends.shift();
+                let inheritObject = _extends.shift();
+                if(inheritObject[bindClassKey]){
+                    inheritObject = inheritObject[bindClassKey];
+                }
                 if(typeof inheritObject ==='function'){
                     Object.defineProperty(moduleClass,'prototype',{value:Object.create(inheritObject.prototype)});
                 }
@@ -161,6 +169,9 @@ const Class={
 
             if(_extends && _extends.length>0){
                 _extends.forEach( (object)=>{
+                    if(object[bindClassKey]){
+                        object = object[bindClassKey];
+                    }
                     merge(object, moduleClass);
                     merge(object.prototype, moduleClass.prototype);
                 });
