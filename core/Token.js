@@ -52,6 +52,8 @@ class Token extends events.EventEmitter {
         if( !stack )return null;
         const type = stack.toString();
         if( type ==='TypeStatement')return null;
+        if( type ==='NewDefinition')return null;
+        if( type ==='CallDefinition')return null;
         const creator = this.plugin.getTokenNode( type );
         if( creator ){
             try{
