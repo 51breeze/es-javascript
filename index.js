@@ -21,7 +21,7 @@ const defaultConfig ={
     hot:false,
     sourceMaps:false,
     useDefineProperty:false,
-    useAbsolutePathImport:false,
+    useAbsolutePathImport:true,
     mode:process.env.NODE_ENV || 'production', //production,development
     metadata:{
         env:{
