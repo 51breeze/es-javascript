@@ -106,6 +106,9 @@ class PluginEsJavascript{
         this.version = pkg.version;
         this.platform = 'client';
         registerError(complier.diagnostic.defineError);
+        if(this.options.emitFile){
+            this.options.useAbsolutePathImport=false;
+        }
     }
 
     getGeneratedCodeByFile(file){
