@@ -1,3 +1,6 @@
 /node_modules
 /package-lock.json
 /test
+/scripts
+bootstrap.js
+es.config.js

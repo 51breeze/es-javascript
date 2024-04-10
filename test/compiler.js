@@ -6,7 +6,7 @@ const plugin = require("../index");
 class Creator {
     constructor(options){
         const compiler = new Compiler(Object.assign({
-            debug:true,
+            debug:false,
             diagnose:true,
             autoLoadDescribeFile:true,
             output:path.join(__dirname,"./build"),

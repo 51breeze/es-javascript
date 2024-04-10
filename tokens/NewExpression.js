@@ -1,5 +1,6 @@
 module.exports = function(ctx,stack){
-    const desc = stack.callee.description();
+    let desc = stack.callee.type();
+    desc = stack.compiler.callUtils("getOriginType",desc)
     if( stack.compiler.callUtils("isTypeModule",desc) ){
         ctx.addDepend( desc );
     }

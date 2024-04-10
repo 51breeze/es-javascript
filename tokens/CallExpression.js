@@ -8,7 +8,7 @@ function cache(module){
 
 module.exports = function(ctx,stack){
     const isMember = stack.callee.isMemberExpression;
-    const desc = stack.callee.description();
+    const desc = stack.getDeclareFunctionType(stack.description());
     const module = stack.module;
     if(stack.callee.isSuperExpression){
         const parent = module && module.inherit;
@@ -118,8 +118,13 @@ module.exports = function(ctx,stack){
         }
     }
 
-    if( ctx.compiler.callUtils("isTypeModule", desc) ){
-        ctx.addDepend( desc );
+    if(desc){
+        let type = desc.isCallDefinition ? desc.module : desc;
+        //call constructor method
+        if(!isMember && !stack.callee.isSuperExpression && desc.isMethodDefinition)type = desc.module;
+        if( ctx.compiler.callUtils("isTypeModule", type) ){
+            ctx.addDepend(desc);
+        }
     }
 
     const node = ctx.createNode( stack );
