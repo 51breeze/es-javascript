@@ -18,7 +18,7 @@ describe('compile file', function() {
 
     afterAll(()=>{
         errors.forEach( item=>{
-            if( item.kind == 0 ){
+            if( item.kind == 0 || item.kind===1){
                 fail( item.toString() )
             }
         });

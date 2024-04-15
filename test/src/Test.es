@@ -104,12 +104,21 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         map.forEach( item=>{
 
         })
+
+        this.postion()
     }
 
-     @Main
+    @Alias(positionName, version='3.0.0  >= vue')
+    postion(){
+        console.log('----')
+    }
+
+
+
+     @Main(false)
     static main(){
         describe('Test', ()=>{
-            
+
             (new Test('Test')).start()
 
 

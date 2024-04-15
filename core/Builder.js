@@ -413,17 +413,19 @@ class Builder extends Token{
             const [annotation, _stack] = result;
             const args = annotation.getArguments();
             if( args.length > 0) {
-                const fristNode = args[0];
-                const alias = fristNode.isObjectPattern ? fristNode.extract[0].value : fristNode.value;
-                if( args.length > 1 ){
-                    const expectVersion = args.find( item=>String(item.key).toLowerCase() ==='version' );
-                    if( expectVersion ){
-                        if( this.checkExpectVersionExpression( expectVersion.value ) ){
-                            resolevName = alias;  
+                const indexes = ['name', 'version'];
+                const nameArg = this.getAnnotationArgument('name', args, indexes, true)
+                const versionArg = this.getAnnotationArgument('version', args, indexes, true)
+                const alias = nameArg ? nameArg.value : null;
+                const version = versionArg ? versionArg.value : null;
+                if(alias){
+                    if(version){
+                        if( this.checkExpectVersionExpression(version) ){
+                            resolevName = alias;
                         }
+                    }else{
+                        resolevName = alias;
                     }
-                }else{
-                    resolevName = alias;
                 }
             }
         }
@@ -475,13 +477,25 @@ class Builder extends Token{
     }
 
     checkExpectVersionExpression( str ){
-        let expression = str.trim();
-        let token = ExpressionTokens.find( (value)=>{
+        const expression = str.trim();
+        const token = ExpressionTokens.find( (value)=>{
             return expression.includes( value ) || expression.includes( ExpressionTokenMaps[value] );
         });
-        let operation = expression.includes(token) ? token : ExpressionTokenMaps[token];
-        let value = expression.substring( operation.length ).trim();
-        return value && this.isVersion('version', value, ExpressionTokenMaps[token], true);
+        if(!token){
+            console.error('[ES-JAVASCRIPT] Version expression operator is invalid. availables:'+ExpressionTokens.join(', '))
+            return false;
+        }
+        const operation = expression.includes(token) ? token : ExpressionTokenMaps[token];
+        const segs = expression.split(operation, 2).map(val=>val.trim());
+        if(!segs[0])segs[0] = 'version';
+        if(!segs[segs.length-1])segs[segs.length-1] = 'version';
+        const regexp = /^\w+$/;
+        const [name, value] = segs.sort((a,b)=>{
+            let aa = regexp.test(a) ? 0 : 1;
+            let bb = regexp.test(b) ? 0 : 1;
+            return aa-bb;
+        });
+        return this.isVersion(name, value, ExpressionTokenMaps[token], true);
     }
 
     getOutputAbsolutePath(module, compilation){

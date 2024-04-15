@@ -343,14 +343,31 @@ class ClassBuilder extends Token{
 
     createAnnotations(node, memeberStack, isStatic){
         if(isStatic && node.modifier ==="public" &&  memeberStack.isMethodDefinition && memeberStack.isEnterMethod && !this.mainEnterMethods ){
-            const mainEnterMethods = this.createStatementNode(
-                this.createCalleeNode(
+            let callee = this.createCalleeNode(
+                this.createMemberNode([
+                    this.createIdentifierNode(this.module.id),
+                    this.createIdentifierNode(node.key.value)
+                ])
+            );
+
+            const main = memeberStack.annotations.find(stack=>stack.name.toLowerCase() ==='main');
+            const args = main ? main.getArguments() : [];
+            const defer = args.length>0 ? Boolean(args[0].value) : true;
+            if(defer){
+                const System = this.builder.getGlobalModuleById('System');
+                this.addDepend(System);
+                callee = this.createCalleeNode(
                     this.createMemberNode([
-                        this.createIdentifierNode(this.module.id),
-                        this.createIdentifierNode(node.key.value)
-                    ])
+                        this.createIdentifierNode(this.getModuleReferenceName(System)),
+                        this.createIdentifierNode('setImmediate')
+                    ]),
+                    [
+                        this.createArrowFunctionNode([],callee)
+                    ]
                 )
-            );  
+            }
+
+            const mainEnterMethods = this.createStatementNode(callee);  
             this.mainEnterMethods = mainEnterMethods;
             const program = this.getParentByType('Program');
             if( program.isProgram && program.afterBody ){
