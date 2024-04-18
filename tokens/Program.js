@@ -197,7 +197,7 @@ module.exports = function(ctx,stack){
                 }
             });
 
-            if( newDeps.size> 0 ){
+            if( newDeps && newDeps.size> 0 ){
 
                 const findClassDeclaration=(body)=>{
                     if(!Array.isArray(node.body))return;

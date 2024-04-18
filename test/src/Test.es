@@ -110,10 +110,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
 
     @Alias(positionName, version='3.0.0  >= vue')
     postion(){
-        console.log('----')
+       
     }
-
-
 
      @Main(false)
     static main(){
@@ -457,11 +455,33 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             array.push( val );
         }
         
-        it(`impls iterator should is [0,1,2,3,4]`,()=>{
+        it(`impls iterator should`,()=>{
             expect(5).toBe( array.length );
             for(var i=0; i<5 ;i++){
                 expect(i).toBe( array[i] );
             }
+            const obj = {
+                'name':'zh',
+                'address':666
+            }
+            const res = [];
+            for(const [key, value] of Object.entries(obj)) {
+                res.push([key, value])
+            }
+            expect([
+                ['name','zh'],
+                ['address',666],
+            ]).toEqual(res);
+
+            const obj2:any = obj
+            const res2 = [];
+            for(const [key, value] of Object.entries(obj2)) {
+                res2.push([key, value])
+            }
+            expect([
+                ['name','zh'],
+                ['address',666],
+            ]).toEqual(res2);
         })
         
     }

@@ -1154,125 +1154,30 @@ class Builder extends Token{
         return gen;
     }
 
-
-    checkResolveRuleMatch(rule, relative, type, fileExt, fileName){
-        rule = rule.replace(/[\s\r\n]+/g,'');
-        if( rule.charCodeAt(0) ===47 ){
-            rule = rule.substring(1);
+    getImportAssetsMapping(file, options={}){
+        if(!options.group){
+            options.group = 'asset'
         }
-        let match = '::'+type;
-        let len = match.length;
-
-        if( rule.slice( -len ) !== match )return false;
-
-        rule = rule.slice(0, -len);
-        let suffixPos = rule.lastIndexOf('.');
-        if( suffixPos>0  ){
-            const ruleSuffix = rule.slice( suffixPos );
-            if( ruleSuffix !=='.*' && rule.slice( suffixPos ) !== fileExt )return false;
-            rule = rule.slice(0, suffixPos);
-        }else{
-            if( rule.slice(-1) !== '*' )return false;
-            rule = rule.slice(0, -1);
+        if(!options.delimiter){
+            options.delimiter = '/'
         }
-
-        let filenamePos = rule.lastIndexOf('/');
-        if( filenamePos >= 0 && rule.slice( filenamePos+1 ) === fileName ){
-            rule = rule.slice(0, filenamePos);
-        }else{
-            let token = rule.slice(-1);
-            if( !(token === '*') )return false;
-            rule = rule.slice(0, -1);
-        }
-
-        if( rule.charCodeAt(rule.length-1)===47 ){
-            rule = rule.slice(0,-1);
-        }
-
-        const segments = rule.split('/');
-        const parts = relative.split('/');
-        var rest = false;
-        const flag = segments.every( (seg,index)=>{
-            if(seg === '**')rest= true;
-            return seg === '*' || seg === '**' || parts[index] === seg;
-        });
-
-        const count = rest ? segments.length - 1 :  segments.length;
-        if( count > parts.length )return false;
-        if( flag ){
-            if( rest ){
-                return [segments, parts];
-            }else if( segments.length === parts.length ){
-                return [segments, parts];
-            }
-        }
-        return false;
+        return this.plugin.resolveImportSource(file, options);
     }
 
     getSourceFileMappingFolder(file, flag){
-        const result = this.resolveSourceFileMappingPath(file, this.plugin.options.resolve.mapping.folder, 'asset');
+        const result = this.resolveSourceFileMappingPath(file, 'asset');
         return flag && !result ? file : result;
     }
 
     getModuleMappingFolder(module){
         if( module && module.isModule  ){
-            return this.resolveSourceFileMappingPath(module.compilation.file, this.plugin.options.resolve.mapping.folder, 'module');
+            return this.resolveSourceFileMappingPath(module.compilation.file, 'module');
         }
         return null;
     }
 
-    resolveSourceFileMappingPath(file, mapping, type, delimiter='/'){
-        if( type === '*' || !mapping || !file)return null;
-        if(mapping[file] !== void 0)return mapping[file];
-        const rules = Object.keys(mapping).sort( (a,b)=>{
-            const a1 = a.split('/');
-            const b1 = b.split('/');
-            if(a1.length > b1.length)return -1;
-            const aa = a.match(/\*/g),bb = b.match(/\*/g);
-            const a2 = aa ? aa.length : 0;
-            const b2 = bb ? bb.length : 0;
-            if( a2 < b2 )return -1;
-            return 0;
-        });
-        if( !rules.length )return null;
-        const hasExt = file.includes('.');
-        const fileInfo = PATH.parse( file );
-        const relative = fileInfo.dir.replace(/\\+/,'/');
-        var filename = fileInfo.name;
-        var ext = fileInfo.ext;
-        if(type==='asset'){
-            if( !hasExt ){
-                ext = '.js';
-            }
-        }
-        for( let rule of rules ){
-            const result = this.checkResolveRuleMatch( rule, relative, type, ext, filename );
-            if( result ){
-                if(!mapping[rule])return false;
-                const value = mapping[ rule ].replace(/[\s\r\n]+/g,'');
-                if( !value.includes('%') )return value;
-                const [segments, parts] = result;
-                const restMatchPos = segments.findIndex( seg=> seg ==='**' );
-                return value.split('/').map( (item)=>{
-                    if( item.includes('%') ){
-                        return item.split('%').map( key=>{
-                            if( key ==='...' && restMatchPos >= 0 ){
-                                const range = restMatchPos === segments.length-1 ? parts.slice(restMatchPos, parts.length) : 
-                                parts.slice(restMatchPos, parts.length-(segments.length-restMatchPos));
-                                return range.join( delimiter );
-                            }else if( key==='filename'){
-                                return filename;
-                            }else if( key==='ext' ){
-                                return ext;
-                            }
-                            return parts[key] || key;
-                        }).filter( item=>!!item ).join('');
-                    }
-                    return item;
-                }).filter(item=>!!item).join( delimiter );
-            }
-        }
-        return null;
+    resolveSourceFileMappingPath(file, type, delimiter='/'){
+        return this.plugin.resolveSourceId(file, type, delimiter)
     }
 
     isExternalDependence(source, module=null){

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Builder = require("./core/Builder");
+const Glob = require("./core/Glob.js");
 const merge = require("lodash/merge");
 const modules = new Map();
 const dirname = path.join(__dirname,"tokens");
@@ -94,12 +95,6 @@ class PluginEsJavascript{
         this.options = merge({},defaultConfig, options);
         this.options.metadata.version = pkg.version;
         this.options.metadata.js = pkg.version;
-        if( this.options.sourceMaps ){
-            complier.options.parser.locations = true;
-        }
-        if(this.options.workspace){
-            complier.setWorkspace( this.options.workspace );
-        }
         this.generatedCodeMaps = generatedCodeMaps;
         this.generatedSourceMaps = generatedSourceMaps;
         this.name = pkg.name;
@@ -109,6 +104,38 @@ class PluginEsJavascript{
         if(this.options.emitFile){
             this.options.useAbsolutePathImport=false;
         }
+        this.glob=new Glob();
+        this.addGlobRule();
+    }
+
+    addGlobRule(){
+        const mapping = this.options.resolve?.mapping?.folder || {};
+        Object.keys(mapping).forEach( key=>{
+            this.glob.addRule(key, mapping[key]);
+        })
+    }
+
+    resolveImportSource(id, ctx={}){
+        const scheme = this.glob.scheme(id,ctx);
+        let source = this.glob.parse(scheme, ctx);
+        let imported = ctx.imported;
+        let namespaced = ctx.namespaced;
+        let rule = scheme.rule;
+        if(rule){
+            if(!imported)imported = rule.getValue(id, 'imported');
+            if(!namespaced)namespaced = rule.getValue(id, 'namespaced');
+        }else{
+            source = id;
+        }
+        return {
+            source,
+            imported,
+            namespaced
+        }
+    }
+
+    resolveSourceId(id, group, delimiter='/'){
+        return this.glob.dest(id, {group, delimiter, failValue:null});
     }
 
     getGeneratedCodeByFile(file){

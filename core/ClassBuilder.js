@@ -673,7 +673,15 @@ class ClassBuilder extends Token{
         
         if(!this.builder.hasImportReference(module, source)){
             if( this.builder.addAsset(module, source, 'assets', originAsset) ){
-                let _source = this.builder.getSourceFileMappingFolder(source);
+                const result = this.builder.getImportAssetsMapping(source, {
+                    group:'asset', 
+                    origin:originAsset, 
+                    local, 
+                    imported, 
+                    namespaced, 
+                    module
+                });
+                let {source:_source, imported:_imported=imported, namespaced:_namespaced=namespaced,local:_local=local} = result;
                 if( _source === null ){
                     _source = source;
                 }
@@ -683,7 +691,7 @@ class ClassBuilder extends Token{
                         source, 
                         this.createImportDeclaration( 
                             _source,
-                            local ? [[local,imported,namespaced]] : []
+                            _local ? [[_local,_imported,_namespaced]] : []
                         ) 
                     );
                 }
