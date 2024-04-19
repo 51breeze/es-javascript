@@ -1102,7 +1102,7 @@ class Builder extends Token{
         if( isString && source.includes('/node_modules/') ){
             if( path.isAbsolute(source) )return source;
             if( !identifier ){
-                return this.getSourceFileMappingFolder(source)||source;
+                return this.resolveSourceFileMappingPath(source,'imports')||source;
             }
             return identifier || source;
         }
@@ -1156,7 +1156,7 @@ class Builder extends Token{
 
     getImportAssetsMapping(file, options={}){
         if(!options.group){
-            options.group = 'asset'
+            options.group = 'imports'
         }
         if(!options.delimiter){
             options.delimiter = '/'
@@ -1165,19 +1165,19 @@ class Builder extends Token{
     }
 
     getSourceFileMappingFolder(file, flag){
-        const result = this.resolveSourceFileMappingPath(file, 'asset');
+        const result = this.resolveSourceFileMappingPath(file, 'folders');
         return flag && !result ? file : result;
     }
 
     getModuleMappingFolder(module){
         if( module && module.isModule  ){
-            return this.resolveSourceFileMappingPath(module.compilation.file, 'module');
+            return this.resolveSourceFileMappingPath(module.compilation.file, 'folders');
         }
         return null;
     }
 
-    resolveSourceFileMappingPath(file, type, delimiter='/'){
-        return this.plugin.resolveSourceId(file, type, delimiter)
+    resolveSourceFileMappingPath(file, group, delimiter='/'){
+        return this.plugin.resolveSourceId(file, group, delimiter)
     }
 
     isExternalDependence(source, module=null){

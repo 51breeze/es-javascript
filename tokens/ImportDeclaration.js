@@ -27,7 +27,7 @@ module.exports = function(ctx,stack,type){
       if( ctx.builder.isNeedImportDependence(source, module) ){
          const specifiers = stack.specifiers.map( item=>node.createToken(item) )
          const result = ctx.builder.getImportAssetsMapping(source, {
-            group:'asset',
+            group:'imports',
             stack,
             specifiers,
             context:node,

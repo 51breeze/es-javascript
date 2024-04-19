@@ -61,7 +61,8 @@ const defaultConfig ={
     enablePrivateChain:true,
     thisComplete:true,
     resolve:{
-        mapping:{}
+        imports:{},
+        folders:{}
     },
     dependences:{
         externals:[],
@@ -109,9 +110,14 @@ class PluginEsJavascript{
     }
 
     addGlobRule(){
-        const mapping = this.options.resolve?.mapping?.folder || {};
-        Object.keys(mapping).forEach( key=>{
-            this.glob.addRule(key, mapping[key]);
+        const imports = this.options.resolve?.imports || {};
+        Object.keys(imports).forEach( key=>{
+            this.glob.addRule(key, imports[key], 0, 'imports');
+        });
+
+        const folders = this.options.resolve?.folders || {};
+        Object.keys(folders).forEach( key=>{
+            this.glob.addRule(key, folders[key], 0, 'folders');
         })
     }
 
@@ -119,21 +125,7 @@ class PluginEsJavascript{
         const scheme = this.glob.scheme(id,ctx);
         let source = this.glob.parse(scheme, ctx);
         let rule = scheme.rule;
-        if(rule){
-            if(ctx.specifiers){
-                const spe = ctx.specifiers[0];
-                if(spe){
-                    const imported = rule.getValue(id, 'imported');
-                    if(imported){
-                        spe.imported = spe.createIdentifierNode(imported);
-                        spe.type = 'ImportSpecifier'
-                    }else if(spe.local && rule.getValue(id, 'namespaced')===true){
-                        delete spe.imported;
-                        spe.type = 'ImportNamespaceSpecifier';
-                    }
-                }
-            }
-        }else{
+        if(!rule){
             source = id;
         }
         return {

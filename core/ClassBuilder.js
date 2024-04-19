@@ -646,7 +646,7 @@ class ClassBuilder extends Token{
         }
         const specifiers = local ? [this.createImportSpecifierNode(local, imported, namespaced)] : [];
         const result = this.builder.getImportAssetsMapping(source, {
-            group:'asset', 
+            group:'imports', 
             specifiers,
             context:this,
             module
