@@ -191,7 +191,7 @@ class Glob{
         return true;
     }
 
-    scheme(id, ctx={}){
+    scheme(id, ctx={}, excludes=null){
         if(!this.#initialized){
             this.#init();
         }
@@ -200,7 +200,7 @@ class Glob{
         let extname = ctx.extname || this.#extensions[group] || null;
         let delimiter = ctx.delimiter || '/';
         let key = [normalId,String(group),delimiter,String(extname)].join(':')
-        if(this.#cache.hasOwnProperty(key)){
+        if(!excludes && this.#cache.hasOwnProperty(key)){
             return this.#cache[key];
         }
         let segments = normalId.split(slashDelimitRegexp);
@@ -216,6 +216,10 @@ class Glob{
         }
 
         for(let rule of this.#rules){
+            if(excludes){
+                if(excludes===rule)continue;
+                if(Array.isArray(excludes) && excludes.includes(rule))continue;
+            }
             if(group && rule.group && rule.group !== group){
                 continue;
             }
@@ -268,7 +272,19 @@ class Glob{
             return value;
         }
         if(rule.method){
-            return scheme.value = rule.target(id, scheme, ctx);
+            let _result = rule.target(id, scheme, ctx, this);
+            let _scheme = scheme;
+            let _excludes = [rule];
+            while(_result === void 0){
+                _scheme = this.scheme(_scheme.id, ctx, _excludes)
+                if(_scheme && _scheme.rule){
+                    _excludes.push(_scheme.rule);
+                    _result = this.parse(_scheme, ctx)
+                }else{
+                    break;
+                }
+            }
+            return scheme.value = _result;
         }
         const delimiter = ctx.delimiter || '/';
         const _value = rule.target.replace(/(?<!\\)\{(.*?)\}/g, (_, name)=>{
