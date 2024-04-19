@@ -19,15 +19,27 @@ module.exports = function(ctx,stack,type){
          ctx.builder.buildForModule(compilation, compilation.stack);
       }
       const node = ctx.createNode(stack);
+      const module = (stack.additional || stack).module;
       let source = compilation ? stack.getResolveFile() : stack.source.value();
-      if( ctx.builder.isNeedImportDependence(source, stack.compilation) ){
-         let _source = ctx.builder.getSourceFileMappingFolder(source);
+      if( source.includes('${__filename}')){
+         source = ctx.builder.getModuleImportSource(source, module)
+      }
+      if( ctx.builder.isNeedImportDependence(source, module) ){
+         const specifiers = stack.specifiers.map( item=>node.createToken(item) )
+         const result = ctx.builder.getImportAssetsMapping(source, {
+            group:'asset',
+            stack,
+            specifiers,
+            context:node,
+            module
+         });
+         let {source:_source} = result;
          if( _source === null ){
             _source = source;
          }
          if( _source ){
             source = ctx.builder.getModuleImportSource(_source, stack.compilation.file , stack.source.value() );
-            return ctx.createImportDeclaration(source, stack.specifiers.map( item=>node.createToken(item) ), stack);
+            return ctx.createImportDeclaration(source, specifiers, stack);
          }
       }
    }

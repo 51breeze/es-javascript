@@ -572,8 +572,7 @@ class ClassBuilder extends Token{
             polyfillModule = this.builder.getPolyfillModule( module.getName() );
         }
         dependencies.forEach( depModule =>{
-           
-            if( !(excludes && excludes.includes( depModule )) && this.builder.isPluginInContext(depModule) ){
+            if(!(excludes && excludes.includes( depModule )) && this.builder.isPluginInContext(depModule) ){
                 if( this.isActiveForModule( depModule ) ){
                     const name = this.builder.getModuleReferenceName(depModule, module);
                     const source = this.builder.getModuleImportSource(depModule, module);
@@ -597,32 +596,11 @@ class ClassBuilder extends Token{
         
         if( polyfillModule && polyfillModule.requires.size > 0 ){
             polyfillModule.requires.forEach( item=>{
-
                 let source = item.from;
-                if( module && source && source.includes('${__filename}')){
-                    source = this.builder.getModuleImportSource(source, module)
-                }
-
-                if( !this.builder.isNeedImportDependence(source, module) ){
-                    return;
-                }
-
-                const name = item.key;
-                let resolveSource = this.builder.getSourceFileMappingFolder(source);
-                if( resolveSource ){
-                    source = resolveSource;
-                }
-
-                if( source ){
-                    const extract = item.extract;
-                    if( name && item.value && name !== item.value || extract ){
-                        items.push( this.createImportDeclaration(source, [[item.value, name, !!item.namespaced]]) );
-                        this.builder.addAsset(module, source, 'normal',item);
-                    }else{
-                        items.push( this.createImportDeclaration(source, [[name, null, !!item.namespaced]]) );
-                        this.builder.addAsset(module, source, 'normal', item);
-                    }
-                }
+                let local = item.value || item.key;
+                let imported = item.extract ? item.key : null;
+                let namespaced = !!item.namespaced;
+                this.createImportAssetsIfNotExists(module, item, source, local, imported, namespaced);
             });
         }
         
@@ -643,7 +621,6 @@ class ClassBuilder extends Token{
                     return;
                 }
             }
-           
             let local = item.local;
             if(inherit && inherit.id===item.local){
                 local = this.checkRefsName( '__$'+item.local );
@@ -652,7 +629,6 @@ class ClassBuilder extends Token{
                 local = this.checkRefsName( '__$'+item.local );
                 this.moduleReferenceTarget = local;
             }
-
             this.createImportAssetsIfNotExists(module, item, item.source, local, item.imported, !!item.namespaced);
         });
 
@@ -661,42 +637,38 @@ class ClassBuilder extends Token{
         }
     }
 
-    createImportAssetsIfNotExists(module, originAsset, source, local, imported, namespaced=false){
-
+    createImportAssetsIfNotExists(module, origin, source, local, imported, namespaced=false){
         if( source.includes('${__filename}')){
             source = this.builder.getModuleImportSource(source, module)
         }
-
         if( !this.builder.isNeedImportDependence(source, module) ){
-            return;
+            return null;
         }
-        
-        if(!this.builder.hasImportReference(module, source)){
-            if( this.builder.addAsset(module, source, 'assets', originAsset) ){
-                const result = this.builder.getImportAssetsMapping(source, {
-                    group:'asset', 
-                    origin:originAsset, 
-                    local, 
-                    imported, 
-                    namespaced, 
-                    module
-                });
-                let {source:_source, imported:_imported=imported, namespaced:_namespaced=namespaced,local:_local=local} = result;
-                if( _source === null ){
-                    _source = source;
-                }
-                if(_source){
-                    this.builder.addImportReference( 
-                        module, 
-                        source, 
-                        this.createImportDeclaration( 
-                            _source,
-                            _local ? [[_local,_imported,_namespaced]] : []
-                        ) 
-                    );
-                }
-            }
+        const specifiers = local ? [this.createImportSpecifierNode(local, imported, namespaced)] : [];
+        const result = this.builder.getImportAssetsMapping(source, {
+            group:'asset', 
+            specifiers,
+            context:this,
+            module
+        });
+        let {source:_source} = result;
+        if( _source === null ){
+            _source = source;
         }
+        if(_source){
+            const node = this.createImportDeclaration( 
+                _source,
+                specifiers
+            );
+            this.builder.addImportReference( 
+                module, 
+                source,
+                node
+            );
+            this.builder.addAsset(module, source, 'assets', origin);
+            return node;
+        }
+        return null;
     }
 
     addImportReferenceNode(module, sameModuleNameFlag=false, contextModule=null){
@@ -744,51 +716,46 @@ class ClassBuilder extends Token{
 
             stack.imports.forEach( item=>{
                 if( item.source.isLiteral ){
-                    const desc = item.description();
-                    if( !desc ){
-                        let source = item.source.value();
-                        if( source ){
-                            if( source.includes('${__filename}')){
-                                source = this.builder.getModuleImportSource(source, module)
+                    let flag = true;
+                    if( item.specifiers.length >0 ){
+                        const owner = item.additional;
+                        flag = item.specifiers.some( item=>{
+                            if(!sameModuleNameFlag && inherit && inherit.id===item.value()){
+                                return true;
                             }
-                            if( !this.builder.isNeedImportDependence(source, module) ){
-                                return;
+                            if(owner && owner.module && owner.module.id === item.value()){
+                                return owner.module.used;
                             }
+                            return item.isDeclarator ? item.useRefItems.size > 0 : false;
+                        });
+                    }
 
-                            let flag = true;
-                            if( item.specifiers.length >0 ){
-                                const owner = item.additional;
-                                flag = item.specifiers.some( item=>{
-                                    if(!sameModuleNameFlag && inherit && inherit.id===item.value()){
-                                        return true;
+                    if(flag /*&& !this.builder.hasImportReference(this.module, source)*/){
+                        const node = this.createToken( item );
+                        if( node ){
+                            const local = sameModuleNameFlag && contextModule ? this.builder.getModuleReferenceName(module, contextModule) : null; 
+                            checkSameId(node, local); 
+                            let source = item.source.value();
+                            let resolve = source;
+                            if( node.type==='ImportDeclaration'){
+                                resolve = node.source.value;
+                            }else if( node.type==='VariableDeclaration'){
+                                const init = node.declarations[0].init;
+                                if(init){
+                                    if(init.type==='MemberExpression')init = init.object;
+                                    if(init.type==='CallExpression' && init.callee.value==='require' && init.arguments[0]){
+                                        resolve = init.arguments[0].value;
                                     }
-                                    if(owner && owner.module && owner.module.id === item.value()){
-                                        return owner.module.used;
-                                    }
-                                    return item.isDeclarator ? item.useRefItems.size > 0 : false;
-                                });
-                            }
-
-                            if(flag /*&& !this.builder.hasImportReference(this.module, source)*/){
-                                const node = this.createToken( item );
-                                if( node ){
-                                    const local = sameModuleNameFlag && contextModule ? this.builder.getModuleReferenceName(module, contextModule) : null; 
-                                    checkSameId(node, local); 
-                                    let resolve = this.builder.getSourceFileMappingFolder(source, true);
-                                    this.builder.addAsset(module, source, 'assets', {source, resolve, isImport:true, type:'assets', stack:item});
-                                    this.builder.addImportReference(this.module, source , node);
                                 }
                             }
+                            this.builder.addAsset(module, source, 'assets', {source, resolve, isImport:true, type:'assets', stack:item});
+                            this.builder.addImportReference(this.module, source , node);
                         }
                     }
                 }
             });
         }
     }
-
-
-
-
 
     createExportDeclaration( id ){
         const type = this.plugin.options.module;

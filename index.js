@@ -118,19 +118,26 @@ class PluginEsJavascript{
     resolveImportSource(id, ctx={}){
         const scheme = this.glob.scheme(id,ctx);
         let source = this.glob.parse(scheme, ctx);
-        let imported = ctx.imported;
-        let namespaced = ctx.namespaced;
         let rule = scheme.rule;
         if(rule){
-            if(!imported)imported = rule.getValue(id, 'imported');
-            if(!namespaced)namespaced = rule.getValue(id, 'namespaced');
+            if(ctx.specifiers){
+                const spe = ctx.specifiers[0];
+                if(spe){
+                    const imported = rule.getValue(id, 'imported');
+                    if(imported){
+                        spe.imported = spe.createIdentifierNode(imported);
+                        spe.type = 'ImportSpecifier'
+                    }else if(spe.local && rule.getValue(id, 'namespaced')===true){
+                        delete spe.imported;
+                        spe.type = 'ImportNamespaceSpecifier';
+                    }
+                }
+            }
         }else{
             source = id;
         }
         return {
-            source,
-            imported,
-            namespaced
+            source
         }
     }
 
