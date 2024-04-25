@@ -9,7 +9,7 @@ module.exports = function(ctx,stack){
             if( stack.hasNamespaced && desc.isFragment){
                 node.name = node.createIdentifierNode(desc.id, stack.name);  
             }else{
-                node.name = node.createIdentifierNode( ctx.builder.getModuleReferenceName(desc), stack.name);
+                node.name = node.createIdentifierNode( ctx.getModuleReferenceName(desc), stack.name);
             }
         }else{
             node.name = node.createIdentifierNode( stack.name.value(), stack.name);

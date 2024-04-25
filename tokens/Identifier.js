@@ -1,6 +1,6 @@
 const Constant = require("../core/Constant");
 module.exports = function(ctx,stack){
-     const desc = stack.parentStack && stack.parentStack.isImportSpecifier ? null : stack.description();
+     const desc = stack.parentStack && stack.parentStack.isImportSpecifier ? null : stack.descriptor();
      const module = stack.module;
      const builder = ctx.builder;
      if(desc && desc.isStack && desc.imports ){

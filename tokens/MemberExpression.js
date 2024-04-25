@@ -32,12 +32,12 @@ function addImportReference(ctx, desc, module ){
 
 function MemberExpression(ctx,stack){
     const module = stack.module;
-    const description = stack.description();
+    const description = stack.descriptor();
     const objectType = stack.object.type();
     if( description && description.isModule && objectType && !objectType.isLiteralObjectType && stack.compiler.callUtils("isTypeModule",description) ){
         ctx.addDepend( description );
     }else{
-        const objectDesc = stack.object.description();
+        const objectDesc = stack.object.descriptor();
         if( stack.compiler.callUtils("isTypeModule", objectDesc) ){
             ctx.addDepend( objectDesc );
         }else{

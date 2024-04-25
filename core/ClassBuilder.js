@@ -230,7 +230,7 @@ class ClassBuilder extends Token{
         }else{
             const ClassModule = this.builder.getGlobalModuleById("Class")
             this.addDepend(ClassModule);
-            const handle = this.checkRefsName(this.builder.getModuleReferenceName(ClassModule));
+            const handle = this.checkRefsName(this.getModuleReferenceName(ClassModule));
             return this.createDeclarationNode(
                 'const',
                 [
@@ -539,7 +539,7 @@ class ClassBuilder extends Token{
         }
 
         return this.createStatementNode( this.createCalleeNode( this.createMemberNode([
-            this.builder.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),
+            this.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),
             'creator'
         ]), args) );
     }
@@ -574,7 +574,7 @@ class ClassBuilder extends Token{
         dependencies.forEach( depModule =>{
             if(!(excludes && excludes.includes( depModule )) && this.builder.isPluginInContext(depModule) ){
                 if( this.isActiveForModule( depModule ) ){
-                    const name = this.builder.getModuleReferenceName(depModule, module);
+                    const name = this.getModuleReferenceName(depModule, module);
                     const source = this.builder.getModuleImportSource(depModule, module);
                     this.builder.addAsset(module, source, 'normal',depModule);
                     items.push( this.createImportDeclaration(source, [[name]]) );
@@ -586,7 +586,7 @@ class ClassBuilder extends Token{
                         let namespaced = !!item.namespaced;
                         let source = item.source;
                         if( depModule.id === item.local ){
-                            local = this.builder.getModuleReferenceName(depModule, module);
+                            local = this.getModuleReferenceName(depModule, module);
                         }
                         this.createImportAssetsIfNotExists(module, item, source, local, imported, namespaced);
                     });
@@ -733,7 +733,7 @@ class ClassBuilder extends Token{
                     if(flag /*&& !this.builder.hasImportReference(this.module, source)*/){
                         const node = this.createToken( item );
                         if( node ){
-                            const local = sameModuleNameFlag && contextModule ? this.builder.getModuleReferenceName(module, contextModule) : null; 
+                            const local = sameModuleNameFlag && contextModule ? this.getModuleReferenceName(module, contextModule) : null; 
                             checkSameId(node, local); 
                             let source = item.source.value();
                             let resolve = source;

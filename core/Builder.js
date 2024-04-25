@@ -775,9 +775,8 @@ class Builder extends Token{
     getModuleReferenceName(module,context){
         context = context || this.compilation;
         if( !module || !module.isModule)return null;
-        let scope = this.compilation;
-        let dataset = this.moduleReferenceNameMap.get(scope);
-        if(!dataset)this.moduleReferenceNameMap.set(scope, dataset=new Map());
+        let dataset = this.moduleReferenceNameMap.get(context);
+        if(!dataset)this.moduleReferenceNameMap.set(context, dataset=new Map());
         let name = dataset.get(module);
         if(name)return name;
         if( context && context.isModule){
