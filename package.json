@@ -1,6 +1,6 @@
 {
   "name": "es-javascript",
-  "version": "0.5.3",
+  "version": "0.5.5",
   "description": "test",
   "main": "index.js",
   "typings": "types/typings.json",
@@ -35,7 +35,7 @@
     "blueimp-md5": "^2.19.0",
     "dotenv": "^16.4.5",
     "dotenv-expand": "^11.0.6",
-    "glob-path": "^0.1.1",
+    "glob-path": "latest",
     "js-base64": "^3.7.2",
     "js-cookie": "^3.0.1",
     "lodash": "^4.17.21",
