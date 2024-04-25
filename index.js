@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Builder = require("./core/Builder");
-const Glob = require("./core/Glob.js");
+const Glob = require("glob-path");
 const merge = require("lodash/merge");
 const modules = new Map();
 const dirname = path.join(__dirname,"tokens");
@@ -112,12 +112,12 @@ class PluginEsJavascript{
     addGlobRule(){
         const imports = this.options.resolve?.imports || {};
         Object.keys(imports).forEach( key=>{
-            this.glob.addRule(key, imports[key], 0, 'imports');
+            this.glob.addRuleGroup(key, imports[key], 'imports')
         });
 
         const folders = this.options.resolve?.folders || {};
         Object.keys(folders).forEach( key=>{
-            this.glob.addRule(key, folders[key], 0, 'folders');
+            this.glob.addRuleGroup(key, folders[key],'folders');
         })
     }
 

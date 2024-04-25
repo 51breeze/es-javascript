@@ -33,13 +33,14 @@
     "@babel/runtime-corejs3": "^7.17.9",
     "axios": "^0.26.1",
     "blueimp-md5": "^2.19.0",
+    "dotenv": "^16.4.5",
+    "dotenv-expand": "^11.0.6",
+    "glob-path": "^0.1.1",
     "js-base64": "^3.7.2",
     "js-cookie": "^3.0.1",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
-    "source-map": "^0.7.4",
-    "dotenv": "^16.4.5",
-    "dotenv-expand": "^11.0.6"
+    "source-map": "^0.7.4"
   },
   "devDependencies": {
     "jasmine": "^3.10.0"
