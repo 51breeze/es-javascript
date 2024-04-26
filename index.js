@@ -34,9 +34,7 @@ const defaultConfig ={
         }
     },
     formation:{
-        route:(path)=>{
-            return String(path).toLowerCase();
-        }
+        route:null
     },
     crossDependenciesCheck:true,
     context:{

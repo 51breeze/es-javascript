@@ -245,26 +245,23 @@ System.getEventDispatcher=function getEventDispatcher(){
     return hasOwn.call(object,key) ? object[key] : null;
  }
 
- System.createHttpRoute=function createHttpRoute(url, params, flag=false){
+ System.createHttpRoute=function createHttpRoute(url, params={}, flag=false){
     params = params || {};
     url = String(url).trim();
     url = url.replace(/(^|\/)<([^\>\?]+)(\?)?>/g, function(a,b,c,d){
         let key = c;
+        let lowerKey = c;
+        let existsKey = hasOwn.call(params,key) ? key : hasOwn.call(params,lowerKey=key.toLowerCase()) ? lowerKey : null;
         let value = null;
         let prefix = b ? b : '';
-        if( hasOwn.call(params,key) ){
-            value = params[key];
+        if(existsKey){
+            value = params[existsKey]
             if(flag){
-                params[key]=null;
-                delete params[key];
-            }
-        }else if( hasOwn.call(params,key) || hasOwn.call(params,key=key.toLowerCase()) ){
-            value = params[key];
-            if(flag){
-                params[key]=null;
-                delete params[key];
+                params[existsKey]=null;
+                delete params[existsKey];
             }
         }
+
         if( d && d.charCodeAt(0) === 63 ){
             if( value !== null ){
                 return prefix+value;
