@@ -1,3 +1,5 @@
+const path = require('path');
+
 const allMethods = ['get','post','put','delete','option','router'];
 
 function getAnnotationArgItem(name, args, indexes){
@@ -193,18 +195,38 @@ function createRouteConfig(ctx, module, method, paramArg, flag=false){
         }
         return `<${item.value()}${question}>`;
     });
+
     const uri = declareParams.length > 0 ? [value].concat(declareParams).join('/') : value;
-    const url = uri.charCodeAt(0)===47 ? uri : `/${module.id}/${uri}`;
+    let url = uri;
+
+    if(uri.charCodeAt(0)!==47){
+        const withNs = ctx.plugin.options.routePathWithNamespace?.server;
+        url = withNs ? `/${module.getName('/')}/${uri}` : `/${module.id}/${uri}`;
+    }
+
     let allowMethodNode = ctx.createLiteralNode( annotation ? annotation.name.toLowerCase() : '*');
+    let allowMethodNames = annotation ? annotation.name.toLowerCase() : '*';
     if( annotation && annotation.name.toLowerCase() ==='router' ){
         const allowMethods = args.filter( item=>item !== pathArg );
         if( allowMethods.length > 0 ){
+            allowMethodNames = allowMethods.map( item=>item.value ).join(',')
             allowMethodNode = ctx.createArrayNode( allowMethods.map( item=>ctx.createLiteralNode(item.value) ) );
         }else{
             allowMethodNode = ctx.createLiteralNode('*');
         }
     }
 
+    let formatRoute = ctx.plugin.options.formation?.route;
+    if(formatRoute){
+        url = formatRoute(url, {
+            action:method.value(),
+            pathArg:value,
+            method:allowMethodNames,
+            params:declareParams,
+            className:module.getName()
+        }) || url;
+    }
+   
     let paramNode = null;
     if( paramArg ){
         if( paramArg.stack.isAssignmentPattern ){

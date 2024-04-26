@@ -23,10 +23,19 @@ const defaultConfig ={
     sourceMaps:false,
     useDefineProperty:false,
     useAbsolutePathImport:true,
+    routePathWithNamespace:{
+        server:false,
+        client:true,
+    },
     mode:process.env.NODE_ENV || 'production', //production,development
     metadata:{
         env:{
             NODE_ENV:process.env.NODE_ENV || 'production'
+        }
+    },
+    formation:{
+        route:(path)=>{
+            return String(path).toLowerCase();
         }
     },
     crossDependenciesCheck:true,
@@ -134,7 +143,11 @@ class PluginEsJavascript{
     }
 
     resolveSourceId(id, group, delimiter='/'){
-        return this.glob.dest(id, {group, delimiter, failValue:null});
+        let data = {group, delimiter, failValue:null};
+        if(typeof group !=='string'){
+            data = group;
+        }
+        return this.glob.dest(id, data);
     }
 
     getGeneratedCodeByFile(file){

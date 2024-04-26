@@ -956,7 +956,9 @@ class Builder extends Token{
                     return this.getModuleRouteParamRule(item.assigned ? item.key : item.value, item.stack, defaultValue)
                 });
 
-                let pathName =pathArg ? pathArg.value : module.getName('/');
+                let withNs = this.plugin.options.routePathWithNamespace?.client;
+                let className = module.getName('/');
+                let pathName =pathArg ? pathArg.value : withNs === false ? module.id : className;
                 if(pathName.charCodeAt(0) ===47){
                     pathName = pathName.substring(1)
                 }
@@ -965,10 +967,22 @@ class Builder extends Token{
                     pathName = pathName.slice(0,-1)
                 }
 
-                params.unshift(pathName)
+                let segments = [pathName].concat(params)
+                let routePath = '/'+segments.join('/');
+                let formatRoute = this.plugin.options.formation?.route;
+                if(formatRoute){
+                    routePath = formatRoute(routePath, {
+                        pathArg,
+                        params,
+                        method,
+                        defaultParamsValue:defaultValue,
+                        className:module.getName()
+                    }) || routePath;
+                }
+
                 routes.push({
-                    name:module.getName('/'),
-                    path:'/'+params.join('/'),
+                    name:className,
+                    path:routePath,
                     params:defaultValue,
                     method,
                     file:this.getModuleImportSource(module)
