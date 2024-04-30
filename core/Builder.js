@@ -52,7 +52,6 @@ class Builder extends Token{
         this.plugin = null;
         this.name = null;
         this.platform = null;
-        this.filesystem = null;
         this.buildModules = new Set();
         this.buildAstCache = new WeakSet();
         this.assets = new Map();
@@ -70,6 +69,7 @@ class Builder extends Token{
     clear(){
         this.buildModules.clear();
         this.assets.clear();
+        this.buildAstCache = new WeakSet();
         this.moduleReferenceNameMap.clear();
         this.moduleDependencies.clear();
         this.namespaceMap.clear();
@@ -77,6 +77,8 @@ class Builder extends Token{
         this.generatedVarRefs.clear();
         this.scopeVarCache.clear();
         this.routeCache.clear();
+        this.checkRuntimeCache.clear();
+        this.checkPluginContextCache.clear();
     }
 
     addAsset(module,source,type,meta){
@@ -87,6 +89,7 @@ class Builder extends Token{
         dataset[source] = {type, source, meta};
         return true
     }
+
     getAsset(module){
         return this.assets.get( module ) || {};
     }
@@ -95,7 +98,7 @@ class Builder extends Token{
         if( !module || !assets )return;
         assets.forEach( asset=>{
             if(!asset.file && asset.type ==="style"){
-                let file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, asset.attrs, 'emitAssets');
+                let file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, {...asset.attrs,index:asset.index} , 'emitAssets');
                 this.emitContent(file, asset.content);
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
@@ -150,16 +153,17 @@ class Builder extends Token{
         this.getDependencies(module||compilation).forEach( depModule=>{
             if( depModule && (this.isNeedBuild(depModule, module) && !this.buildModules.has(depModule))){
                 this.buildModules.add(depModule);
-                const compilation = depModule.compilation;
+                const compi = depModule.compilation;
+                const builder =  compi === compilation ? this : this.plugin.getBuilder(compi);
                 if( depModule.isDeclaratorModule ){
-                    const stack = compilation.getStackByModule(depModule);
+                    const stack = compi.getStackByModule(depModule);
                     if( stack ){
-                        this.buildForModule( compilation, stack, depModule );
+                        builder.buildForModule( compi, stack, depModule );
                     }else{
                         throw new Error(`Not found stack by '${depModule.getName()}'`);
                     }
                 }else{
-                    this.buildForModule(compilation, compilation.stack, depModule);
+                    builder.buildForModule(compi, compi.stack, depModule);
                 }
             }
         });

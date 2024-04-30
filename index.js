@@ -113,7 +113,7 @@ class PluginEsJavascript{
             this.options.useAbsolutePathImport=false;
         }
         this.glob=new Glob();
-        this.addGlobRule();
+        this.addGlobRule(); 
     }
 
     addGlobRule(){
@@ -172,7 +172,7 @@ class PluginEsJavascript{
         return builder;
     } 
 
-    getBuilder( compilation, builderFactory=Builder){
+    getBuilder(compilation, builderFactory=Builder){
         let builder = new builderFactory(compilation, this);
         builder.name = this.name;
         builder.platform = this.platform;
