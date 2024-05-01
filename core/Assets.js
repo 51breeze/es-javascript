@@ -8,7 +8,7 @@ class Assets{
         return resourcePath+':'+type+':'+index;
     }
 
-    static getAsset(resourcePath, type, index=0){
+    static getAsset(resourcePath, type=null, index=0){
         return Records.get(Assets.getKey(resourcePath, type, index)) || null;
     }
 
@@ -16,29 +16,35 @@ class Assets{
         return obj && obj[AssetsKey] === true;
     }
 
-    static create(type, resourceId, content=null, isFile=null){
-        const {resourcePath, query} = parseResource(resourceId);
-        let asset = Records.get(resourcePath);
+    static create(resourceId, content=null, isFile=null, type=null){
+        let {resourcePath, query} = parseResource(resourceId);
+        let resolveFile = resourcePath;
+        if(content && isFile){
+            resolveFile = content;
+        }
         let index = query.index||0;
+        let key = Assets.getKey(resourcePath, type, index);
+        let asset = Records.get(key);
         if( !asset ){
             asset = new Assets();
             asset[AssetsKey] = true;
-            Records.set(Assets.getKey(resourcePath, type, index), asset);
-        }
+            Records.set(key, asset);
 
-        if(isFile===null){
-            isFile = !content;
-        }else{
-            isFile = Boolean(isFile);
+            if(isFile===null){
+                isFile = !content;
+            }else{
+                isFile = Boolean(isFile);
+            }
+    
+            asset.#resourceId = resourceId;
+            asset.#resourcePath = resourcePath;
+            asset.#attrs = query;
+            asset.#type = type;
+            asset.#isFile = isFile;
+            asset.#content = content;
+            asset.#index = index;
+            asset.#resolveFile = resolveFile;
         }
-
-        asset.#resourceId = resourceId;
-        asset.#resourcePath = resourcePath;
-        asset.#attrs = query;
-        asset.#type = type;
-        asset.#isFile = isFile;
-        asset.#content = content;
-        asset.#index = index;
         return asset;
     }
 
@@ -50,6 +56,7 @@ class Assets{
     #index = null;
     #content = null;
     #sourceMap = null;
+    #resolveFile = null;
 
     clear(){
         this.#sourceMap = null;
@@ -69,6 +76,14 @@ class Assets{
 
     get resourcePath(){
         return this.#resourcePath;
+    }
+
+    get resolveFile(){
+        return this.#resolveFile;
+    }
+
+    set resolveFile(value){
+        this.#resolveFile = value;
     }
 
     get index(){
@@ -92,10 +107,10 @@ class Assets{
 
     get content(){
         if(this.#content === null){
-            if(!this.resourceId || !fs.existsSync(this.resourceId)){
-                throw new Error(`The '${this.resourceId}' file is not exists`)
+            if(!this.resolveFile || !fs.existsSync(this.resolveFile)){
+                throw new Error(`The '${this.resolveFile}' file is not exists`)
             }else{
-                this.#content = fs.readFileSync(this.resourceId, {encoding:"utf8"})
+                this.#content = fs.readFileSync(this.resolveFile, {encoding:"utf8"})
             }
         }
         return this.#content;

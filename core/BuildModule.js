@@ -5,40 +5,49 @@ const {parseResource} = require('./Utils')
 const Records = new Map();
 class BuildModule{
 
-    static getModuleByResourcePath(file){
-        return Records.get(file);
+    static getModuleByResourcePath(resourcePath){
+        return Records.get(resourcePath);
     }
 
-    static create(resourceId, type='normal'){
+    static create(resourceId, mainFlag=false){
         const {resourcePath, query} = parseResource(resourceId);
         let module = Records.get(resourcePath);
         if( !module ){
-            module = new BuildModule(resourceId, type);
+            module = new BuildModule(resourceId, resourcePath, query);
             Records.set(resourcePath, module);
         }
-        module.#resourceId = resourceId;
-        module.#resourcePath = resourcePath;
-        module.#attrs = query;
-        module.#type = type;
+        if(query.id && !mainFlag){
+            const main = module;
+            module = main.getModule(query.id);
+            if(!module){
+                module = new BuildModule(resourceId, resourcePath, query);
+                main.setModule(query.id, module);
+            }
+        }
         return module;
     }
 
     #attrs = {};
-    #type = 'normal';
     #resourcePath = null;
     #resourceId = null;
     #assets = new Set();
-    #modules = {};
+    #modules = new Map();
     #content = null;
     #isEntry = false;
     #isDynamicImporter = false;
     #sourceMap = null;
     #dependencies = new Set();
 
+    constructor(resourceId, resourcePath, query){
+        this.#resourceId = resourceId;
+        this.#resourcePath = resourcePath;
+        this.#attrs = query;
+    }
+
     clear(){
         if( this.#content !== null ){
             this.#assets.clear();
-            this.#modules = {};
+            this.#modules.clear();
             this.#content = null;
             this.#sourceMap = null;
             this.#dependencies.clear();
@@ -46,12 +55,16 @@ class BuildModule{
     }
 
     setModule(id, module){
-        this.#modules[id] = module;
+        this.#modules.set(id,module);
     }
 
     getModule(id){
         if(!id)return this;
-        return this.#modules[id] || null;
+        return this.#modules.get(id) || null;
+    }
+
+    hasModule(id){
+        return  this.#modules.has(id)
     }
 
     get isEntry(){
@@ -68,10 +81,6 @@ class BuildModule{
 
     get resourceId(){
         return this.#resourceId;
-    }
-
-    get type(){
-        return this.#type;
     }
 
     set attrs( attrs={}){

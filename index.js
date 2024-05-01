@@ -5,6 +5,9 @@ const Glob = require("glob-path");
 const merge = require("lodash/merge");
 const modules = new Map();
 const dirname = path.join(__dirname,"tokens");
+const BuildModule = require('./core/BuildModule')
+const Assets = require('./core/Assets')
+
 fs.readdirSync( dirname ).forEach( (filename)=>{
     const info = path.parse( filename );
     modules.set(info.name, require( path.join(dirname,filename) ) );
@@ -154,6 +157,20 @@ class PluginEsJavascript{
 
     getGeneratedSourceMapByFile(file){
         return this.generatedSourceMaps.get(file);
+    }
+
+    getBuildModule(resourcePath, id=null){
+        const module = BuildModule.getModuleByResourcePath(resourcePath)
+        return module && id ? module.getModule(id) : module;
+    }
+
+    getBuildStyle(resourcePath, index=0){
+        return Assets.getAsset(resourcePath, 'styles', index);
+    }
+
+    getBuildAssets(resourcePath, index=0, type=null){
+        if(type==='style')type = 'styles';
+        return Assets.getAsset(resourcePath, type, index);
     }
 
     getTokenNode(name){

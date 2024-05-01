@@ -9,6 +9,8 @@ const Babel = require('@babel/core');
 const Lodash = require('lodash');
 const dotenv = require('dotenv')
 const dotenvExpand = require('dotenv-expand')
+const BuildModule = require('./BuildModule')
+const Assets = require('./Assets')
 
 const defaultBabelOps = {
     babelrc:true,
@@ -98,20 +100,41 @@ class Builder extends Token{
         if( !module || !assets )return;
         assets.forEach( asset=>{
             if(!asset.file && asset.type ==="style"){
-                let file = this.getModuleFile( module, asset.id, asset.type, asset.resolve, {...asset.attrs,index:asset.index} , 'emitAssets');
+
+                const {index, type, attrs={}} = asset;
+                const lang = attrs.lang || attrs.type;
+                const suffix = `file.${lang}`;
+                const file = this.getModuleResourceId(module, {...attrs, index, type, lang, [suffix]:''})
                 this.emitContent(file, asset.content);
+                
+                Assets.create(file, asset.content, false, 'styles');
+                //const assetModule = Assets.create(file, asset.content, false, 'styles');
+                //const buildMod = BuildModule.create(file, true);
+                //buildMod.addAsset(assetModule);
+
             }else if( asset.file && asset.resolve ){
                 if( fs.existsSync(asset.resolve) ){
+
                     let file = asset.resolve;
                     if(this.isLoadAssetsRawcode(asset.stack, asset.resolve)){
-                        file = this.getModuleFile(module, asset.id, 'embedAssets', null, {index:asset.index, ext:asset.type});
+                        const {index, id, type:ext} = asset;
+                        file = this.getModuleResourceId(module, {index, id, ext, type:"embedAssets"})
                     }
+
                     let content = fs.readFileSync( asset.resolve , {encoding:'utf-8'});
                     this.emitContent(
                         file, 
                         content.toString(), 
                         emitFile ? this.getOutputAbsolutePath(asset.resolve) : null
                     );
+
+                    const asset = Assets.create(file, content.toString(), false, 'embedAssets');
+                    asset.resolveFile = asset.resolve;
+
+                    //const assetModule = Assets.create(file);
+                    //const buildMod = BuildModule.create(this.getModuleFile(module), true);
+                    //buildMod.addAsset(assetModule);
+
                 }else{
                    //console.warn( `Assets file the '${asset.file}' is not emit.`);
                 }
@@ -231,7 +254,7 @@ class Builder extends Token{
         const gen = ast ? this.createGenerator(ast, compilation, module) : null;
         const isRoot = compilation.stack === stack;
         if( gen ){
-            const file = this.getModuleFile( module || compilation );
+            const file = this.getModuleResourceId( module || compilation );
             var content = gen.toString();
             var sourceMap = gen.sourceMap ? gen.sourceMap.toJSON() : null;
             if( content ){
@@ -255,6 +278,10 @@ class Builder extends Token{
                     config.emitFile ? this.getOutputAbsolutePath(module ? module : compilation.file) : null,
                     sourceMap
                 );
+
+                const buildMod = BuildModule.create(file);
+                buildMod.content = content;
+                buildMod.sourceMap = sourceMap;
             }
         }
 
@@ -776,6 +803,10 @@ class Builder extends Token{
         return this.compiler.normalizeModuleFile(module, uniKey, type, resolve, attrs);
     }
 
+    getModuleResourceId(module, query={}){
+        return this.compiler.parseResourceId(module, query)
+    }
+
     getModuleReferenceName(module,context){
         context = context || this.compilation;
         if( !module || !module.isModule)return null;
@@ -840,10 +871,12 @@ class Builder extends Token{
                 if( !this.isExternalDependence(asset.resolve, module) ){
                     let source = '';
                     if(this.isLoadAssetsRawcode(asset.stack, asset.resolve)){
-                        source = this.getModuleFile(module, asset.id, 'embedAssets', null, {index:asset.index, ext:asset.type});
+                        const {id,index,type:ext} = asset;
+                        source = this.getModuleResourceId(module, {id, index, ext, type:'embedAssets'})
                     }else{
                         source = this.getModuleImportSource(asset.resolve, module || context , asset.file );
                     }
+
                     dataset.set(source,{
                         source:source,
                         local:asset.assign,
@@ -856,7 +889,10 @@ class Builder extends Token{
                 }
             }else if( asset.type ==="style" && module ){
                 const config = this.plugin.options;
-                const file = this.getModuleFile(module, asset.id, asset.type, asset.resolve, asset.attrs, 'crateAssetItems');
+                const {index,type,attrs={}} = asset;
+                const lang = attrs.lang || attrs.type || 'css';
+                const suffix = 'file.'+lang;
+                const file = this.getModuleResourceId(module, {...attrs, index, type, lang, [suffix]:''})
                 const source = (config.styleLoader || []).concat( file ).join('!');
                 dataset.set(source,{
                     source:source,
@@ -1018,6 +1054,7 @@ class Builder extends Token{
         const isModule = this.compiler.callUtils('isTypeModule', module);
         dataset = dataset || new Map();
         excludes = excludes || new WeakSet();
+        
         const assets = module.assets;
         const compilation = isModule ? module.compilation : module;
         if( assets ){
@@ -1124,7 +1161,7 @@ class Builder extends Token{
             return identifier || source;
         }
         if( config.useAbsolutePathImport ){
-            return isString ? source : this.getModuleFile(source);
+            return isString ? source : this.getModuleResourceId(source);
         }
         if( isString && !path.isAbsolute(source)){
             return source;
