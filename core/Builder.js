@@ -128,8 +128,8 @@ class Builder extends Token{
                         emitFile ? this.getOutputAbsolutePath(asset.resolve) : null
                     );
 
-                    const asset = Assets.create(file, content.toString(), false, 'embedAssets');
-                    asset.resolveFile = asset.resolve;
+                    const assetItem = Assets.create(file, content.toString(), false, 'embedAssets');
+                    assetItem.resolveFile = asset.resolve;
 
                     //const assetModule = Assets.create(file);
                     //const buildMod = BuildModule.create(this.getModuleFile(module), true);
