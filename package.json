@@ -43,6 +43,7 @@
     "source-map": "^0.7.4"
   },
   "devDependencies": {
+    "easescript": "latest",
     "jasmine": "^3.10.0"
   },
   "esconfig": {
