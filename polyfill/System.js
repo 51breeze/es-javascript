@@ -368,33 +368,37 @@ System.dispatchHook=function dispatchHook(type, ...args){
 
 
 function _invokeHook(items, args, records=null){
-    let len = items && items.length;
-    let result = args[0];
-    if( len > 0 ){
-        let i = 0;
-        let ctx = {
-            stop:false,
-            previous:null
-        };
-        args = args.slice(1);
-        for(;i<len;i++){
-            const [invoke,,once] = items[i];
-            if(!records || !records.called.includes(invoke)){
-                if(once){
-                    items.splice(i,1);
-                    len--;
-                }else if(records){
-                    records.called.push(invoke);
+    try{
+        let len = items && items.length;
+        let result = args[0];
+        if( len > 0 ){
+            let i = 0;
+            let ctx = {
+                stop:false,
+                previous:null
+            };
+            args = args.slice(1);
+            for(;i<len;i++){
+                const [invoke,,once] = items[i];
+                if(!records || !records.called.includes(invoke)){
+                    if(once){
+                        items.splice(i,1);
+                        len--;
+                    }else if(records){
+                        records.called.push(invoke);
+                    }
+                    result = invoke.call(ctx, result, ...args);
+                    if( ctx.stop ){
+                        return result;
+                    }
+                    ctx.previous = result;
                 }
-                result = invoke.call(ctx, result, ...args);
-                if( ctx.stop ){
-                    return result;
-                }
-                ctx.previous = result;
             }
         }
+        return result;
+    }catch(e){
+        console.error(e);
     }
-    return result;
 }
 
 System.registerHook=function registerHook(type, processer, priority, once=false){
