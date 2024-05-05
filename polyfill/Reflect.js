@@ -266,6 +266,7 @@ const _Reflect = (function(_Reflect){
                 }
             }
             if( result ){
+                result.key = name;
                 result.isDescriptor = true;
                 result.isMember = true;
                 result.modifier = Reflect.MODIFIER_PUBLIC;
@@ -397,6 +398,26 @@ const _Reflect = (function(_Reflect){
                 label='interface';
             }
 
+            const members = d.members;
+            const methods = d.methods;
+            let originMembers = null;
+            let originMethods = null;
+            if(!members){
+                originMembers = Object.create(null);
+                Object.getOwnPropertyNames(target).forEach( key=>{
+                    if(key==='prototype'||key==='__proto__'||key==='constructor')return;
+                    originMembers[key] = getObjectDescriptor(target, key);
+                });
+            }
+
+            if(!methods){
+                originMethods = Object.create(null);
+                Object.getOwnPropertyNames(objClass).forEach( key=>{
+                    if(key==='prototype'||key==='__proto__'||key==='constructor')return;
+                    originMethods[key] = getObjectDescriptor(objClass, key);
+                });
+            }
+
             return {
                 'isDescriptor':true,
                 'isModule':true,
@@ -409,10 +430,22 @@ const _Reflect = (function(_Reflect){
                 'isStatic':!!d.static,
                 'privateKey':d.private || null,
                 'implements':d.imps || null,
-                'members':make(d.members),
-                'methods':make(d.methods, true),
+                'members':originMembers || make(members),
+                'methods':originMethods || make(methods, true),
                 'inherit':d.inherit || null,
             };
+        }
+
+        if(description){
+            if(isStatic){
+                if(!description.methods){
+                    return getObjectDescriptor(objClass, name)
+                }
+            }else{
+                if(!description.members){
+                    return getObjectDescriptor(target, name)
+                }
+            }
         }
 
         const privateScope = objClass;
@@ -499,7 +532,7 @@ const _Reflect = (function(_Reflect){
         while( objClass && (description = objClass[ Class.key ]) ){
             if(parentClass === objClass)break;
             if(mode & 1 === 1)make(description.members);
-            if(mode & 2 === 2)make(description.methods);
+            if(mode & 2 === 2)make(description.methods, true);
             const inheritClass=description.inherit;
             if(inheritClass && inheritClass !== objClass){
                 objClass = inheritClass;
@@ -508,6 +541,19 @@ const _Reflect = (function(_Reflect){
             }
         }
 
+        if(descriptors.length ===0){
+
+            Object.getOwnPropertyNames(target).forEach( key=>{
+                if(key==='prototype'||key==='__proto__'||key==='constructor')return;
+                descriptors.push(getObjectDescriptor(target, key));
+            });
+
+            Object.getOwnPropertyNames(objClass).forEach( key=>{
+                if(key==='prototype'||key==='__proto__'||key==='constructor')return;
+                originMethods[key] = getObjectDescriptor(objClass, key);
+            });
+        }
+        
         return top;
     }
 
