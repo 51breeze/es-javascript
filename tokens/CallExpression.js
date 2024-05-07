@@ -10,6 +10,7 @@ module.exports = function(ctx,stack){
     const isMember = stack.callee.isMemberExpression;
     const desc = stack.getDeclareFunctionType(stack.description());
     const module = stack.module;
+    const isChainExpression = stack.parentStack.isChainExpression;
     if(stack.callee.isSuperExpression){
         const parent = module && module.inherit;
         if( parent ){
@@ -67,7 +68,7 @@ module.exports = function(ctx,stack){
     //     }
     // }
 
-    if( isMember && desc && desc.isType && desc.isAnyType  ){
+    if( isMember && desc && desc.isType && desc.isAnyType && !isChainExpression ){
         const strict = ctx.plugin.options.strict;
         if(strict){
             ctx.addDepend( stack.getGlobalTypeById("Reflect") );
@@ -87,7 +88,7 @@ module.exports = function(ctx,stack){
                 stack
             );
         }
-    }else if( stack.callee.isSuperExpression || isMember && stack.callee.object.isSuperExpression ){
+    }else if( stack.callee.isSuperExpression || isMember && stack.callee.object.isSuperExpression && !isChainExpression ){
         return ctx.createCalleeNode(
             ctx.createMemberNode(
                 [
@@ -130,5 +131,6 @@ module.exports = function(ctx,stack){
     const node = ctx.createNode( stack );
     node.callee = node.createToken( stack.callee );
     node.arguments = stack.arguments.map( item=>node.createToken(item) );
+    node.isChainExpression = isChainExpression;
     return node;
 }

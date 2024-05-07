@@ -47,7 +47,7 @@ function MemberExpression(ctx,stack){
     }
 
     const strict = ctx.plugin.options.strict;
-    if( strict && description && description.isType && description.isAnyType ){
+    if( strict && description && description.isType && description.isAnyType && !stack.optional){
         let isReflect = false
         const hasDynamic = description.isComputeType && description.isPropertyExists();
         if( !hasDynamic && !stack.compiler.callUtils("isLiteralObjectType", objectType ) ){
@@ -155,6 +155,7 @@ function MemberExpression(ctx,stack){
 
     const node = ctx.createNode(stack);
     node.computed = !!stack.computed;
+    node.optional = !!stack.optional;
     node.object = node.createToken( stack.object );
     node.property = propertyNode;
     return node;

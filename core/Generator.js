@@ -232,6 +232,9 @@ class Generator{
             break;
             case "CallExpression" :
                 this.make(token.callee)
+                if(token.isChainExpression){
+                    this.withString('?.')
+                }
                 this.withParenthesL();
                 if(token.newLine)this.newLine();
                 if(token.indentation)this.newBlock();
@@ -270,6 +273,9 @@ class Generator{
                     this.make(token.label);
                 }
                 this.withSemicolon();
+            break;
+            case "ChainExpression" :
+                this.make(token.expression);
             break;
             case "DoWhileStatement" :
                 this.newLine();
@@ -508,11 +514,18 @@ class Generator{
             case "MemberExpression" :
                 this.make(token.object);
                 if( token.computed){
+                    if(token.optional){
+                        this.withString('?.');
+                    }
                     this.withBracketL();
                     this.make(token.property);
                     this.withBracketR();
                 }else{
-                    this.withString('.');
+                    if(token.optional){
+                        this.withString('?.');
+                    }else{
+                        this.withString('.');
+                    }
                     this.make(token.property);
                 }
             break;

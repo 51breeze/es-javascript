@@ -3,7 +3,7 @@ module.exports = function(ctx,stack){
     const module = stack.module;
     const isMember = stack.left.isMemberExpression;
     var isReflect = false;
-    var operator = stack.node.operator;
+    var operator = stack.operator || stack.node.operator;
     if( isMember){
         if( stack.left.computed ){
             const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();

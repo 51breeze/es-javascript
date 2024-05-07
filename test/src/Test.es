@@ -302,6 +302,8 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
        var param = new Param();
        param.start();
 
+       this.chian()
+
     }
 
     private testAssignment(){
@@ -1000,6 +1002,52 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             })
         });
     
+    }
+
+    chian(){
+        const obj = {
+            index:1,
+            test(){
+                return true
+            },
+            child:{
+                1:'own',
+                name:'string',
+                child:{
+                    name:'zh'
+                }
+            }
+        }
+
+        it(`test chian expression`, ()=>{
+            expect( void 0 ).toBe( obj.child2?.name )
+            expect( void 0 ).toBe( obj.test2?.() )
+
+            obj.index2 ??= 'index two';
+            expect('index two').toBe( obj.index2 ?? null );
+
+            expect(null).toBe( obj.index3 ?? null );
+
+            obj.index ??= 2;
+            expect(1).toBe( obj.index );
+
+            expect( 'zh' ).toBe( obj.child?.child?.name );
+            expect( 'zh' ).toBe( obj.child?.child?.name ?? 'null' );
+            expect( 'null' ).toBe( obj.child?.chil?.name ?? 'null' );
+            expect( void 0 ).toBe( obj.chil?.child?.name );
+            expect( false ).toBe( obj.chil?.child?.name ?? false );
+
+            let x = 0;
+            expect( void 0 ).toBe( obj.chil?.[++x] )
+            expect( 0 ).toBe( x )
+
+            expect('own').toBe( obj.child?.[++x] )
+            expect(1).toBe( x )
+
+            expect('own').toBe( obj.child?.[x++] )
+            expect(2).toBe( x )
+        })
+
     }
 
 
