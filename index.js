@@ -159,18 +159,29 @@ class PluginEsJavascript{
         return this.generatedSourceMaps.get(file);
     }
 
-    getBuildModule(resourcePath, id=null){
-        const module = BuildModule.getModuleByResourcePath(resourcePath)
+    getBuildModule(resourcePath, id=null, ns=''){
+        const module = BuildModule.getModuleByResourcePath(resourcePath, ns)
         return module && id ? module.getModule(id) : module;
     }
 
-    getBuildStyle(resourcePath, index=0){
-        return Assets.getAsset(resourcePath, 'styles', index);
+    getBuildStyle(resourcePath, index=0, ns=''){
+        return this.getBuildAssets(resourcePath, index, 'styles', ns)
     }
 
-    getBuildAssets(resourcePath, index=0, type=null){
+    getBuildAssets(resourcePath, index=0, type=null, ns=''){
         if(type==='style')type = 'styles';
-        return Assets.getAsset(resourcePath, type, index);
+        return Assets.getAsset(resourcePath, type, index, ns);
+    }
+
+    createBuildAsset(resourceId, content=null, isFile=null, type=null, ns=''){
+        return Assets.create(resourceId, content, isFile, type, ns);
+    }
+
+    createBuildModule(resourceId, content, sourceMap, ns=''){
+        const buildMod = BuildModule.create(resourceId, ns);
+        buildMod.content = content;
+        buildMod.sourceMap = sourceMap;
+        return buildMod;
     }
 
     getTokenNode(name){

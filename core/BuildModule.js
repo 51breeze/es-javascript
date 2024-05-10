@@ -5,18 +5,23 @@ const {parseResource} = require('./Utils')
 const Records = new Map();
 class BuildModule{
 
-    static getModuleByResourcePath(resourcePath){
-        return Records.get(resourcePath);
+    static getKey(resourceId, ns=''){
+        return resourceId+ns;
     }
 
-    static create(resourceId, mainFlag=false){
+    static getModuleByResourcePath(resourcePath,ns=''){
+        return Records.get(this.getKey(resourcePath,ns));
+    }
+
+    static create(resourceId, ns=''){
         const {resourcePath, query} = parseResource(resourceId);
-        let module = Records.get(resourcePath);
+        const key = this.getKey(resourcePath, ns);
+        let module = Records.get(key);
         if( !module ){
             module = new BuildModule(resourceId, resourcePath, query);
-            Records.set(resourcePath, module);
+            Records.set(key, module);
         }
-        if(query.id && !mainFlag){
+        if(query.id){
             const main = module;
             module = main.getModule(query.id);
             if(!module){

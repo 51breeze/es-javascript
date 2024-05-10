@@ -4,26 +4,26 @@ const AssetsKey = Symbol('assets');
 const Records = new Map();
 class Assets{
 
-    static getKey(resourcePath, type, index){
-        return resourcePath+':'+type+':'+index;
+    static getKey(resourcePath, type, index, ns=''){
+        return resourcePath+':'+type+':'+index+ns;
     }
 
-    static getAsset(resourcePath, type=null, index=0){
-        return Records.get(Assets.getKey(resourcePath, type, index)) || null;
+    static getAsset(resourcePath, type=null, index=0, ns=''){
+        return Records.get(Assets.getKey(resourcePath, type, index, ns)) || null;
     }
 
     static is(obj){
         return obj && obj[AssetsKey] === true;
     }
 
-    static create(resourceId, content=null, isFile=null, type=null){
+    static create(resourceId, content=null, isFile=null, type=null, ns=''){
         let {resourcePath, query} = parseResource(resourceId);
         let resolveFile = resourcePath;
         if(content && isFile){
             resolveFile = content;
         }
         let index = query.index||0;
-        let key = Assets.getKey(resourcePath, type, index);
+        let key = Assets.getKey(resourcePath, type, index, ns);
         let asset = Records.get(key);
         if( !asset ){
             asset = new Assets();

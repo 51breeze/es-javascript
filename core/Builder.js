@@ -106,8 +106,10 @@ class Builder extends Token{
                 const suffix = `file.${lang}`;
                 const file = this.getModuleResourceId(module, {...attrs, index, type, lang, [suffix]:''})
                 this.emitContent(file, asset.content);
+
+                this.plugin.createBuildAsset(file, asset.content, false, 'styles')
                 
-                Assets.create(file, asset.content, false, 'styles');
+                //Assets.create(file, asset.content, false, 'styles');
                 //const assetModule = Assets.create(file, asset.content, false, 'styles');
                 //const buildMod = BuildModule.create(file, true);
                 //buildMod.addAsset(assetModule);
@@ -128,7 +130,7 @@ class Builder extends Token{
                         emitFile ? this.getOutputAbsolutePath(asset.resolve) : null
                     );
 
-                    const assetItem = Assets.create(file, content.toString(), false, 'embedAssets');
+                    const assetItem = this.plugin.createBuildAsset(file, content.toString(), false, 'embedAssets');
                     assetItem.resolveFile = asset.resolve;
 
                     //const assetModule = Assets.create(file);
@@ -279,9 +281,7 @@ class Builder extends Token{
                     sourceMap
                 );
 
-                const buildMod = BuildModule.create(file);
-                buildMod.content = content;
-                buildMod.sourceMap = sourceMap;
+                this.plugin.createBuildModule(file, content,  sourceMap);
             }
         }
 
