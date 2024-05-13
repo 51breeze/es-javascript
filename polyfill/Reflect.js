@@ -372,7 +372,7 @@ const _Reflect = (function(_Reflect){
 
         if( !description ){
             let result = null;
-            if( name ){
+            if( name != null ){
                 result = getObjectDescriptor(target, name);
             }
             return result;

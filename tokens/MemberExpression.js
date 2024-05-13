@@ -49,7 +49,7 @@ function MemberExpression(ctx,stack){
     const strict = ctx.plugin.options.strict;
     if( strict && description && description.isType && description.isAnyType && !stack.optional){
         let isReflect = false
-        const hasDynamic = description.isComputeType && description.isPropertyExists();
+        let hasDynamic = description.isComputeType && description.isPropertyExists();
         if( !hasDynamic && !stack.compiler.callUtils("isLiteralObjectType", objectType ) ){
             isReflect = true;
         }

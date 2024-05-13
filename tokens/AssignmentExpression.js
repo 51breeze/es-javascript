@@ -1,12 +1,15 @@
 module.exports = function(ctx,stack){
-    const desc = stack.description();
+    const desc = stack.left.description();
     const module = stack.module;
     const isMember = stack.left.isMemberExpression;
     var isReflect = false;
     var operator = stack.operator || stack.node.operator;
     if( isMember){
         if( stack.left.computed ){
-            const hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
+            let hasDynamic = desc && desc.isComputeType && desc.isPropertyExists();
+            if(!hasDynamic && desc && (desc.isProperty && desc.computed || desc.isPropertyDefinition && desc.dynamic)){
+                hasDynamic = true
+            }
             if( !hasDynamic && !ctx.compiler.callUtils("isLiteralObjectType", stack.left.object.type() ) ){
                 isReflect = true;
             }
