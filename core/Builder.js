@@ -206,7 +206,7 @@ class Builder extends Token{
                     }
                 })
             }else{
-                this.buildForModule(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
+                this.buildForModule(compilation, compilation.stack, compilation.mainModule || Array.from(compilation.modules.values()).shift() );
             }
 
             this.buildModules.forEach(module=>{
@@ -238,7 +238,7 @@ class Builder extends Token{
                     }
                 });
             }else{
-                this.make(compilation, compilation.stack, Array.from(compilation.modules.values()).shift() );
+                this.make(compilation, compilation.stack, compilation.mainModule || Array.from(compilation.modules.values()).shift() );
             }
             compilation.completed(this.plugin,true);
             done(null, this);
