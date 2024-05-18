@@ -107,7 +107,8 @@ class Builder extends Token{
                 const file = this.getModuleResourceId(module, {...attrs, index, type, lang, [suffix]:''})
                 this.emitContent(file, asset.content);
 
-                this.plugin.createBuildAsset(file, asset.content, false, 'styles')
+                const obj = this.plugin.createBuildAsset(file, asset.content, false, 'styles');
+                obj.content = asset.content;
                 
                 //Assets.create(file, asset.content, false, 'styles');
                 //const assetModule = Assets.create(file, asset.content, false, 'styles');
