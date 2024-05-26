@@ -1284,13 +1284,14 @@ class Builder extends Token{
     createReadfileAnnotationNode(ctx, stack){
         const args = stack.getArguments();
         const depsContext = stack.module || stack.compilation;
-        const indexes = ['dir','load','suffix','relative','lazy'];
-        const [_path, _load, _suffix, _relative, _lazy] = [
+        const indexes = ['dir','load','suffix','relative','lazy','only'];
+        let [_path, _load, _suffix, _relative, _lazy, _only] = [
             stack.getAnnotationArgumentItem('dir', args, indexes),
             stack.getAnnotationArgumentItem('load', args, indexes),
             stack.getAnnotationArgumentItem('suffix', args, indexes),
             stack.getAnnotationArgumentItem('relative', args, indexes),
             stack.getAnnotationArgumentItem('lazy', args, indexes),
+            stack.getAnnotationArgumentItem('only', args, indexes),
         ].map( item=>{
             return item ? item.value : null;
         });
@@ -1299,6 +1300,7 @@ class Builder extends Token{
             return null;
         }
 
+        let only = Boolean(String(_only)==='true');
         let dir = String(_path).trim();
         let suffixPattern = null;
 
@@ -1339,6 +1341,7 @@ class Builder extends Token{
             if(suffixPattern){
                 return suffixPattern.test(filepath);
             }
+            if(suffix==='*')return true;
             return suffix.some( item=>file.endsWith(item) );
         }
 
@@ -1352,8 +1355,10 @@ class Builder extends Token{
                     if(file==='.' || file==='..')return;
                     let filepath = this.compiler.normalizePath(path.join(dir, file));
                     if(fs.statSync(filepath).isDirectory()){
-                        files.push(filepath);
-                        readdir(filepath);
+                        if(!only){
+                            files.push(filepath);
+                            readdir(filepath);
+                        }
                     }else if(checkSuffix(filepath)){
                         files.push(filepath);
                     }
@@ -1421,7 +1426,7 @@ class Builder extends Token{
                     }else{
                         namedMap.add(file);
                         data = '_'+named.replaceAll('-', '_') +namedMap.size;
-                        addDeps(file, data);
+                        addDeps(file, this.genUniVarRefs(data, null, null, true));
                     }
                 }
                 item.content = data;
@@ -1439,6 +1444,9 @@ class Builder extends Token{
 
         const make = (list)=>{
             return list.map( object=>{
+                if(only){
+                    return object.content ? ctx.createChunkNode(object.content) : ctx.createLiteralNode(null);
+                }
                 const properties = [ctx.createPropertyNode('path', object.path)];
                 if(object.isFile){
                     properties.push(ctx.createPropertyNode('isFile', ctx.createLiteralNode(true)))
