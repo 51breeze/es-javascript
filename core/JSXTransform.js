@@ -59,7 +59,7 @@ class JSXTransform extends Token{
         return result;
     }
 
-    makeConfig(data){
+    makeConfig(data, stack){
         const items = [];
         Object.entries(data).map( item=>{
             const [key, value] = item;
@@ -596,6 +596,32 @@ class JSXTransform extends Token{
         return node;
     }
 
+    createForMapNode(object, element, item, key, index){
+        const params = [this.createIdentifierNode(item)];
+        if( key ){
+            params.push(this.createIdentifierNode(key))
+        }
+
+        if( index ){
+            params.push(this.createIdentifierNode(index))
+        }
+
+        if( element.type ==="ArrayExpression" && element.elements.length === 1){
+            element = element.elements[0];
+        }
+
+        const node = this.createArrowFunctionNode(params, element);
+        const System = this.builder.getGlobalModuleById('System')
+        this.addDepend( System );
+        return this.createCalleeNode(
+            this.createMemberNode([this.checkRefsName( this.getModuleReferenceName(System) ),'forMap']),
+            [
+                object,
+                node
+            ]
+        );
+    }
+
     createEachNode(element, args){
         return this.createArrowFunctionNode(args,element);
     }
@@ -644,14 +670,15 @@ class JSXTransform extends Token{
             }
             return node;
         }else{
-            return this.createCalleeNode(
-                this.createParenthesNode( 
-                    this.createForInNode(refName, element, item, key, index) 
-                ),
-                [
-                    refs
-                ]
-            );
+            return createForMapNode(refs,element, item, key, index)
+            // return this.createCalleeNode(
+            //     this.createParenthesNode( 
+            //         this.createForInNode(refName, element, item, key, index) 
+            //     ),
+            //     [
+            //         refs
+            //     ]
+            // );
         }
     }
 
@@ -932,7 +959,7 @@ class JSXTransform extends Token{
             name = this.createLiteralNode(stack.openingElement.name.value(), void 0, stack.openingElement.name);
         }
 
-        data = this.makeConfig(data);
+        data = this.makeConfig(data, stack);
         if( children ){
             return this.createElementNode(stack, name, data || this.createLiteralNode(null), children);
         }else if(data){

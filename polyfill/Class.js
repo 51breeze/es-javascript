@@ -67,14 +67,33 @@ const Class={
             });
         }
     },
-    callSuperMethod(moduleClass, methodName, thisArg, kind='method', args=[]){
-        const method = this.fetchSuperMethod(moduleClass, methodName,kind);
+    callSuperMethod(moduleClass, thisArg, methodName, args=[]){
+        const method = this.fetchSuperMethod(moduleClass, methodName, 'method');
         if(method){
             return method.apply(thisArg, args);
         }else{
-            throw new ReferenceError(`Call the '${methodName}' method is not exists. on Class.callSuperMethod`)
+            throw new ReferenceError(`'super.${methodName}' method is not exists.`)
         }
     },
+
+    callSuperSetter(moduleClass, thisArg, methodName, value){
+        const method = this.fetchSuperMethod(moduleClass, methodName, 'setter');
+        if(method){
+            return method.call(thisArg, value);
+        }else{
+            throw new ReferenceError(`'super.${methodName}' setter is not exists.`)
+        }
+    },
+
+    callSuperGetter(moduleClass, thisArg, methodName){
+        const method = this.fetchSuperMethod(moduleClass, methodName, 'getter');
+        if(method){
+            return method.call(thisArg);
+        }else{
+            throw new ReferenceError(`'super.${methodName}' getter is not exists.`)
+        }
+    },
+
     fetchSuperMethod(moduleClass, methodName, kind='method'){
 
         if(!moduleClass)return null;
@@ -90,7 +109,7 @@ const Class={
 
         while(parent && parent.members){
             const desc = parent.members[methodName];
-            if(desc && Class.CONSTANT.MODIFIER_PRIVATE !== (desc.m & Class.CONSTANT.MODIFIER_PUBLIC) ){
+            if(desc && Class.CONSTANT.MODIFIER_PRIVATE !== desc.m ){
                 if( desc.d === Class.CONSTANT.PROPERTY_ACCESSOR ){
                     if(desc.set && kind==='setter'){
                         return desc.set
@@ -160,11 +179,13 @@ const Class={
                 }
                 merge(inheritObject, moduleClass);
             }
+
             if( description.methods ){
                 Object.defineProperties(moduleClass,description.methods);
             }
+
             if( description.members ){
-                Object.defineProperties(moduleClass.prototype,description.members);
+                Object.defineProperties(moduleClass.prototype, description.members);
             }
 
             if(_extends && _extends.length>0){

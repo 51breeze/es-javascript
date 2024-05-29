@@ -24,9 +24,8 @@ module.exports = function(ctx,stack){
             if( !ctx.isActiveForModule(parent, stack.module) ){
                 return ctx.createCalleeNode( ctx.createMemberNode([ctx.checkRefsName('Class'),'callSuperMethod']), [
                     ctx.createIdentifierNode(module.id),
-                    ctx.createLiteralNode(stack.callee.property.value(), void 0, stack.callee.property),
                     ctx.createThisNode(),
-                    ctx.createLiteralNode('methods'),
+                    ctx.createLiteralNode(stack.callee.property.value(), void 0, stack.callee.property),
                     ctx.createArrayNode( stack.arguments.map( item=>ctx.createToken(item) ) )
                 ]);
             }

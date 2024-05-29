@@ -173,31 +173,39 @@ class Builder extends Token{
         fs.writeFileSync(file, content);
     }
 
-    buildForModule(compilation, stack, module){
+    buildForModule(compilation, stack, module, cache=new WeakSet()){
         if(!compilation)return;
+        if( module){
+            if(this.buildModules.has(module)){
+                return;
+            }
+            this.buildModules.add(module);
+        }
+
+        if(cache.has(module||compilation))return;
+        cache.add(module||compilation)
+
         this.make(compilation, stack, module);
         this.getDependencies(module||compilation).forEach( depModule=>{
-            if( depModule && (this.isNeedBuild(depModule, module) && !this.buildModules.has(depModule))){
-                this.buildModules.add(depModule);
+            if( depModule && this.isNeedBuild(depModule, module)){
                 const compi = depModule.compilation;
-                const builder =  compi === compilation ? this : this.plugin.getBuilder(compi);
+                const builder = this.plugin.getBuilder(compi);
                 if( depModule.isDeclaratorModule ){
                     const stack = compi.getStackByModule(depModule);
                     if( stack ){
-                        builder.buildForModule( compi, stack, depModule );
+                        builder.buildForModule(compi, stack, depModule, cache);
                     }else{
                         throw new Error(`Not found stack by '${depModule.getName()}'`);
                     }
                 }else{
-                    builder.buildForModule(compi, compi.stack, depModule);
+                    builder.buildForModule(compi, compi.stack, depModule, cache);
                 }
             }
         });
     }
 
-    start( done ){
+    start(done){
         try{
-            this.clear();
             const compilation = this.compilation;
             if( compilation.isDescriptorDocument() ){
                 compilation.modules.forEach( module=>{
@@ -209,48 +217,38 @@ class Builder extends Token{
             }else{
                 this.buildForModule(compilation, compilation.stack, compilation.mainModule || Array.from(compilation.modules.values()).shift() );
             }
-
-            this.buildModules.forEach(module=>{
-                module.compilation.completed(this.plugin,true);
-            });
-
-            compilation.completed(this.plugin,true);
             done(null,this);
-
         }catch(e){
             done(e,this);
         }
     }
 
     build(done){
-        this.filesystem  = this.compiler.getOutputFileSystem( this.plugin );
-        const compilation = this.compilation;
-        if( compilation.completed(this.plugin) ){
-            return done(null, this);
-        }
         try{
-            this.clear();
-            compilation.completed(this.plugin,false);
+            const compilation = this.compilation;
             if( compilation.isDescriptorDocument() ){
                 compilation.modules.forEach( module=>{
                     const stack = compilation.getStackByModule(module);
                     if(stack){
                         this.make(compilation, stack, module);
+                        this.buildModules.add(module);
                     }
                 });
             }else{
-                this.make(compilation, compilation.stack, compilation.mainModule || Array.from(compilation.modules.values()).shift() );
+                const module = compilation.mainModule || Array.from(compilation.modules.values()).shift();
+                this.make(compilation, compilation.stack, module);
+                if(module){
+                    this.buildModules.add(module);
+                }
             }
-            compilation.completed(this.plugin,true);
             done(null, this);
         }catch(e){
             done(e, this);
         }
     }
 
-    make(compilation, stack, module, flag=false){
-        if( !flag && compilation.completed(this.plugin) )return;
-        if(this.buildAstCache.has(stack))return;
+    make(compilation, stack, module){
+        if(this.buildAstCache.has(stack))return false;
         this.buildAstCache.add(stack);
         const config = this.plugin.options;
         const ast = this.createAstToken(stack);
@@ -261,7 +259,7 @@ class Builder extends Token{
             var content = gen.toString();
             var sourceMap = gen.sourceMap ? gen.sourceMap.toJSON() : null;
             if( content ){
-                if( config.babel ){
+                if(config.babel){
                     const result = this.babelTransformSync(
                         content, 
                         sourceMap, 
@@ -294,6 +292,7 @@ class Builder extends Token{
         }else if( module ){
             this.emitAssets(module.assets, module, config.emitFile);
         }
+        return true;
     }
 
     babelTransformSync(content, sourceMap, babelOps, module, stack, compilation){
@@ -468,7 +467,7 @@ class Builder extends Token{
     }
 
     getClassMemberHook(stack){
-        if( !stack || !stack.isStack || !(stack.isMethodDefinition || stack.isPropertyDefinition) )return null;
+        if( !stack || !stack.isStack || !(stack.isMethodDefinition || stack.isPropertyDefinition || stack.isClassDeclaration || stack.isDeclaratorDeclaration) )return null;
         let id = null;
         if(stack.module){
             let raw = stack.value();

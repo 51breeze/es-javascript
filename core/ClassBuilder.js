@@ -293,13 +293,15 @@ class ClassBuilder extends Token{
     createPrivatePropertyNode(stack,child,isStatic){
         if( !isStatic && this.plugin.options.enablePrivateChain && child.modifier === "private"){
             this.privateProperties.push(
-                this.createPropertyNode( child.key.value, child.init)
+                this.createPropertyNode( child.key.value, child.init || child.createLiteralNode(null))
             );
+            return true
         }
+        return false
     }
 
     createClassMemebers(stack){
-        if( this.type !=="ClassDeclaration" )return;
+        if( this.type !=="ClassDeclaration" || !stack.body)return;
         const cache1 = new Map();
         const cache2 = new Map();
         stack.body.forEach( item=> {
@@ -308,10 +310,11 @@ class ClassBuilder extends Token{
             const isStatic = !!(stack.static || child.static);
             const refs  = isStatic ? this.methods : this.members;
             if( child.type ==="PropertyDefinition" ){
-                if( !child.init ){
+                if(this.createPrivatePropertyNode(item,child,isStatic)){
+                    child.init = null;
+                }else if(!child.init){
                     child.init = child.createLiteralNode(null);
                 }
-                this.createPrivatePropertyNode(item,child,isStatic);
             }
             if( item.isMethodSetterDefinition || item.isMethodGetterDefinition ){
                 const name = child.key.value;
@@ -390,7 +393,7 @@ class ClassBuilder extends Token{
     }
 
     createConstructInitPrivateNode(block, appendAt=NaN ){
-        if( !(this.privateProperties.length > 0) )return;
+        if( !(this.privateProperties.length > 0 || this.privateSymbolNode) )return;
         const privateName = this.createPrivateRefsName();
         const node =this.createStatementNode( 
             this.createCalleeNode( 
@@ -465,7 +468,13 @@ class ClassBuilder extends Token{
                 properties.push( this.createPropertyNode('set', node.set) );
             }
         }else{
-            properties.push( this.createPropertyNode('value', node) );
+            if(node.type==='PropertyDefinition'){
+                if(node.init){
+                    properties.push( this.createPropertyNode('value', node));
+                }
+            }else{
+                properties.push( this.createPropertyNode('value', node));
+            }
         }
         return this.createPropertyNode(key, this.createObjectNode( properties ));
     }
@@ -680,17 +689,13 @@ class ClassBuilder extends Token{
                 if(!target)return false;
                 if(inherit && inherit.id===target.value){
                     target.value = this.checkRefsName( '__$'+target.value );
-                    if(!fetchDepNameFlag){
-                        this.inheritReferenceTarget = target.value;
-                    }
+                    this.inheritReferenceTarget = target.value;
                 }else if(module.id === target.value){
                     if(local){
                         target.value = local;
                     }else{
                         target.value = this.checkRefsName( '__$'+target.value );
-                        if(!fetchDepNameFlag){
-                            this.moduleReferenceTarget = target.value;
-                        }
+                        this.moduleReferenceTarget = target.value;
                     }
                 }
             }

@@ -472,9 +472,7 @@ class Token extends events.EventEmitter {
                 return null;
             }
             if(type){
-                const systemModule = this.builder.getGlobalModuleById('System');
-                ctx.addDepend( systemModule );
-                return ctx.createCalleeNode(
+                const node = ctx.createCalleeNode(
                     ctx.createMemberNode([
                         this.builder.createThisNode(stack, ctx),
                         ctx.createIdentifierNode('invokeHook')
@@ -486,6 +484,9 @@ class Token extends events.EventEmitter {
                         ctx.createLiteralNode( desc.module.getName() )
                     ]
                 );
+                node.hasInvokeHook = true;
+                node.hookAnnotation = annotation;
+                return node;
             }
         }
         return null;

@@ -57,16 +57,16 @@ module.exports = function(ctx,stack){
         }
         
     }else if(desc && isMember && stack.left.object.isSuperExpression){
+        let resolveName = ctx.builder.getClassMemberName(desc);
+        let property = resolveName ? ctx.createIdentifierNode(resolveName, stack.left.property) : ctx.createToken(stack.left.property);
+        if(property.type === 'Identifier')property = ctx.createLiteralNode(property.value, void 0 , stack.left.property)
+        const args = [ctx.createIdentifierNode(module.id), ctx.createThisNode(), property, ctx.createToken(stack.right)]
         return ctx.createCalleeNode(
             ctx.createMemberNode([
-                ctx.createToken(stack.left),
-                ctx.createIdentifierNode('call')
+                ctx.createIdentifierNode(ctx.checkRefsName('Class')),
+                ctx.createIdentifierNode('callSuperSetter')
             ]),
-            [
-                ctx.createThisNode(),
-                ctx.createToken(stack.right)
-            ],
-            stack
+            args
         );
     }
 

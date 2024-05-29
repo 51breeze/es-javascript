@@ -99,6 +99,11 @@ function registerError(define){
     ]);
 }
 
+const cache = Object.create(null);
+const getCache = (name)=>{
+    return cache[name] || (cache[name]=new Map());
+}
+
 class PluginEsJavascript{
 
     constructor(complier,options){
@@ -117,6 +122,9 @@ class PluginEsJavascript{
         }
         this.glob=new Glob();
         this.addGlobRule(); 
+        complier.on('onChanged', (compilation)=>{
+            getCache(this.platform).delete(compilation)
+        });
     }
 
     addGlobRule(){
@@ -198,13 +206,17 @@ class PluginEsJavascript{
         const builder = this.getBuilder( compilation );
         builder.build(done);
         return builder;
-    } 
+    }
 
-    getBuilder(compilation, builderFactory=Builder){
-        let builder = new builderFactory(compilation, this);
+    getBuilder(compilation, builderFactory=Builder ){
+        let dataset = getCache(this.platform);
+        let builder = dataset.get(compilation);
+        if(builder)return builder;
+        builder = new builderFactory(compilation);
         builder.name = this.name;
         builder.platform = this.platform;
         builder.plugin = this;
+        dataset.set(compilation, builder);
         return builder;
     }
 

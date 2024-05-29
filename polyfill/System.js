@@ -73,7 +73,9 @@ System.generator = function (thisArg, body) {
 }
 
 System.is=function is(left,right){
-    if(!left || !right || typeof left !== "object")return false;
+    if(left==null || !right)return false;
+    if(Object.getPrototypeOf(left) === right.prototype)return true;
+    if(typeof left !== "object")return false;
     const rId = right[Class.key] ? right[Class.key].id : null;
     const description =  left.constructor ? left.constructor[Class.key] : null;
     if( rId === 0 && description && description.id === 1 ){
@@ -134,6 +136,14 @@ System.toArray=function toArray(object){
         return arr;
     }
     return Array.from( object );
+}
+
+System.forMap=function forEach(object, callback){
+    const items = [];
+    System.forEach(object,(value,index)=>{
+        items.push(callback(value, index));
+    });
+    return items;
 }
 
 System.forEach=function forEach(object, callback){
@@ -349,7 +359,7 @@ System.invokeHook=function invokeHook(type, ...args){
     const items = globalInvokes[type];
     const len = items && items.length;
     if( !hasOwn.call(invokeRecords, type) ){
-        invokeRecords[type] = {type, items:[], called:[]};
+        invokeRecords[type] = {type, items:[], called:new WeakSet()};
     }
     const records = invokeRecords[type];
     if( !records.items.some( arr=>{
@@ -358,7 +368,7 @@ System.invokeHook=function invokeHook(type, ...args){
     })){
         records.items.push(args);
     }
-    return len > 0 ? _invokeHook(items, args, records) : args[0] || null;
+    return len > 0 ? _invokeHook(items, args, records, true) : args[0] || null;
 }
 
 System.dispatchHook=function dispatchHook(type, ...args){
@@ -366,8 +376,7 @@ System.dispatchHook=function dispatchHook(type, ...args){
     return _invokeHook(items, args);
 }
 
-
-function _invokeHook(items, args, records=null){
+function _invokeHook(items, args, records=null, force=false){
     try{
         let len = items && items.length;
         let result = args[0];
@@ -380,12 +389,12 @@ function _invokeHook(items, args, records=null){
             args = args.slice(1);
             for(;i<len;i++){
                 const [invoke,,once] = items[i];
-                if(!records || !records.called.includes(invoke)){
+                if(force || !records || !records.called.has(invoke)){
                     if(once){
                         items.splice(i,1);
                         len--;
                     }else if(records){
-                        records.called.push(invoke);
+                        records.called.add(invoke);
                     }
                     result = invoke.call(ctx, result, ...args);
                     if( ctx.stop ){
