@@ -460,11 +460,14 @@ class ClassBuilder extends Token{
         if( (node.isAccessor || kind === Constant.DECLARE_PROPERTY_VAR || kind === Constant.DECLARE_PROPERTY_CONST) && modifier==="public" ){
             properties.push( this.createPropertyNode('enumerable', this.createLiteralNode(true) ) );
         }
+        let isConfigurable = !!node.isConfigurable;
         if( node.isAccessor ){
             if( node.get ){
+                if(node.get.isConfigurable)isConfigurable = true;
                 properties.push( this.createPropertyNode('get', node.get) ); 
             }
             if( node.set ){
+                if(node.set.isConfigurable)isConfigurable = true;
                 properties.push( this.createPropertyNode('set', node.set) );
             }
         }else{
@@ -475,6 +478,9 @@ class ClassBuilder extends Token{
             }else{
                 properties.push( this.createPropertyNode('value', node));
             }
+        }
+        if(isConfigurable){
+            properties.push( this.createPropertyNode('configurable', this.createLiteralNode(true) ) );
         }
         return this.createPropertyNode(key, this.createObjectNode( properties ));
     }
@@ -537,20 +543,25 @@ class ClassBuilder extends Token{
             }
         }
 
+        return this.createClassCreatorNode(module, className, this.createObjectNode(description));
+    }
+
+    createClassCreatorNode(module, className, description){
         const id = this.builder.getIdByModule( module );
         const args = [
             this.createLiteralNode(id), 
             this.createIdentifierNode( className || module.id ),
-            this.createObjectNode(description)
+            description
         ]
+
         if( module && module.isFragment ){
-            args[0] = this.createIdentifierNode(null);
+            args[0] = this.createLiteralNode(null);
         }
 
         return this.createStatementNode( this.createCalleeNode( this.createMemberNode([
-            this.getModuleReferenceName(this.builder.getGlobalModuleById('Class')),
-            'creator'
-        ]), args) );
+            this.createIdentifierNode(this.getModuleReferenceName(this.builder.getGlobalModuleById('Class'))),
+            this.createIdentifierNode('creator')
+        ]), args));
     }
 
     createStatementMember(name, members){
