@@ -541,11 +541,43 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
         (s = ua.match(/version\/([\d.]+).*safari/)) ? _platform = [env.BROWSER_SAFARI, parseFloat(s[1])] :
         (s = ua.match(/^mozilla\/([\d.]+)/)) ? _platform = [env.BROWSER_MOZILLA, parseFloat(s[1])] : null;
         env.IS_CLIENT = true;
+
+        const keywords = [
+            'Mobile', 'Android', 'iPhone', 'iPad', 'Windows Phone', 'BlackBerry', 'Symbian', 'Opera Mobi', 
+            'Maemo', 'Meego', 'Nintendo DS', 'Nintendo', 'PSP', 'Kindle', 'PlayStation', 'MicroMessenger'
+        ];
+        let is_mobile = null;
+        env.isMobile=function(){
+            if(is_mobile !== null)return is_mobile;
+            for (let i = 0; i < keywords.length; i++) {
+                const keyword = keywords[i];
+                const regex = new RegExp(keyword, 'i');
+                if (regex.test(ua)) {
+                    return is_mobile = true;
+                }
+            }
+            return is_mobile = false;
+        }
+        
+        env.referrer=function(){
+            const back = window.history.state.back;
+            if(back){
+                return location.origin + back;
+            }
+            return document.referrer;
+        }
+
     }else{
         if(typeof process !== 'undefined' && process.versions){
             _platform = [env.NODE_JS, process.versions.node];
         }else{
             _platform = ['OTHER', 0];
+        }
+        env.isMobile=function(){
+            return false;
+        }
+        env.referrer=function(){
+            return ''
         }
     }
 
@@ -569,14 +601,19 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
         }
     }
 
+    env.isClient=function(){
+        return  env.IS_CLIENT;
+    }
+
     /**
      * 判断是否为指定的浏览器
      * @param type
      * @returns {string|null}
      */
     env.version = function version(value, expr) {
+        if(arguments.length===0)return _platform[0];
         var result = _platform[1];
-        if (value == null)return result;
+        if (value == null)return false;
         value = parseFloat(value);
         switch (expr) {
             case '=' :
@@ -597,7 +634,6 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
     };
     System.env = env;
 }(System));
-
 
 (function (global, undefined) {
     "use strict";

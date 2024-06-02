@@ -10,6 +10,7 @@ declare interface Storage{
 declare const sessionStorage:Storage;
 declare const localStorage:Storage;
 declare System{
+    static const env:EnvInterface;
     static forMap<T=any>(target, callback:(item:any, key:string|number)=>T):T[]
     static registerHook(type:'httpRequestCreated', processer:(value?:net.Http)=>void, priority:number=0):void;
     static registerHook(type:'httpRequestSendBefore', processer:(value?:net.Http,config?:net.HttpConfig)=>void, priority:number=0):void;
@@ -19,6 +20,14 @@ declare System{
     static hasRegisterHook(type:string, processer?:Function):boolean;
     static setImmediate(callback:(...args)=>void, ...args):number;
     static clearImmediate(id:number):void;
+}
+
+declare interface EnvInterface{
+    isClient():boolean;
+    platform(name:string,version?):boolean;
+    version(value, operator?:string):boolean;
+    isMobile():boolean;
+    referrer():string;
 }
 
 declare class Proxy{

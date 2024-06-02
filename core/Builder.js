@@ -248,7 +248,7 @@ class Builder extends Token{
     }
 
     make(compilation, stack, module){
-        if(this.buildAstCache.has(stack))return false;
+        if(!stack || this.buildAstCache.has(stack))return false;
         this.buildAstCache.add(stack);
         const config = this.plugin.options;
         const ast = this.createAstToken(stack);
