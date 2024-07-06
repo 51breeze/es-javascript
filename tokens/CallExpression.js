@@ -8,7 +8,7 @@ function cache(module){
 
 module.exports = function(ctx,stack){
     const isMember = stack.callee.isMemberExpression;
-    const desc = stack.getDeclareFunctionType(stack.description());
+    const desc = stack.descriptor();
     const module = stack.module;
     const isChainExpression = stack.parentStack.isChainExpression;
     if(stack.callee.isSuperExpression){

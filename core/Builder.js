@@ -1083,7 +1083,7 @@ class Builder extends Token{
                         local,
                         resolve:item.resolve,
                         extract: false,
-                        namespaced:!!item.namespaced,
+                        namespaced:!!(item.namespaced || local==='*'),
                         type:'requires'
                     };
                     if( item.extract ){
