@@ -305,13 +305,6 @@ class Token extends events.EventEmitter {
         const type = this.builder.plugin.options.module;
         const babel = this.builder.plugin.options.babel;
         if( !babel && type ==='cjs'){
-            let onlyDefaultExported = true;
-            if(stack && (stack.isImportDeclaration || stack.isExportNamedDeclaration || stack.isExportAllDeclaration) ){
-                const compilation = stack.getResolveCompilation();
-                if( compilation && compilation.stack ){
-                    onlyDefaultExported = !(compilation.stack.exports[0].isExportDefaultDeclaration || compilation.stack.exports.length > 1);
-                }
-            }
             source = source instanceof Token ? source : this.createLiteralNode( source );
             const node = this.createCalleeNode(this.createIdentifierNode('require'), [source]);
             specifiers = specifiers.map( item=>{
@@ -322,86 +315,139 @@ class Token extends events.EventEmitter {
                     return item;
                 }
             }).filter( item=>!!item );
-            if( specifiers.length === 1 ){
-                if( !onlyDefaultExported && specifiers[0].type === 'ImportDefaultSpecifier' ){
+
+            if(specifiers.length === 1){
+                const type = specifiers[0].type;
+                if(type === 'ImportDefaultSpecifier' || type ==='ImportNamespaceSpecifier'){
                     return this.createDeclarationNode('const', [
-                        this.createDeclaratorNode( 
-                            specifiers[0].local, 
-                            this.createMemberNode([
-                                node,
-                                this.createIdentifierNode('default')
-                            ])
-                        )
+                        this.createDeclaratorNode(specifiers[0].local, node)
                     ]);
                 }
-                return this.createDeclarationNode('const', [
-                    this.createDeclaratorNode( specifiers[0].local, node)
-                ]);
-            }else if( specifiers.length > 1 ){
-                const nonSpecifierItems = specifiers.filter( item=>item.type !=='ImportSpecifier');
-                const specifierItems = specifiers.filter( item=>item.type ==='ImportSpecifier');
-                const ctx = this.getTopBlockContext();
-                const hasDiff = specifierItems.some( item=>item.local.value !== item.imported.value );
-                const refs = nonSpecifierItems.length > 0 || hasDiff ? ctx.checkRefsName( path.parse(source.value).name, true, Token.SCOPE_REFS_All, ctx, false) : null;
-                const appendBody = ctx.beforeBody || ctx.body;
-                if( refs ){
-                    const nonSpecifierNodes = nonSpecifierItems.map( item=>{
-                        if( item.type==='ImportDefaultSpecifier' && !onlyDefaultExported ){
-                            return this.createDeclarationNode('const', [
-                                this.createDeclaratorNode(
-                                    item.local,
-                                    this.createMemberNode([
-                                        this.createIdentifierNode(refs),
-                                        this.createIdentifierNode('default')
-                                    ])
-                                )
-                            ]);
-                        }
-                        return this.createDeclarationNode('const', [
-                            this.createDeclaratorNode(item.local, this.createIdentifierNode(refs))
-                        ]);
-                    });
-                    appendBody.push( ...nonSpecifierNodes );
-                    if( hasDiff ){
-                        const specifierNodes = specifierItems.map( item=>{
-                            return this.createDeclarationNode('const',[
-                                this.createDeclaratorNode(
-                                    item.local , 
-                                    this.createMemberNode([
-                                        this.createIdentifierNode(refs),
-                                        item.imported
-                                    ])
-                                )
-                            ]);
-                        });
-                        appendBody.push( ...specifierNodes );
-                    }else{
-                        const ObjectPattern = this.createNode('ObjectPattern');
-                        ObjectPattern.properties = specifierItems.map( item=>{
-                            return ObjectPattern.createPropertyNode(item.local, item.local, item.stack)
-                        });
-                        if( nonSpecifierItems.length > 0 ){
-                            appendBody.push( 
-                                this.createDeclarationNode('const', [
-                                    this.createDeclaratorNode(ObjectPattern, this.createIdentifierNode(refs))
-                                ])
-                            );
-                        }else{
-                            return this.createDeclarationNode('const', [
-                                this.createDeclaratorNode(ObjectPattern, node)
-                            ]);
-                        } 
+            }
+
+            if(specifiers.length > 0){
+                const ObjectPattern = this.createNode('ObjectPattern');
+                ObjectPattern.properties = specifiers.map( item=>{
+                    if(item.type ==="ImportDefaultSpecifier"){
+                        return ObjectPattern.createPropertyNode('default', item.local)
                     }
-                }
+                    return ObjectPattern.createPropertyNode(item.imported, item.local)
+                });
                 return this.createDeclarationNode('const', [
-                    this.createDeclaratorNode(refs, node)
+                    this.createDeclaratorNode( 
+                        ObjectPattern, 
+                        node
+                    )
                 ]);
             }
             return this.createStatementNode( node );
+            
         }else{
             return this.createImportNode( source, specifiers, stack);
         }
     }
+
+    // createImportDeclaration(source, specifiers, stack){
+    //     const type = this.builder.plugin.options.module;
+    //     const babel = this.builder.plugin.options.babel;
+    //     if( !babel && type ==='cjs'){
+    //         let onlyDefaultExported = true;
+    //         if(stack && (stack.isImportDeclaration || stack.isExportNamedDeclaration || stack.isExportAllDeclaration) ){
+    //             const compilation = stack.getResolveCompilation();
+    //             if( compilation && compilation.stack ){
+    //                 onlyDefaultExported = !(compilation.stack.exports[0].isExportDefaultDeclaration || compilation.stack.exports.length > 1);
+    //             }
+    //         }
+    //         source = source instanceof Token ? source : this.createLiteralNode( source );
+    //         const node = this.createCalleeNode(this.createIdentifierNode('require'), [source]);
+    //         specifiers = specifiers.map( item=>{
+    //             if( Array.isArray(item) ){
+    //                 return node.createImportSpecifierNode( ...item );
+    //             }else if( item instanceof Token ){
+    //                 item.parent = node;
+    //                 return item;
+    //             }
+    //         }).filter( item=>!!item );
+    //         if( specifiers.length === 1 ){
+    //             if( !onlyDefaultExported && specifiers[0].type === 'ImportDefaultSpecifier' ){
+    //                 return this.createDeclarationNode('const', [
+    //                     this.createDeclaratorNode( 
+    //                         specifiers[0].local, 
+    //                         this.createMemberNode([
+    //                             node,
+    //                             this.createIdentifierNode('default')
+    //                         ])
+    //                     )
+    //                 ]);
+    //             }
+    //             return this.createDeclarationNode('const', [
+    //                 this.createDeclaratorNode( specifiers[0].local, node)
+    //             ]);
+    //         }else if( specifiers.length > 1 ){
+    //             const nonSpecifierItems = specifiers.filter( item=>item.type !=='ImportSpecifier');
+    //             const specifierItems = specifiers.filter( item=>item.type ==='ImportSpecifier');
+    //             const ctx = this.getTopBlockContext();
+    //             const hasDiff = specifierItems.some( item=>item.local.value !== item.imported.value );
+    //             const refs = nonSpecifierItems.length > 0 || hasDiff ? ctx.checkRefsName( path.parse(source.value).name, true, Token.SCOPE_REFS_All, ctx, false) : null;
+    //             const appendBody = ctx.beforeBody || ctx.body;
+    //             if( refs ){
+    //                 const nonSpecifierNodes = nonSpecifierItems.map( item=>{
+    //                     if( item.type==='ImportDefaultSpecifier' && !onlyDefaultExported ){
+    //                         return this.createDeclarationNode('const', [
+    //                             this.createDeclaratorNode(
+    //                                 item.local,
+    //                                 this.createMemberNode([
+    //                                     this.createIdentifierNode(refs),
+    //                                     this.createIdentifierNode('default')
+    //                                 ])
+    //                             )
+    //                         ]);
+    //                     }
+    //                     return this.createDeclarationNode('const', [
+    //                         this.createDeclaratorNode(item.local, this.createIdentifierNode(refs))
+    //                     ]);
+    //                 });
+    //                 appendBody.push( ...nonSpecifierNodes );
+    //                 if( hasDiff ){
+    //                     const specifierNodes = specifierItems.map( item=>{
+    //                         return this.createDeclarationNode('const',[
+    //                             this.createDeclaratorNode(
+    //                                 item.local , 
+    //                                 this.createMemberNode([
+    //                                     this.createIdentifierNode(refs),
+    //                                     item.imported
+    //                                 ])
+    //                             )
+    //                         ]);
+    //                     });
+    //                     appendBody.push( ...specifierNodes );
+    //                 }else{
+    //                     const ObjectPattern = this.createNode('ObjectPattern');
+    //                     ObjectPattern.properties = specifierItems.map( item=>{
+    //                         return ObjectPattern.createPropertyNode(item.local, item.local, item.stack)
+    //                     });
+    //                     if( nonSpecifierItems.length > 0 ){
+    //                         appendBody.push( 
+    //                             this.createDeclarationNode('const', [
+    //                                 this.createDeclaratorNode(ObjectPattern, this.createIdentifierNode(refs))
+    //                             ])
+    //                         );
+    //                     }else{
+    //                         return this.createDeclarationNode('const', [
+    //                             this.createDeclaratorNode(ObjectPattern, node)
+    //                         ]);
+    //                     } 
+    //                 }
+    //             }
+    //             return this.createDeclarationNode('const', [
+    //                 this.createDeclaratorNode(refs, node)
+    //             ]);
+    //         }
+    //         return this.createStatementNode( node );
+    //     }else{
+    //         return this.createImportNode( source, specifiers, stack);
+    //     }
+    // }
 
     createImportNode(source, specifiers, stack){
         const obj = this.createNode('ImportDeclaration');

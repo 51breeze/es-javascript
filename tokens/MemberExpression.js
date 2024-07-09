@@ -31,6 +31,10 @@ function addImportReference(ctx, desc, module ){
 }
 
 function MemberExpression(ctx,stack){
+    const refsName = stack.getReferenceName();
+    if(refsName){
+        return ctx.createIdentifierNode( refsName, stack );
+    }
     const module = stack.module;
     const description = stack.descriptor();
     const objectType = stack.object.type();
@@ -87,7 +91,9 @@ function MemberExpression(ctx,stack){
 
     if( objectType && !objectType.isLiteralObjectType && stack.compiler.callUtils("isClassType", description) ){
         ctx.addDepend( description );
-        return ctx.createIdentifierNode( ctx.getModuleReferenceName(description,module), stack );
+        if(!stack.hasMatchAutoImporter){
+            return ctx.createIdentifierNode( ctx.getModuleReferenceName(description,module), stack );
+        }
     }
     
     if( stack.object.isSuperExpression ){

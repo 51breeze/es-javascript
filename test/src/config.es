@@ -21,3 +21,5 @@ export default config;
 export {name as child_name} from 'config_child';
 
 export * as child_config from 'config_child';
+
+export * from 'config_child';

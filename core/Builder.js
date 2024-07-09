@@ -691,16 +691,60 @@ class Builder extends Token{
         }
         const old =  dataset.get(key);
         if( old ){
-            if( old.specifiers && importNode.specifiers ){
-                importNode.specifiers.forEach( spec=>{
-                    const result = old.specifiers.find( item=>{
-                        return item.local.value === spec.local.value;
-                    });
-                    if( !result ){
-                        old.specifiers.push(spec);
+            if(old.type ==="ImportDeclaration" && importNode.type==="ImportDeclaration"){
+                if(old.specifiers && importNode.specifiers){
+                    let has = old.specifiers.some(spec=>spec.type ==='ImportNamespaceSpecifier');
+                    if(has){
+                        dataset.set(key+':'+dataset.size,old);
+                        dataset.set(key,importNode);
+                        return;
+                    }else{
+                        has = importNode.specifiers.some(spec=>spec.type ==='ImportNamespaceSpecifier');
                     }
-                });
+                    if(!has){
+                        importNode.specifiers.forEach( spec=>{
+                            const result = old.specifiers.find( item=>{
+                                return item.local.value === spec.local.value;
+                            });
+                            if(!result){
+                                old.specifiers.push(spec);
+                            }
+                        });
+                        return;
+                    }
+                }
+            }else if(old.type==="VariableDeclaration" && importNode.type==="VariableDeclaration"){
+                if(old.declarations.length > 0 && importNode.declarations.length > 0){
+                    if(old.declarations[0].id.type === "ObjectPattern"){
+                        if(importNode.declarations[0].id.type === "ObjectPattern"){
+                            const properties = old.declarations[0].id.properties;
+                            const diffs = importNode.declarations[0].id.properties.filter( item=>{
+                                return !properties.some( prop=>prop.init.value === item.init.value)
+                            });
+                            properties.push( ...diffs);
+                            return;
+                        }else if(importNode.declarations[0].id.type==="Identifier"){
+                            const properties = old.declarations[0].id.properties;
+                            const id = importNode.declarations[0].id;
+                            if(!properties.some( prop=>prop.init.value === id.value)){
+                                properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
+                            }
+                            return;
+                        }
+                    }else if(old.declarations[0].id.type==="Identifier"){
+                        if(importNode.declarations[0].id.type==="ObjectPattern"){
+                            const properties = importNode.declarations[0].id.properties;
+                            const id = old.declarations[0].id;
+                            if(!properties.some( prop=>prop.init.value === id.value)){
+                                properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
+                            }
+                            dataset.set(key,importNode);
+                            return;
+                        }
+                    }
+                }
             }
+            dataset.set(key+':'+dataset.size,importNode);
         }else{
             dataset.set(key,importNode);
         }
@@ -808,13 +852,13 @@ class Builder extends Token{
     }
 
     getModuleReferenceName(module,context){
-        context = context || this.compilation;
-        if( !module || !module.isModule)return null;
-        let dataset = this.moduleReferenceNameMap.get(context);
-        if(!dataset)this.moduleReferenceNameMap.set(context, dataset=new Map());
+        let key  = context || this.compilation;
+        if(!module || !module.isModule)return null;
+        let dataset = this.moduleReferenceNameMap.get(key);
+        if(!dataset)this.moduleReferenceNameMap.set(key, dataset=new Map());
         let name = dataset.get(module);
         if(name)return name;
-        if( context && context.isModule){
+        if(context && context.isModule){
             if( context.isDeclaratorModule ){
                 const polyfill = this.getPolyfillModule( context.getName() );
                 if( polyfill && polyfill.references ){
@@ -1076,26 +1120,21 @@ class Builder extends Token{
             requires.forEach( item=>{
                 const source = item.from;
                 if( source && !this.isExternalDependence(source, module) ){
-                    const local = item.key;
+                    const local = item.name;
                     const data = {
                         source,
-                        imported:null,
+                        imported:item.key,
                         local,
                         resolve:item.resolve,
-                        extract: false,
-                        namespaced:!!(item.namespaced || local==='*'),
+                        extract: !!item.extract,
+                        namespaced:!!item.namespaced,
                         type:'requires'
                     };
-                    if( item.extract ){
-                        data.extract  = true;
-                        if( item.name !== local ){
-                            data.imported = local;
-                            data.local = item.name;
-                        }else{
-                            data.local = item.name;
-                        }
+                    if(data.imported==="*"){
+                        data.namespaced = true;
+                        data.imported = null;
                     }
-                    dataset.set(source, data);
+                    dataset.set(source+':'+local, data);
                 }
             });
         }

@@ -447,27 +447,32 @@ class Generator{
             case "ImportDeclaration" :
                 this.withString('import');
                 this.withSpace();
-                const pos = token.specifiers.findIndex( item=>item.type ==='ImportSpecifier' );
-                if( pos >= 0  ){
-                    const left = pos > 0 ? token.specifiers.slice(0,pos) : [];
-                    const right = token.specifiers.slice(pos);
-                    if( left.length > 0 ){
-                        this.withSequence( left );
-                        right.length > 0 && this.withComma();
+                let lefts = [];
+                let rights = [];
+                token.specifiers.forEach( item=>{
+                    if(item.type ==='ImportDefaultSpecifier' || item.type ==='ImportNamespaceSpecifier'){
+                        lefts.push(item);
+                    }else{
+                        rights.push(item);
                     }
-                    if( right.length > 0 ){
-                        this.withBraceL();
-                        this.withSequence( right );
-                        this.withBraceR();
+                });
+                if(rights.length>0){
+                    if(lefts.length>0){
+                        this.make( lefts[0] );
+                        this.withComma();
                     }
+                    this.withBraceL();
+                    this.withSequence( rights );
+                    this.withBraceR();
                     this.withSpace();
                     this.withString('from');
-                }else if(token.specifiers.length>0){
-                    this.withSequence( token.specifiers );
+                    this.withSpace();
+                }else if(lefts.length>0){
+                    this.make( lefts[0] );
                     this.withSpace();
                     this.withString('from');
+                    this.withSpace();
                 }
-                this.withSpace();
                 this.make( token.source );
                 this.withSemicolon();
                 this.newLine();
@@ -480,7 +485,7 @@ class Generator{
                 this.make( token.local );
             break;
             case "ImportNamespaceSpecifier" :
-                this.withString(' * ');
+                this.withString('*');
                 this.withOperator('as');
                 this.make( token.local );
             break;

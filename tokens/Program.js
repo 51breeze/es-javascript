@@ -42,16 +42,17 @@ function createCJSExports(exports, node){
                 }
             }else if( obj.specifiers && obj.specifiers.length>0 ){
                 if( obj.source ){
-                    const refs = obj.checkRefsName( path.parse( obj.source.value ).name, true, 31, null, false);
-                    insertImports.push( node.createImportDeclaration(obj.source, [node.createImportSpecifierNode( refs, refs )], obj.stack) );
+                    const specifiers = obj.specifiers.map(spec=>{
+                        const local = spec.exported.value;
+                        const imported = spec.local.value;
+                        return node.createImportSpecifierNode(local, imported);
+                    });
+                    insertImports.push( node.createImportDeclaration(obj.source, specifiers, obj.stack) );
                     obj.specifiers.forEach( specifier=>{
                         dataset.push(
                             node.createPropertyNode(
-                                specifier.exported.value,  
-                                node.createMemberNode([
-                                    node.createIdentifierNode(refs,null,true), 
-                                    specifier.local
-                                ])
+                                specifier.exported,  
+                                specifier.exported
                             )
                         );
                     });
@@ -59,7 +60,7 @@ function createCJSExports(exports, node){
                     obj.specifiers.forEach( specifier=>{
                         dataset.push(
                             node.createPropertyNode(
-                                specifier.exported.value,
+                                specifier.exported,
                                 specifier.local
                             )
                         );
@@ -82,14 +83,23 @@ function createCJSExports(exports, node){
             }
         }
         else if( obj.type === 'ExportAllDeclaration' ){
-            const refs = obj.checkRefsName(obj.exported.value,true,31, null, false);
-            insertImports.push( node.createImportDeclaration(obj.source, [ node.createImportSpecifierNode( refs, '*', true ) ], obj.stack) );
-            dataset.push(
-                node.createPropertyNode(
-                    obj.exported.value,  
-                    node.createIdentifierNode(refs,null,true)
-                )
-            );
+            if(obj.source){
+                if(obj.exported){
+                    insertImports.push( node.createImportDeclaration(obj.source, [ node.createImportSpecifierNode(obj.exported.value, '*', true ) ], obj.stack) );
+                    dataset.push(
+                        node.createPropertyNode(
+                            obj.exported,  
+                            obj.exported
+                        )
+                    );
+                }else{
+                    const refs = obj.checkRefsName(path.parse(obj.source.value).name,true,31, null, false);
+                    insertImports.push( node.createImportDeclaration(obj.source, [ node.createImportSpecifierNode(refs, '*', true ) ], obj.stack) );
+                    const spread = node.createNode('SpreadElement')
+                    spread.argument = spread.createIdentifierNode(refs)
+                    dataset.unshift(spread);
+                }
+            }
         }
     });
     return [
