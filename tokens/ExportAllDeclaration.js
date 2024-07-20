@@ -1,4 +1,7 @@
 module.exports = function(ctx,stack){
+    if(stack.getResolveJSModule()){
+        return null
+    }
     const node = ctx.createNode(stack);
     node.exported = node.createToken(stack.exported);
     node.source = node.createToken(stack.source);

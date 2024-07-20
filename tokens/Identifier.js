@@ -36,9 +36,11 @@ module.exports = function(ctx,stack){
           }
      }
 
-     if( stack.compiler.callUtils("isClassType", desc) ){
+     if( stack.compiler.callUtils("isClassType", desc)){
           builder.addDepend( desc );
-          return ctx.createIdentifierNode(builder.getModuleReferenceName(desc, module), stack);
+          if(!stack.hasLocalDefined()){
+               return ctx.createIdentifierNode(builder.getModuleReferenceName(desc, module), stack);
+          }
      }
      return ctx.createIdentifierNode(stack.value(), stack);
 };

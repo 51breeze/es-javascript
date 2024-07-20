@@ -250,6 +250,7 @@ class Builder extends Token{
     make(compilation, stack, module){
         if(!stack || this.buildAstCache.has(stack))return false;
         this.buildAstCache.add(stack);
+        if(stack.isProgram && !module && compilation.isDescriptorDocument())return false;
         const config = this.plugin.options;
         const ast = this.createAstToken(stack);
         const gen = ast ? this.createGenerator(ast, compilation, module) : null;
@@ -715,6 +716,24 @@ class Builder extends Token{
                 }
             }else if(old.type==="VariableDeclaration" && importNode.type==="VariableDeclaration"){
                 if(old.declarations.length > 0 && importNode.declarations.length > 0){
+
+                    const checkSome = (name, exclude=null)=>{
+                        return Array.from(dataset.keys()).some( id=>{
+                            if(id === key || id.startsWith(key+':')){
+                                const value = dataset.get(id)
+                                if(exclude===value)return false;
+                                if(value.type==="VariableDeclaration"){
+                                    if(value.declarations[0].id.type==="Identifier"){
+                                        return value.declarations[0].id.value === name;
+                                    }else if(value.declarations[0].id.type==="ObjectPattern"){
+                                        return value.declarations[0].id.properties.some( prop=>prop.init.value === name)
+                                    }
+                                }
+                            }
+                            return false;
+                        })
+                    }
+
                     if(old.declarations[0].id.type === "ObjectPattern"){
                         if(importNode.declarations[0].id.type === "ObjectPattern"){
                             const properties = old.declarations[0].id.properties;
@@ -724,21 +743,32 @@ class Builder extends Token{
                             properties.push( ...diffs);
                             return;
                         }else if(importNode.declarations[0].id.type==="Identifier"){
-                            const properties = old.declarations[0].id.properties;
+                            //const properties = old.declarations[0].id.properties;
+                            //const id = importNode.declarations[0].id;
+                            // if(!properties.some( prop=>prop.init.value === id.value)){
+                            //     dataset.set(key+':'+dataset.size,importNode);
+                            //     properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
+                            // }
                             const id = importNode.declarations[0].id;
-                            if(!properties.some( prop=>prop.init.value === id.value)){
-                                properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
+                            if(!checkSome(id.value)){
+                                dataset.set(key+':'+dataset.size,importNode);
                             }
                             return;
                         }
                     }else if(old.declarations[0].id.type==="Identifier"){
                         if(importNode.declarations[0].id.type==="ObjectPattern"){
-                            const properties = importNode.declarations[0].id.properties;
+                            //const properties = importNode.declarations[0].id.properties;
+                            //const id = old.declarations[0].id;
+                            // if(!properties.some( prop=>prop.init.value === id.value)){
+                            //     properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
+                            // }
+                            // dataset.set(key,importNode);
+                            // return;
                             const id = old.declarations[0].id;
-                            if(!properties.some( prop=>prop.init.value === id.value)){
-                                properties.push( this.createPropertyNode(this.createIdentifierNode('default'), id) )
-                            }
                             dataset.set(key,importNode);
+                            if(!checkSome(id.value, old)){
+                                dataset.set(key+':'+dataset.size,old);
+                            }
                             return;
                         }
                     }

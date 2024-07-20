@@ -93,7 +93,8 @@ function createCJSExports(exports, node){
                         )
                     );
                 }else{
-                    const refs = obj.checkRefsName(path.parse(obj.source.value).name,true,31, null, false);
+                    const local = '__'+path.parse(obj.source.value).name.replace(/[\W]+/g,'_')
+                    const refs = obj.checkRefsName(local,true,31, null, false);
                     insertImports.push( node.createImportDeclaration(obj.source, [ node.createImportSpecifierNode(refs, '*', true ) ], obj.stack) );
                     const spread = node.createNode('SpreadElement')
                     spread.argument = spread.createIdentifierNode(refs)
