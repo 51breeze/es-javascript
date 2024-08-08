@@ -22,15 +22,13 @@ module.exports = function(ctx,stack,type){
 
    }else if( stack.source.isLiteral ){
       const compilation = stack.getResolveCompilation();
-      
       if( compilation ){
          const builder = ctx.plugin.getBuilder(compilation);
          builder.buildForModule(compilation, compilation.stack);
       }
-
       const node = ctx.createNode(stack);
       const module = (stack.additional || stack).module;
-      let source = compilation ? stack.getResolveFile() : stack.source.value();
+      let source = compilation && compilation.isLocalDocument() && !compilation.isDescriptorDocument()? stack.getResolveFile() : stack.source.value();
       if( source.includes('${__filename}')){
          source = ctx.builder.getModuleImportSource(source, module)
       }

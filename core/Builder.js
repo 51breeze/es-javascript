@@ -1352,14 +1352,15 @@ class Builder extends Token{
     createReadfileAnnotationNode(ctx, stack){
         const args = stack.getArguments();
         const depsContext = stack.module || stack.compilation;
-        const indexes = ['dir','load','suffix','relative','lazy','only'];
-        let [_path, _load, _suffix, _relative, _lazy, _only] = [
+        const indexes = ['dir','load','suffix','relative','lazy','only','source'];
+        let [_path, _load, _suffix, _relative, _lazy, _only, _source] = [
             stack.getAnnotationArgumentItem('dir', args, indexes),
             stack.getAnnotationArgumentItem('load', args, indexes),
             stack.getAnnotationArgumentItem('suffix', args, indexes),
             stack.getAnnotationArgumentItem('relative', args, indexes),
             stack.getAnnotationArgumentItem('lazy', args, indexes),
             stack.getAnnotationArgumentItem('only', args, indexes),
+            stack.getAnnotationArgumentItem('source', args, indexes),
         ].map( item=>{
             return item ? item.value : null;
         });
@@ -1368,7 +1369,7 @@ class Builder extends Token{
             return null;
         }
 
-        let only = Boolean(String(_only)==='true');
+        let only = String(_only)==='true';
         let dir = String(_path).trim();
         let suffixPattern = null;
 
@@ -1498,6 +1499,8 @@ class Builder extends Token{
                     }
                 }
                 item.content = data;
+            }else if(String(_source)==='true'){
+                item.content =JSON.stringify(fs.readFileSync(file));
             }
 
             const parent = getParentFile(pid);

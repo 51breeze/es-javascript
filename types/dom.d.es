@@ -4368,3 +4368,62 @@ declare interface DOMRectInit {
     x?: number;
     y?: number;
 }
+
+declare interface MutationObserverInit {
+    /** Set to a list of attribute local names (without namespace) if not all attribute mutations need to be observed and attributes is true or omitted. */
+    attributeFilter?: string[];
+    /** Set to true if attributes is true or omitted and target's attribute value before the mutation needs to be recorded. */
+    attributeOldValue?: boolean;
+    /** Set to true if mutations to target's attributes are to be observed. Can be omitted if attributeOldValue or attributeFilter is specified. */
+    attributes?: boolean;
+    /** Set to true if mutations to target's data are to be observed. Can be omitted if characterDataOldValue is specified. */
+    characterData?: boolean;
+    /** Set to true if characterData is set to true or omitted and target's data before the mutation needs to be recorded. */
+    characterDataOldValue?: boolean;
+    /** Set to true if mutations to target's children are to be observed. */
+    childList?: boolean;
+    /** Set to true if mutations to not just target, but also target's descendants are to be observed. */
+    subtree?: boolean;
+}
+
+declare interface MutationCallback {
+    (mutations: MutationRecord[], observer: MutationObserver): void;
+}
+
+/** Provides the ability to watch for changes being made to the DOM tree. It is designed as a replacement for the older Mutation Events feature which was part of the DOM3 Events specification. */
+declare class MutationObserver {
+    /** Stops observer from observing any mutations. Until the observe() method is used again, observer's callback will not be invoked. */
+    disconnect(): void;
+    /**
+     * Instructs the user agent to observe a given target (a node) and report any mutations based on the criteria given by options (an object).
+     *
+     * The options argument allows for setting mutation observation options via object members.
+     */
+    observe(target: Node, options?: MutationObserverInit): void;
+    /** Empties the record queue and returns what was in there. */
+    takeRecords(): MutationRecord[];
+
+    constructor(callback: MutationCallback)
+}
+
+/** A MutationRecord represents an individual DOM mutation. It is the object that is passed to MutationObserver's callback. */
+declare class MutationRecord {
+    /** Return the nodes added and removed respectively. */
+    readonly addedNodes: NodeList;
+    /** Returns the local name of the changed attribute, and null otherwise. */
+    readonly attributeName: string | null;
+    /** Returns the namespace of the changed attribute, and null otherwise. */
+    readonly attributeNamespace: string | null;
+    /** Return the previous and next sibling respectively of the added or removed nodes, and null otherwise. */
+    readonly nextSibling: Node | null;
+    /** The return value depends on type. For "attributes", it is the value of the changed attribute before the change. For "characterData", it is the data of the changed node before the change. For "childList", it is null. */
+    readonly oldValue: string | null;
+    /** Return the previous and next sibling respectively of the added or removed nodes, and null otherwise. */
+    readonly previousSibling: Node | null;
+    /** Return the nodes added and removed respectively. */
+    readonly removedNodes: NodeList;
+    /** Returns the node the mutation affected, depending on the type. For "attributes", it is the element whose attribute changed. For "characterData", it is the CharacterData node. For "childList", it is the node whose children changed. */
+    readonly target: Node;
+    /** Returns "attributes" if it was an attribute mutation. "characterData" if it was a mutation to a CharacterData node. And "childList" if it was a mutation to the tree of nodes. */
+    readonly type: "attributes" | "characterData" | "childList";
+}
