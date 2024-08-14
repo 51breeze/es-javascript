@@ -15,6 +15,7 @@ function JSXElement(ctx, stack){
         if(desc && desc.isModule && !ctx.builder.checkRuntimeModule(desc) ){
             return null;
         }
+        ctx.addDepend(desc)
     }
     if(ctx.isRawJsx()){
         const node = ctx.createNode( stack );

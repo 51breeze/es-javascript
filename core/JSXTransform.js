@@ -51,6 +51,7 @@ class JSXTransform extends Token{
                     }
                 });
                 if( res ){
+                    this.addDepend(desc)
                     result = res[0];
                 }
             }
@@ -950,6 +951,7 @@ class JSXTransform extends Token{
             }else{
                 const desc = stack.description();
                 if( desc.isModule && desc.isClass ){
+                    this.addDepend(desc)
                     name = this.createIdentifierNode( this.getModuleReferenceName( desc ) );
                 }else{
                     name = this.createIdentifierNode(stack.openingElement.name.value(), stack.openingElement.name);

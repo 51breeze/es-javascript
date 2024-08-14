@@ -37,7 +37,7 @@ module.exports = function(ctx,stack){
      }
 
      if( stack.compiler.callUtils("isClassType", desc)){
-          builder.addDepend( desc );
+          ctx.addDepend( desc );
           if(!stack.hasLocalDefined()){
                return ctx.createIdentifierNode(builder.getModuleReferenceName(desc, module), stack);
           }

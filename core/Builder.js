@@ -680,8 +680,7 @@ class Builder extends Token{
         if( !dataset ){
             this.moduleDependencies.set( ctxModule, dataset = new Set() );
         }
-        dataset.add( depModule );
-        depModule.used = true;
+        dataset.add(depModule);
     }
 
     addImportReference(context, key, importNode ){
@@ -797,14 +796,15 @@ class Builder extends Token{
         ctxModule = ctxModule || this.compilation;
         var dataset = this.moduleDependencies.get(ctxModule);
         if( !dataset ){
-            return this.compilation.getDependencies(ctxModule);
+            return [];
+            //return this.compilation.getDependencies(ctxModule);
         }
-        if( !dataset._merged ){
-            dataset._merged = true;
-            this.compilation.getDependencies(ctxModule).forEach( dep=>{
-                dataset.add(dep);
-            });
-        }
+        // if( !dataset._merged ){
+        //     dataset._merged = true;
+        //     this.compilation.getDependencies(ctxModule).forEach( dep=>{
+        //         dataset.add(dep);
+        //     });
+        // }
         return Array.from( dataset.values() );
     }
 
@@ -819,7 +819,7 @@ class Builder extends Token{
         if(depModule.isDeclaratorModule){
             return !!this.getPolyfillModule(depModule.getName());
         }else{
-            return !this.compiler.callUtils("checkDepend",ctxModule, depModule);   
+            return !this.compiler.callUtils("checkDepend",ctxModule, depModule);
         }
     }
 
@@ -888,7 +888,7 @@ class Builder extends Token{
         if(!dataset)this.moduleReferenceNameMap.set(key, dataset=new Map());
         let name = dataset.get(module);
         if(name)return name;
-        if(context && context.isModule){
+        if(this.compiler.callUtils('isModule', context)){
             if( context.isDeclaratorModule ){
                 const polyfill = this.getPolyfillModule( context.getName() );
                 if( polyfill && polyfill.references ){
@@ -904,9 +904,12 @@ class Builder extends Token{
             if(!name ){
                 name = context.getReferenceNameByModule( module );
             }
+        }else if(this.compiler.callUtils('isCompilation', context)){
+            name = context.getReferenceName(module)
         }else{
             name = module.getName("_");
         }
+        
         const exists = Array.from( dataset.values() );
         let value = name;
         let index = 1;

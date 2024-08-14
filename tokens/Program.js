@@ -156,15 +156,6 @@ module.exports = function(ctx,stack){
         }
     });
 
-    if( stack.imports && stack.imports.length > 0 ){
-        stack.imports.forEach( item=>{
-            const desc = item.description();
-            if( !desc || desc !== stack.compilation.mainModule){
-                node.imports.push( node.createToken(item) );
-            }
-        });
-    }
-
     if( stack.externals.length > 0 ){
         // const parenthes = ctx.createNode('ParenthesizedExpression');
         // parenthes.expression = parenthes.createCalleeNode(parenthes.createFunctionNode((ctx)=>{
@@ -172,20 +163,19 @@ module.exports = function(ctx,stack){
         // const external = ctx.createStatementNode( parenthes );
         // external.comment = '/*externals code*/';
         //node.body.push( external );
-        const dependencies = stack.compilation.modules.size > 0 && stack.compilation.mainModule && stack.compilation.mainModule.isClass ? 
-                                new Set(node.builder.moduleDependencies.get(stack.compilation)) : null;
+        
         const importedLocalKeyMap = {};
         stack.externals.forEach( item=>{
             if( item.isImportDeclaration ){
-                const importNode = node.createToken(item);
-                if(importNode){
-                    node.imports.push( importNode );
-                    if( importNode.type==='ImportDeclaration'){
-                        importNode.specifiers.forEach( sepc=>{
-                            importedLocalKeyMap[sepc.local.value] = item.source.value
-                        })
-                    }
-                }
+                // const importNode = node.createToken(item);
+                // if(importNode){
+                //     node.imports.push( importNode );
+                //     if( importNode.type==='ImportDeclaration'){
+                //         importNode.specifiers.forEach( sepc=>{
+                //             importedLocalKeyMap[sepc.local.value] = item.source.value
+                //         })
+                //     }
+                // }
             }else{
                 const obj = node.createToken(item);
                 if( obj ){
@@ -193,6 +183,24 @@ module.exports = function(ctx,stack){
                 }
             }
         });
+
+        // if( stack.imports && stack.imports.length > 0 ){
+        //     stack.imports.forEach( item=>{
+        //         const desc = item.description();
+        //         if(!desc || desc !== stack.compilation.mainModule){
+        //             const importNode = node.createToken(item);
+        //             if( importNode.type==='ImportDeclaration'){
+        //                 importNode.specifiers.forEach( sepc=>{
+        //                     importedLocalKeyMap[sepc.local.value] = item.source.value
+        //                 })
+        //             }
+        //             node.imports.push( importNode );
+        //         }
+        //     });
+        // }
+
+        const dependencies = stack.compilation.modules.size > 0 && stack.compilation.mainModule && stack.compilation.mainModule.isClass ? 
+                                new Set(node.builder.moduleDependencies.get(stack.compilation)) : null;
 
         if(dependencies){
 
