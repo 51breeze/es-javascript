@@ -16,11 +16,11 @@ module.exports = function(ctx,stack){
           }
      }
 
-     if( desc && (desc.isPropertyDefinition || desc.isMethodDefinition) && !(stack.parentStack.isProperty && stack.parentStack.key === stack) ){
+     if( desc && (desc.isPropertyDefinition || desc.isMethodDefinition || desc.isEnumProperty) && !(stack.parentStack.isProperty && stack.parentStack.key === stack) ){
           const enablePrivateChain = ctx.plugin.options.enablePrivateChain;
           const thisComplete = ctx.plugin.options.thisComplete;
           const ownerModule = desc.module;
-          const isStatic = !!(desc.static || ownerModule.static);
+          const isStatic = !!(desc.static || ownerModule.static || desc.isEnumProperty);
           const property = ctx.createIdentifierNode(stack.value(), stack);
           const modifier = stack.compiler.callUtils('getModifierValue', desc);
           var object = isStatic ? ctx.createIdentifierNode(ownerModule.id) : ctx.createThisNode();
@@ -36,7 +36,7 @@ module.exports = function(ctx,stack){
           }
      }
 
-     if( stack.compiler.callUtils("isClassType", desc)){
+     if(desc !== stack.module && stack.compiler.callUtils("isClassType", desc)){
           ctx.addDepend( desc );
           if(!stack.hasLocalDefined()){
                return ctx.createIdentifierNode(builder.getModuleReferenceName(desc, module), stack);

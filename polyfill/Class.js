@@ -10,25 +10,32 @@ const privateKey=Symbol("privateKey");
 const bindClassKey=Symbol("bindClass");
 const _proto = Object.prototype;
 
-function merge(obj, target, isInstance){
+function merge(obj, target, isInstance=false, depth=false){
     if(!obj || !target || _proto===obj || obj===Object || obj===Function)return;
     const keys = Object.getOwnPropertyNames(obj);
     if( keys ){
         keys.forEach( key=>{
             if(key==='constructor' || key==='prototype' || key==='__proto__')return;
-            if(!(key in target)){
-                const desc = Reflect.getOwnPropertyDescriptor(obj, key);
-                if(desc){
-                    if(!isInstance){
-                        desc.configurable = false;
-                        desc.enumerable = false;
+            if(!target.hasOwnProperty(key) && target[key] !== obj[key]){
+                try{
+                    const desc = Reflect.getOwnPropertyDescriptor(obj, key);
+                    if(desc){  
+                        const newDesc = Object.create(desc)
+                        newDesc.configurable = true;
+                        if(!isInstance){
+                            newDesc.enumerable = false;
+                        }
+                        Object.defineProperty(target,key,newDesc);
                     }
-                    Object.defineProperty(target,key,desc);
+                }catch(e){
+                    console.error(e)
                 }
             }
         });
     }
-    merge(Reflect.getPrototypeOf(obj), target, isInstance);
+    if(depth){
+        merge(Reflect.getPrototypeOf(obj), target, isInstance, depth);
+    }
 }
 
 function getDescriptor(obj, name){
@@ -60,9 +67,9 @@ const Class={
             _extends.forEach( (classTarget)=>{
                 if(typeof classTarget ==='function'){
                     const newObject = Reflect.construct(classTarget, args, moduleClass);
-                    merge(newObject, thisArg, true);
+                    merge(newObject, thisArg, true, true);
                 }else if(typeof classTarget ==='object'){
-                    merge(newObject, thisArg, true);
+                    merge(newObject, thisArg, true, true);
                 }
             });
         }
@@ -169,6 +176,7 @@ const Class={
                 if(!isProto){
                     Object.defineProperty(moduleClass,'prototype',{value:Object.create(description.inherit.prototype)});
                 }
+                merge(inherit, moduleClass);
             }else if(_extends && _extends.length>0 ){
                 let inheritObject = _extends.shift();
                 if(inheritObject[bindClassKey]){
@@ -203,7 +211,9 @@ const Class={
                 Object.defineProperty(moduleClass,'name',{value:description.name});
             }
             
-            Object.defineProperty(moduleClass,'toString',{value:function toString(){
+            Object.defineProperty(moduleClass,'toString',{
+                configurable:true,
+                value:function toString(){
                 var name = description.ns ? description.ns+'.'+description.name : description.name;
                 var id = description.id;
                 if(id === 3){
@@ -217,7 +227,7 @@ const Class={
             
             if( moduleClass.prototype && !Object.prototype.hasOwnProperty.call(moduleClass.prototype,'toString') ){
                 Object.defineProperty(moduleClass.prototype,'toString',{
-                    configurable:false,
+                    configurable:true,
                     value:function toString(){
                     var name = description.ns ? description.ns+'.'+description.name : description.name;
                     return '[object '+name+']';

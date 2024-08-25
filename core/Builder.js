@@ -676,6 +676,8 @@ class Builder extends Token{
         ctxModule = ctxModule || this.compilation;
         if( !depModule.isModule || depModule === ctxModule )return;
         if( !this.compiler.callUtils("isTypeModule", depModule) )return;
+        if(this.compilation.mainModule === depModule)return;
+        if(!this.compilation.isDescriptorDocument() && this.compilation.modules.has(depModule.getName()))return;
         var dataset = this.moduleDependencies.get(ctxModule);
         if( !dataset ){
             this.moduleDependencies.set( ctxModule, dataset = new Set() );
@@ -774,8 +776,10 @@ class Builder extends Token{
                 }
             }
             dataset.set(key+':'+dataset.size,importNode);
+            return importNode
         }else{
             dataset.set(key,importNode);
+            return importNode;
         }
     }
 

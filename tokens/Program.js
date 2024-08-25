@@ -127,18 +127,6 @@ module.exports = function(ctx,stack){
     node.afterBody = [];
     node.imports = [];
 
-    // const syntaxAnnotation = stack.annotations && stack.annotations.find( annotation=>annotation.name.toLowerCase() ==='syntax');
-    // if( syntaxAnnotation ){
-    //     const args = syntaxAnnotation.getArguments();
-    //     if( args[0] ){
-    //         if( ctx.builder.isSyntax( args[0].value ) ){
-    //             ctx.compilation.setClientPolicy();
-    //         }else{
-    //             return;
-    //         }
-    //     }
-    // }
-
     const rawBuilders = [];
     const rawJsx = ctx.builder.isRawJsx();
 
@@ -156,26 +144,24 @@ module.exports = function(ctx,stack){
         }
     });
 
+    if( stack.imports && stack.imports.length > 0 ){
+        stack.imports.forEach( item=>{
+            if(item.isImportDeclaration && item.source.isLiteral){
+                const desc = item.description();
+                if(!desc || desc !== stack.compilation.mainModule){
+                    const importNode =node.createToken(item)
+                    if(importNode){
+                        node.imports.push( importNode );
+                    }
+                }
+            }
+        });
+    }
+
     if( stack.externals.length > 0 ){
-        // const parenthes = ctx.createNode('ParenthesizedExpression');
-        // parenthes.expression = parenthes.createCalleeNode(parenthes.createFunctionNode((ctx)=>{
-        // }));
-        // const external = ctx.createStatementNode( parenthes );
-        // external.comment = '/*externals code*/';
-        //node.body.push( external );
-        
-        const importedLocalKeyMap = {};
         stack.externals.forEach( item=>{
             if( item.isImportDeclaration ){
-                // const importNode = node.createToken(item);
-                // if(importNode){
-                //     node.imports.push( importNode );
-                //     if( importNode.type==='ImportDeclaration'){
-                //         importNode.specifiers.forEach( sepc=>{
-                //             importedLocalKeyMap[sepc.local.value] = item.source.value
-                //         })
-                //     }
-                // }
+                
             }else{
                 const obj = node.createToken(item);
                 if( obj ){
@@ -183,70 +169,6 @@ module.exports = function(ctx,stack){
                 }
             }
         });
-
-        // if( stack.imports && stack.imports.length > 0 ){
-        //     stack.imports.forEach( item=>{
-        //         const desc = item.description();
-        //         if(!desc || desc !== stack.compilation.mainModule){
-        //             const importNode = node.createToken(item);
-        //             if( importNode.type==='ImportDeclaration'){
-        //                 importNode.specifiers.forEach( sepc=>{
-        //                     importedLocalKeyMap[sepc.local.value] = item.source.value
-        //                 })
-        //             }
-        //             node.imports.push( importNode );
-        //         }
-        //     });
-        // }
-
-        const dependencies = stack.compilation.modules.size > 0 && stack.compilation.mainModule && stack.compilation.mainModule.isClass ? 
-                                new Set(node.builder.moduleDependencies.get(stack.compilation)) : null;
-
-        if(dependencies){
-
-            const newDeps = node.builder.moduleDependencies.get(stack.compilation);
-            stack.compilation.modules.forEach( module=>{
-                const items = node.builder.geImportReferences(module);
-                if( items ){
-                    items.forEach( item=>{
-                        item.specifiers.forEach( sepc=>{
-                            importedLocalKeyMap[sepc.local.value] = item.source.value
-                        })
-                    })
-                }
-            });
-
-            if( newDeps && newDeps.size> 0 ){
-
-                const findClassDeclaration=(body)=>{
-                    if(!Array.isArray(node.body))return;
-                    body.forEach( item=>{
-                        if(!item)return;
-                        if( item.type === 'PackageDeclaration' ){
-                            findClassDeclaration(item.body);
-                        }else if(item.type==='ClassDeclaration'){
-                            findClassDeclaration(item.body)
-                        }else if(item.type==="ImportDeclaration"){
-                            item.specifiers.forEach( sepc=>{
-                                importedLocalKeyMap[sepc.local.value] = item.source.value;
-                            })
-                        }
-                    });
-                }
-
-                findClassDeclaration(node.body);
-                newDeps.forEach( depModule=>{
-                    if(!dependencies.has(depModule)){
-                        const name = node.builder.getModuleReferenceName(depModule, stack.compilation);
-                        if(!importedLocalKeyMap[name] && node.builder.isActiveForModule(depModule) && node.builder.isPluginInContext(depModule)){
-                            const source = node.builder.getModuleImportSource(depModule, stack.compilation);
-                            node.builder.addAsset(stack.compilation, source, 'externals', depModule);
-                            node.imports.push( node.createImportDeclaration(source, [[name]]) );
-                        }
-                    }
-                })
-            }
-        }
     }
 
     if( stack.exports.length > 0 ){
@@ -264,7 +186,27 @@ module.exports = function(ctx,stack){
         }
     }
 
-    if( stack.compilation.modules.size ===0 ){
+    if(stack.compilation.modules.size > 0){
+        const newDeps = node.builder.moduleDependencies.get(stack.compilation);
+        if(newDeps){
+            stack.compilation.modules.forEach( module=>{
+                const deps = node.builder.moduleDependencies.get(module);
+                if(deps){
+                    deps.forEach(dep=>newDeps.delete(dep))
+                }
+            });
+            if(newDeps.size> 0){
+                newDeps.forEach( depModule=>{
+                    const name = node.builder.getModuleReferenceName(depModule, stack.compilation);
+                    if(node.builder.isActiveForModule(depModule) && node.builder.isPluginInContext(depModule)){
+                        const source = node.builder.getModuleImportSource(depModule, stack.compilation);
+                        node.builder.addAsset(stack.compilation, source, 'externals', depModule);
+                        node.imports.push( node.createImportDeclaration(source, [[name]]) );
+                    }
+                })
+            }
+        }
+    }else{
         const classNode = new ClassBuilder(stack, node);
         classNode.createModuleAssets(stack.compilation);
         node.imports.push( ...classNode.createDependencies(stack.compilation));

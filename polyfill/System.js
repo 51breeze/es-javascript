@@ -256,6 +256,7 @@ System.getEventDispatcher=function getEventDispatcher(){
  }
 
  System.createHttpRoute=function createHttpRoute(url, params={}, flag=false){
+    let matching = [];
     params = params || {};
     url = String(url).trim();
     url = url.replace(/(^|\/)<([^\>\?]+)(\?)?>/g, function(a,b,c,d){
@@ -269,6 +270,8 @@ System.getEventDispatcher=function getEventDispatcher(){
             if(flag){
                 params[existsKey]=null;
                 delete params[existsKey];
+            }else{
+                matching.push(existsKey)
             }
         }
 
@@ -285,6 +288,16 @@ System.getEventDispatcher=function getEventDispatcher(){
             return prefix+value;
         }
     });
+    if(!flag){
+        const query = Object.keys(params).filter(name=>{
+            return !matching.includes(name) && params[name] != null;
+        }).map(name=>{
+            return `${name}=${encodeURIComponent(params[name])}`
+        });
+        if(query.length>0){
+            return url.replace(/\/$/,'') + '?' + query.join('&');
+        }
+    }
     return url.replace(/\/$/,'');
  }
 

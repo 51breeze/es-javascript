@@ -449,6 +449,7 @@ class ClassBuilder extends Token{
     }
 
     createMemberDescriptor(key, node, modifier, kind){
+        if(node.isMemberDescriptor)return node;
         kind = kind || IDENT_MAP[node.kind];
         modifier = modifier || node.modifier;
         const properties = [];
@@ -482,13 +483,17 @@ class ClassBuilder extends Token{
         if(isConfigurable){
             properties.push( this.createPropertyNode('configurable', this.createLiteralNode(true) ) );
         }
-        return this.createPropertyNode(key, this.createObjectNode( properties ));
+        const property = this.createPropertyNode(key, this.createObjectNode( properties ));
+        property.isMemberDescriptor = true
+        return property;
     }
 
     createClassDescriptor( className=null ){
         const description = [];
         const module = this.module;
-        description.push(this.createPropertyNode('id', this.createLiteralNode( Constant.DECLARE_CLASS ) ));
+        const kind = module.isEnum ? Constant.DECLARE_ENUM : module.isInterface ? Constant.DECLARE_INTERFACE : Constant.DECLARE_CLASS;
+        
+        description.push(this.createPropertyNode('id', this.createLiteralNode( kind ) ));
         const ns = module.namespace && this.module.namespace.toString();
         if( ns ){
             description.push(this.createPropertyNode('ns', this.createLiteralNode( ns ) ) );

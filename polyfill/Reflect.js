@@ -328,11 +328,15 @@ const _Reflect = (function(_Reflect){
         }else if( desc.d === Reflect.MEMBERS_METHODS ){
             item.label = 'method';
             item.value = desc.value;
+        }else if(desc.d === Reflect.MEMBERS_ENUM_VALUE){
+            item.label = 'enum-property';
+            item.enumerable = true;
+            item.value = desc.value;
         }else{
             item.label = 'property';
             item.writable = Reflect.MEMBERS_READONLY !== desc.d;
             item.enumerable = true;
-            item.value = desc.value || null;
+            item.value = desc.value;
             if(target){
                 if( isStatic ){
                     if(key in target)item.value = target[key];
@@ -489,6 +493,31 @@ const _Reflect = (function(_Reflect){
             description = target.constructor[ Class.key ]
         }
 
+        if(!description){
+            const descriptors = [];
+            Object.getOwnPropertyNames(target).forEach( key=>{
+                if(key==='prototype'||key==='__proto__'||key==='constructor')return;
+                if(target.hasOwnProperty(key)){
+                    descriptors.push(getObjectDescriptor(target, key));
+                }
+            });
+            return {
+                'isDescriptor':true,
+                'isModule':false,
+                'type':null,
+                'label':typeof target,
+                'class':null,
+                'className':null,
+                'namespace':null,
+                'dynamic':false,
+                'isStatic':false,
+                'privateKey':null,
+                'implements':null,
+                'inherit':null,
+                'descriptors':descriptors,
+            };
+        }
+
         let d = description;
         let id = d.id;
         let label='class';
@@ -518,22 +547,21 @@ const _Reflect = (function(_Reflect){
         const defaultMode = 1;
         const mode = Math.max(Math.min(options.mode || defaultMode, 3), defaultMode);
         const parentClass = options.parentClass;
+        const inheritFlag = options.inherit ? true : false;
         const descriptors = top.descriptors;
         const make = (obj, isStatic=false)=>{
             if(!obj)return null;
-            const dataset = Object.create(null)
             Object.keys(obj).forEach( key=>{
                 const item = createMemberDescriptor(key, obj[key], fetchValue ? target : null, objClass, objClass, description.private, isStatic);
                 descriptors.push(item);
             });
-            return dataset;
         }
-        
+
         while( objClass && (description = objClass[ Class.key ]) ){
             if(parentClass === objClass)break;
-            if(mode & 1 === 1)make(description.members);
-            if(mode & 2 === 2)make(description.methods, true);
-            const inheritClass=description.inherit;
+            if((mode & 1) === 1)make(description.members);
+            if((mode & 2) === 2)make(description.methods, true);
+            const inheritClass=inheritFlag ? description.inherit : null;
             if(inheritClass && inheritClass !== objClass){
                 objClass = inheritClass;
             }else{
@@ -541,16 +569,12 @@ const _Reflect = (function(_Reflect){
             }
         }
 
-        if(descriptors.length ===0){
-
+        if( descriptors.length ===0){
             Object.getOwnPropertyNames(target).forEach( key=>{
                 if(key==='prototype'||key==='__proto__'||key==='constructor')return;
-                descriptors.push(getObjectDescriptor(target, key));
-            });
-
-            Object.getOwnPropertyNames(objClass).forEach( key=>{
-                if(key==='prototype'||key==='__proto__'||key==='constructor')return;
-                originMethods[key] = getObjectDescriptor(objClass, key);
+                if(target.hasOwnProperty(key)){
+                    descriptors.push(getObjectDescriptor(target, key));
+                }
             });
         }
         

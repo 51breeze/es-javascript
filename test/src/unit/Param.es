@@ -13,7 +13,7 @@ public class Param{
         };
 
         var b:en = en.age;
-        var result = this.getList(en ,  [9,5]);
+        var result = this.getList(en ,  [en.name1000,5]);
         it("test getList",()=>{
              expect(6).toBe(result);
          })

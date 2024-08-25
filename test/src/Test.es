@@ -449,6 +449,19 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
             expect( b ).toBe( 0 );
             expect( Types.NAME ).toBe( 1 );
         })
+
+        it(`enum module`,()=>{
+            expect( 'ADDRESS' ).toEqual( Types.valueOf(0)?.name )
+            let len = 0;
+            Types.values().forEach( item=>{
+                len++;
+                expect( item ).toEqual( Types.valueOf(item.value) )
+            })
+            expect(len).toEqual( Types.values().length )
+
+            expect( '地址' ).toEqual( Types.valueOf(0)?.label() )
+        })
+
     }
 
     private testIterator(){
@@ -1049,11 +1062,17 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
         })
 
     }
-
-
-
 }
 
-
-
-
+import System;
+import Person;
+import config2 from 'config';
+const test = new Test('test')
+describe('Test.externals', ()=>{
+    it(`externals expression`, ()=>{
+        expect('object').toEqual( typeof test.map() )
+        expect('php').toEqual( config2.name )
+        expect('Test').toEqual( System.getQualifiedObjectName(test) )
+        expect('Person').toEqual( System.getQualifiedClassName(Person) )
+    })
+})
