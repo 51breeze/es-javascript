@@ -205,7 +205,7 @@ const _Reflect = (function(_Reflect){
         }
 
         if( !desc.class ){
-            if( (desc.get && !desc.set) || !desc.writable ){
+            if(!(desc.set || desc.writable)){
                 throw new ReferenceError(`target.${propertyKey} is readonly.`);
             }else if(desc.set){
                 desc.set.call(receiver,value);
@@ -257,12 +257,15 @@ const _Reflect = (function(_Reflect){
             if(!target)return null;
             let result = Class.getObjectDescriptor(target, name);
             if(!result && name in target){
-                const configurable = hasOwn.call(target, name);
                 result = {
                     value:target[name],
-                    writable:configurable,
-                    configurable:configurable,
-                    enumerable:configurable
+                    writable:true,
+                    configurable:true,
+                    enumerable:Object.prototype.propertyIsEnumerable.call(target, name)
+                }
+                if(typeof result.value ==='function'){
+                    result.enumerable = false;
+                    result.writable = false;
                 }
             }
             if( result ){
@@ -273,10 +276,11 @@ const _Reflect = (function(_Reflect){
                 result.permission = 'public';
                 result.type = Reflect.MEMBERS_PROPERTY;
                 result.label = 'property';
+                result.writable = !!result.set;
                 if(result.get || result.set){
                     result.type = Reflect.MEMBERS_ACCESSOR;
                     result.label = 'accessor';
-                }else if(typeof result.value ==='function' && !result.enumerable && !result.writable){
+                }else if(typeof result.value ==='function' && !result.writable){
                     result.type = Reflect.MEMBERS_METHODS;
                     result.label = 'method';
                 }

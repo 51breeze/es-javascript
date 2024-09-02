@@ -1158,6 +1158,7 @@ class JSXTransform extends Token{
                 let directive = this.createIdentifierNode( this.getModuleReferenceName(direModule) );
                 direName = this.createLiteralNode( direName );          
                 parentStack.attributes.forEach( item=>{
+                    if(item.isAttributeXmlns)return;
                     let name = item.name.value();
                     let lower = name.toLowerCase();
                     if(lower === 'value'){
@@ -1220,7 +1221,7 @@ class JSXTransform extends Token{
                 );
                 node.isInheritComponentDirective = true;
                 data.directives.push(node);
-                if(stack.jsxRootElement !== stack){
+                if(stack.jsxRootElement !== parentStack){
                     this.makeDirectiveComponentProperties(parentStack, data, callback);
                 }
                 return true

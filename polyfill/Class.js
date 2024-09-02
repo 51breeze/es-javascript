@@ -43,7 +43,7 @@ function getDescriptor(obj, name){
     const desc = Reflect.getOwnPropertyDescriptor(obj, name);
     if(desc)return desc;
     if(_proto===obj || obj===Object || obj===Function)return;
-    return getDescriptor( Reflect.getPrototypeOf(obj) );
+    return getDescriptor( Reflect.getPrototypeOf(obj), name);
 }
 const datasetSymbols = Object.create(null);
 const Class={
