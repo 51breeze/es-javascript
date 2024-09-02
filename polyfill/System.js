@@ -138,7 +138,7 @@ System.toArray=function toArray(object){
     return Array.from( object );
 }
 
-System.forMap=function forEach(object, callback){
+System.forMap=function forMap(object, callback){
     const items = [];
     System.forEach(object,(value,index)=>{
         items.push(callback(value, index));

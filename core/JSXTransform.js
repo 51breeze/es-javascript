@@ -671,7 +671,7 @@ class JSXTransform extends Token{
             }
             return node;
         }else{
-            return createForMapNode(refs,element, item, key, index)
+            return this.createForMapNode(refs,element, item, key, index)
             // return this.createCalleeNode(
             //     this.createParenthesNode( 
             //         this.createForInNode(refName, element, item, key, index) 
@@ -1135,7 +1135,7 @@ class JSXTransform extends Token{
             data.directives.push(node);
         }
 
-        if( stack.parentStack && stack.parentStack.isDirective ){
+        if( stack.parentStack && stack.parentStack.isDirective && stack.jsxRootElement !== stack.parentStack){
             let dName = stack.parentStack.openingElement.name.value().toLowerCase();
             if( dName ==="custom" ){
                 return this.createCustomDirective(stack.parentStack,data,callback) || has;
@@ -1147,16 +1147,17 @@ class JSXTransform extends Token{
 
     makeDirectiveComponentProperties(stack, data, callback){
         if( stack && stack.parentStack ){
-            let parentIsComponentDirective = this.getComponentDirectiveForDefine( stack.parentStack );
+            let parentStack = stack.jsxRootElement === stack ? stack : stack.parentStack;
+            let parentIsComponentDirective = this.getComponentDirectiveForDefine( parentStack );
             if(parentIsComponentDirective){
-                const desc = stack.parentStack.description();
+                const desc = parentStack.description();
                 this.addDepend( desc );
                 let expression = null;
                 let modifier = null;
                 let [direModule, direName, annotation] = parentIsComponentDirective;
                 let directive = this.createIdentifierNode( this.getModuleReferenceName(direModule) );
                 direName = this.createLiteralNode( direName );          
-                stack.parentStack.attributes.forEach( item=>{
+                parentStack.attributes.forEach( item=>{
                     let name = item.name.value();
                     let lower = name.toLowerCase();
                     if(lower === 'value'){
@@ -1219,7 +1220,9 @@ class JSXTransform extends Token{
                 );
                 node.isInheritComponentDirective = true;
                 data.directives.push(node);
-                this.makeDirectiveComponentProperties(stack.parentStack, data, callback);
+                if(stack.jsxRootElement !== stack){
+                    this.makeDirectiveComponentProperties(parentStack, data, callback);
+                }
                 return true
             }
         }
@@ -1255,64 +1258,78 @@ class JSXTransform extends Token{
     }
 
     create(stack){
-
+        const isRoot = stack.jsxRootElement === stack;
         const data = this.getElementConfig();
-        const children = stack.children.filter(child=>!( (child.isJSXScript && child.isScriptProgram) || child.isJSXStyle) );
+
+        let hasText = false;
+        let hasJSXText = false;
+        let children = stack.children.filter(child=>{
+            if(child.isJSXText){
+                if(!hasJSXText)hasJSXText = true;
+                if(!hasText){
+                    hasText = child.value().trim().length > 0;
+                }
+            }
+            return !((child.isJSXScript && child.isScriptProgram) || child.isJSXStyle)
+        })
+
+        if(hasJSXText && !hasText){
+            children = stack.children.filter(child=>!child.isJSXText)
+        }
+
         let componentDirective = this.getComponentDirectiveForDefine( stack );
         let childNodes =this.makeChildren(children, data);
-
+        let nodeElement = null;
         if( stack.isDirective && stack.openingElement.name.value().toLowerCase() ==="custom" ){
             componentDirective = true;
         }
 
         if( componentDirective ){
             if( childNodes.type ==='ArrayExpression' && childNodes.elements.length === 1){
-                return childNodes.elements[0];
-            }
-            return childNodes;
-        }
-
-        if( stack.parentStack.isSlot ){
-            const name = stack.parentStack.openingElement.name.value();
-            data.slot = this.createLiteralNode(name);
-        }else if(stack.parentStack && stack.parentStack.isDirective ){
-            let dName = stack.parentStack.openingElement.name.value().toLowerCase();
-            if( dName === 'show' ){
-                const condition= stack.parentStack.openingElement.attributes[0];
-                data.directives.push(
-                    this.createObjectNode([
-                        this.createPropertyNode(this.createIdentifierNode('name'), this.createLiteralNode('show') ),
-                        this.createPropertyNode(this.createIdentifierNode('value'), this.createToken( condition.parserAttributeValueStack() ) ),
-                    ])
-                );
-            }else if( dName ==="custom" ){
-                this.createCustomDirective(stack.parentStack, data);
-            }
-        }
-
-        const scopedSlot = stack.hasAttributeSlot && stack.openingElement.attributes.find( attr=>!!(attr.isAttributeSlot && attr.value) );
-       // const spreadAttributes = [];
-        this.makeDirectiveComponentProperties(stack, data);
-        this.makeAttributes(stack, childNodes, data, /*spreadAttributes*/);
-        this.makeProperties(children, data);
-        //this.makeSpreadAttributes(spreadAttributes,data);
-
-        const isRoot = stack.jsxRootElement === stack;
-        var nodeElement = null;
-        if(stack.isSlot){
-            nodeElement = this.makeSlotElement(stack, childNodes);
-        }else if(stack.isDirective){
-            nodeElement = this.makeDirectiveElement(stack, childNodes);
-        }else{
-            if( scopedSlot ){
-                nodeElement = this.makeSlotElement(stack, this.makeHTMLElement(stack, data,  childNodes ), scopedSlot);
+                nodeElement = childNodes.elements[0];
             }else{
-                nodeElement = this.makeHTMLElement(stack, data,  childNodes );
+                nodeElement = childNodes;
+            }
+        }else{
+            if( stack.parentStack.isSlot ){
+                const name = stack.parentStack.openingElement.name.value();
+                data.slot = this.createLiteralNode(name);
+            }else if(stack.parentStack && stack.parentStack.isDirective ){
+                let dName = stack.parentStack.openingElement.name.value().toLowerCase();
+                if( dName === 'show' ){
+                    const condition= stack.parentStack.openingElement.attributes[0];
+                    data.directives.push(
+                        this.createObjectNode([
+                            this.createPropertyNode(this.createIdentifierNode('name'), this.createLiteralNode('show') ),
+                            this.createPropertyNode(this.createIdentifierNode('value'), this.createToken( condition.parserAttributeValueStack() ) ),
+                        ])
+                    );
+                }else if( dName ==="custom" ){
+                    this.createCustomDirective(stack.parentStack, data);
+                }
+            }
+
+            const scopedSlot = stack.hasAttributeSlot && stack.openingElement.attributes.find( attr=>!!(attr.isAttributeSlot && attr.value) );
+            // const spreadAttributes = [];
+            this.makeDirectiveComponentProperties(stack, data);
+            this.makeAttributes(stack, childNodes, data, /*spreadAttributes*/);
+            this.makeProperties(children, data);
+            //this.makeSpreadAttributes(spreadAttributes,data);
+            if(stack.isSlot){
+                nodeElement = this.makeSlotElement(stack, childNodes);
+            }else if(stack.isDirective){
+                nodeElement = this.makeDirectiveElement(stack, childNodes);
+            }else{
+                if( scopedSlot ){
+                    nodeElement = this.makeSlotElement(stack, this.makeHTMLElement(stack, data,  childNodes ), scopedSlot);
+                }else{
+                    nodeElement = this.makeHTMLElement(stack, data,  childNodes );
+                }
             }
         }
 
-        if( isRoot ){
-            if( stack.compilation.JSX && stack.parentStack.isProgram ){
+        if(isRoot){
+            if(stack.compilation.JSX && stack.parentStack.isProgram){
                 const initProperties = data.props.map( property=>{
                     return this.createStatementNode(
                         this.createAssignmentNode(
@@ -1324,7 +1341,7 @@ class JSXTransform extends Token{
                         )
                     )
                 });
-                const renderMethod = this.createRenderNode(stack, nodeElement );
+                const renderMethod = this.createRenderNode(stack, nodeElement || this.createLiteralNode(null) );
                 nodeElement = this.createClassNode(stack, renderMethod, initProperties);
             }else{
                 const block =  this.getParentByType( ctx=>{
