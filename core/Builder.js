@@ -435,7 +435,7 @@ class Builder extends Token{
             }
         }
         const result = stack.findAnnotation(stack, (annotation)=>{
-            const name = annotation.name.toLowerCase();
+            const name = annotation.getLowerCaseName();
             if( name ==='alias'){
                 return annotation;
             }
@@ -478,7 +478,7 @@ class Builder extends Token{
             }
         }
         const result = stack.findAnnotation(stack, (annotation)=>{
-            const name = annotation.name.toLowerCase();
+            const name = annotation.getLowerCaseName();
             if( name ==='hook'){
                 return annotation;
             }

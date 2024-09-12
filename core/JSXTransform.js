@@ -1158,7 +1158,7 @@ class JSXTransform extends Token{
                 let directive = this.createIdentifierNode( this.getModuleReferenceName(direModule) );
                 direName = this.createLiteralNode( direName );          
                 parentStack.attributes.forEach( item=>{
-                    if(item.isAttributeXmlns)return;
+                    if(item.isAttributeXmlns || item.isAttributeDirective)return;
                     let name = item.name.value();
                     let lower = name.toLowerCase();
                     if(lower === 'value'){
