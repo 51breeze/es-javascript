@@ -14,7 +14,7 @@ declare System{
     static forMap<T=any>(target, callback:(item:any, key:string|number)=>T):T[]
     static registerHook(type:'httpRequestCreated', processer:(value?:net.Http)=>void, priority:number=0):void;
     static registerHook(type:'httpRequestSendBefore', processer:(value?:net.Http,config?:net.HttpConfig)=>void, priority:number=0):void;
-    static registerOnceHook(type:string,processer:(...args)=>void, priority:number=0):any;
+    static registerOnceHook(type:string,processer:(...args)=>void, priority:number=0):void;
     static dispatchHook(type:string,...args):any;
     static removeHook(type:string,processer?:Function):boolean;
     static hasRegisterHook(type:string, processer?:Function):boolean;

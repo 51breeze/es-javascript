@@ -9,7 +9,7 @@
     "dev": "jasmine ./test/index.js",
     "run": "jasmine ./test/build/Test.js",
     "test": "npm run dev & npm run run",
-    "manifest": "node ./scripts/manifest.js"
+    "manifest": "esc -o types -f types, --manifest --scope es-javascript"
   },
   "repository": {
     "type": "git",
@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "easescript": "latest",
+    "easescript-cli": "^0.1.3",
     "jasmine": "^3.10.0"
   },
   "esconfig": {

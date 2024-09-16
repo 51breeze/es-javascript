@@ -36,18 +36,24 @@ module.exports = function(ctx,stack){
         const desc = stack.value.description();
         let has = false;
         if(desc){
-            has =(desc.isPropertyDefinition && !desc.isReadonly) || 
-                 (desc.isMethodGetterDefinition && desc.module && desc.module.getMember( desc.key.value(), 'set') );
+            has =(desc.isPropertyDefinition || desc.isTypeObjectPropertyDefinition) && !desc.isReadonly || 
+                (desc.isMethodGetterDefinition && desc.module && desc.module.getMember( desc.key.value(), 'set') );
         }
         if( !has && stack.value.isJSXExpressionContainer ){
-            if( stack.value.expression.isMemberExpression ){
-                const objectType = ctx.builder.getGlobalModuleById('Object')
-                has = objectType && objectType.is( stack.value.expression.object.type() );  
+            let expression = stack.value.expression;
+            if(expression){
+                if(expression.isTypeAssertExpression){
+                    expression = expression.left;
+                } 
+                if(expression.isMemberExpression){
+                    const objectType = ctx.builder.getGlobalModuleById('Object')
+                    has = objectType && objectType.is(expression.object.type());
+                }
             }
         }
         if( !has ){
             stack.value.error(10000, stack.value.raw());
-        } 
+        }
     }
 
     node.name = name;

@@ -355,15 +355,20 @@ class Builder extends Token{
     }
 
     isSyntax( name ){
-        return name && name.toLowerCase() === this.name;
+        return name && name.toLowerCase() === this.plugin.name.toLowerCase();
     }
 
     isEnv(name, value){
-        const metadata = this.plugin.options.metadata;
+        const metadata = this.plugin.options.metadata || {};
         const env = metadata.env || {};
         if( value !== void 0 ){
             if(name.toLowerCase()==='mode'){
                 if(this.plugin.options.mode === value || env.NODE_ENV===value){
+                    return true;
+                }
+            }
+            if(name.toLowerCase()==='hot'){
+                if(this.plugin.options.hot === value || metadata.hot === value){
                     return true;
                 }
             }

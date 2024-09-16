@@ -15,14 +15,14 @@ module.exports = function(ctx,stack){
     const expectRaw = args.find( item=>String(item.key).toLowerCase() ==='expect' );
     const expect = expectRaw ? String(expectRaw.value).trim() !== 'false' : true;
     let result = false;
-    switch( name ){
-        case 'Runtime' :
+    switch( name.toLowerCase() ){
+        case 'runtime' :
             result = ctx.builder.isRuntime(args[0].value) === expect;
         break;
-        case 'Syntax' :
+        case 'syntax' :
             result = ctx.builder.isSyntax(args[0].value) === expect;
         break;
-        case 'Env' :{
+        case 'env' :{
             const name = args.find( item=>String(item.key).toLowerCase() ==='name' ) || args[0];
             const value = args.find( item=>String(item.key).toLowerCase() ==='value' ) || args[1];
             if(name && value){
@@ -32,7 +32,7 @@ module.exports = function(ctx,stack){
             }
         }
         break;
-        case 'Version' :{
+        case 'version' :{
             const name = args.find( item=>String(item.key).toLowerCase() ==='name' ) || args[0];
             const version = args.find( item=>String(item.key).toLowerCase() ==='version' ) || args[1];
             const operator = args.find( item=>String(item.key).toLowerCase() ==='operator' ) || args[2];

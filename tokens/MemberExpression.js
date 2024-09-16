@@ -73,7 +73,7 @@ function MemberExpression(ctx,stack){
 
     const resolveName = ctx.builder.getClassMemberName(description);
     const enablePrivateChain = ctx.plugin.options.enablePrivateChain;
-    if(enablePrivateChain && description && description.isMethodDefinition){
+    if(enablePrivateChain && description && description.isMethodDefinition && !(description.static || description.module.static)){
         const modifier = stack.compiler.callUtils('getModifierValue', description);
         const refModule = description.module;
         if(modifier==="private" && refModule.children.length > 0){
@@ -81,7 +81,7 @@ function MemberExpression(ctx,stack){
             return ctx.createMemberNode(
                 [ 
                     ctx.createIdentifierNode(module.id), 
-                    ctx.createIdentifierNode('prototype'), 
+                    ctx.createIdentifierNode('prototype'),
                     property
                 ],
                 stack

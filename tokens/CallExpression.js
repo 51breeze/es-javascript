@@ -101,7 +101,7 @@ module.exports = function(ctx,stack){
     }
 
     const enablePrivateChain = ctx.plugin.options.enablePrivateChain;
-    if( enablePrivateChain && desc && desc.isMethodDefinition ){
+    if( enablePrivateChain && desc && desc.isMethodDefinition && !(desc.static || desc.module.static)){
         const modifier = stack.compiler.callUtils('getModifierValue', desc);
         const refModule = desc.module;
         if( modifier==="private" && refModule.children.length > 0){
