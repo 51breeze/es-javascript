@@ -409,7 +409,7 @@ function _invokeHook(items, args, records=null, force=false){
                     }else if(records){
                         records.called.add(invoke);
                     }
-                    result = invoke.call(ctx, result, ...args);
+                    result = invoke.call(ctx, result, ...args) || result;
                     if( ctx.stop ){
                         return result;
                     }

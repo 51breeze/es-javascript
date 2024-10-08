@@ -485,7 +485,7 @@ class Generator{
                 this.make( token.local );
             break;
             case "ImportNamespaceSpecifier" :
-                this.withString('*');
+                this.withString(' * ');
                 this.withOperator('as');
                 this.make( token.local );
             break;

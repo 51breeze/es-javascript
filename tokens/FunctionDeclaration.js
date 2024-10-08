@@ -3,7 +3,7 @@ module.exports = function(ctx,stack,type){
     const node = FunctionExpression(ctx,stack,type);
     if( stack.isConstructor ){
         node.key = node.createIdentifierNode(stack.module.id, stack.key);
-    }else{
+    }else if(stack.key){
         let name = stack.key.value();
         if( stack.isMethodDefinition ){
             name = ctx.builder.getClassMemberName(stack, name);

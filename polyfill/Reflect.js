@@ -205,7 +205,7 @@ const _Reflect = (function(_Reflect){
         }
 
         if( !desc.class ){
-            if(!(desc.set || desc.writable)){
+            if(desc.label !=='property' && !(desc.set || desc.writable)){
                 throw new ReferenceError(`target.${propertyKey} is readonly.`);
             }else if(desc.set){
                 desc.set.call(receiver,value);
@@ -252,7 +252,7 @@ const _Reflect = (function(_Reflect){
         return flag === true ? val : result;
     }
 
-    function getObjectDescriptor(target, name){
+    function getObjectDescriptor(target, name, rawClass=null){
         try{
             if(!target)return null;
             let result = Class.getObjectDescriptor(target, name);
@@ -270,6 +270,7 @@ const _Reflect = (function(_Reflect){
             }
             if( result ){
                 result.key = name;
+                result.class = rawClass;
                 result.isDescriptor = true;
                 result.isMember = true;
                 result.modifier = Reflect.MODIFIER_PUBLIC;
@@ -378,6 +379,7 @@ const _Reflect = (function(_Reflect){
             description = target.constructor[ Class.key ]
         }
 
+        let rawClass = objClass;
         if( !description ){
             let result = null;
             if( name != null ){
@@ -431,7 +433,7 @@ const _Reflect = (function(_Reflect){
                 'isModule':true,
                 'type':d.id,
                 'label':label,
-                'class':objClass,
+                'class':rawClass,
                 'className':d.name,
                 'namespace':d.ns || null,
                 'dynamic':!!d.dynamic,
@@ -447,11 +449,11 @@ const _Reflect = (function(_Reflect){
         if(description){
             if(isStatic){
                 if(!description.methods){
-                    return getObjectDescriptor(objClass, name)
+                    return getObjectDescriptor(objClass, name, rawClass)
                 }
             }else{
                 if(!description.members){
-                    return getObjectDescriptor(target, name)
+                    return getObjectDescriptor(target, name, rawClass)
                 }
             }
         }
@@ -479,7 +481,7 @@ const _Reflect = (function(_Reflect){
         }
 
         if(objClass && !description){
-            return getObjectDescriptor(typeof objClass ==='function' ? objClass.prototype : objClass, name);
+            return getObjectDescriptor(typeof objClass ==='function' ? objClass.prototype : objClass, name, rawClass);
         }
 
         return null;
