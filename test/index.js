@@ -12,7 +12,7 @@ describe('compile file', function() {
     let errors = [];
     let module = null;
     beforeAll(async function() {
-        compilation = await creator.startByFile('./Test.es');
+        compilation = await creator.factor('./Test.es');
         errors = compilation.compiler.errors;
     });
 

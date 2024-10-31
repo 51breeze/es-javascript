@@ -1,8 +1,9 @@
-const Compiler = require("../../easescript/lib/core/Compiler");
-const Diagnostic = require("../../easescript/lib/core/Diagnostic");
-const Compilation = require("../../easescript/lib/core/Compilation");
+const Compiler = require("easescript/lib/core/Compiler");
+const Diagnostic = require("easescript/lib/core/Diagnostic");
+const Compilation = require("easescript/lib/core/Compilation");
 const path =require("path");
-const plugin = require("../index");
+const {default:plugin} = require("../dist/index");
+
 class Creator {
     constructor(options){
         const compiler = new Compiler(Object.assign({
@@ -16,34 +17,44 @@ class Creator {
             }
         },options || {}));
         this._compiler = compiler;
-        this.plugin = compiler.applyPlugin({plugin, options:{
+        this.plugin = plugin({
             emitFile:true,
+            //sourceMaps:true,
+            outext:'.js',
+            output:'test/.output',
+            mode:'development',
             metadata:{
                 env:{NODE_ENV:'development'},
+                platform:'client',
+                versions:{
+                    vue:'3.0.12'
+                }
             },
             module:"cjs",
-            env:{NODE_ENV:'development'}
-        }});
+        });
+        this.plugin.init(compiler)
     }
 
     get compiler(){
         return this._compiler;
     }
 
-    factor(file,source){
+    factor(file){
         return new Promise( async(resolved,reject)=>{
             const compiler = this.compiler;
             await compiler.initialize();
             await compiler.loadTypes([
-                'types/cookie.d.es',
-                'types/dom.d.es',
-                'types/global.d.es',
-                'types/socket.d.es',
+                'lib/types/cookie.d.es',
+                'lib/types/dom.d.es',
+                'lib/types/global.d.es',
+                'lib/types/socket.d.es',
+                'lib/types/http.d.es',
+                'lib/types/moment.d.es',
             ], {scope:'es-javascript'});
             let compilation = null;
             try{
                 compilation=file ? await compiler.createCompilation(file) : new Compilation( compiler );
-                await compilation.parserAsync(source);
+                await compilation.parserAsync();
                 if(compilation.stack){
                     resolved(compilation);
                 }else{
@@ -56,26 +67,8 @@ class Creator {
         });
     }
 
-    startBySource(source){
-        return this.factor(null, source);
-    }
-
-    startByFile(file){
-        return this.factor(file);
-    }
-
-    expression( stack ){
-        return this.plugin.make( stack );
-    }
-
     build( compilation ){
-        return this.plugin.start( compilation, (e)=>{
-               if( e ){
-                   console.log(e);
-               }else{
-                   console.log("build done!!")
-               }
-        });
+        this.plugin.build(compilation);
     }
 }
 

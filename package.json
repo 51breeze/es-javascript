@@ -1,22 +1,22 @@
 {
-  "name": "es-javascript",
-  "version": "0.6.0",
-  "description": "test",
-  "main": "index.js",
-  "typings": "types/typings.json",
+  "name": "@easescript/es-javascript",
+  "version": "0.0.1",
+  "description": "Code Transform To JavasSript For EaseScript Plugin",
+  "main": "dist/index.js",
+  "typings": "dist/types/typings.json",
   "scripts": {
-    "es": "es -V",
-    "dev": "jasmine ./test/index.js",
-    "run": "jasmine ./test/build/Test.js",
+    "dev": "npm run build && jasmine ./test/index.js",
+    "run": "jasmine ./test/.output/Test.js",
     "test": "npm run dev & npm run run",
-    "manifest": "esc -o types -f types, --manifest --scope es-javascript"
+    "build": "npm run manifest && node ./scripts/build.js",
+    "manifest": "esc -o lib/types -f lib/types --manifest --scope es-javascript"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/51breeze/es-javascript.git"
   },
   "keywords": [
-    "es",
+    "EaseScript",
     "javascript",
     "web"
   ],
@@ -31,6 +31,7 @@
     "@babel/plugin-transform-runtime": "^7.18.6",
     "@babel/preset-env": "^7.18.6",
     "@babel/runtime-corejs3": "^7.17.9",
+    "@easescript/transform": "latest",
     "axios": "^0.26.1",
     "blueimp-md5": "^2.19.0",
     "dotenv": "^16.4.5",
@@ -44,13 +45,16 @@
   },
   "devDependencies": {
     "easescript": "latest",
-    "easescript-cli": "^0.1.3",
+    "easescript-cli": "latest",
+    "esbuild-plugin-copy": "^2.1.1",
     "jasmine": "^3.10.0"
   },
   "esconfig": {
     "scope": "es-javascript",
     "typings": [
-      "types/global.d.es"
+      "dist/types/global.d.es",
+      "dist/types/http.d.es",
+      "dist/types/moment.d.es"
     ],
     "inherits": []
   }
