@@ -1,13 +1,13 @@
-require("./assets/style.css.js");
+require("./asstes/assets/style.js");
 const Class = require("./Class.js");
 const config = Class.getExportDefault(require("./config.js"));
 const {name,child_name,child_config,name:php} = require("./config.js");
+const System = require("./System.js");
 const Person = require("./Person.js");
 const TestInterface = require("./com/TestInterface.js");
 const Reflect0 = require("./Reflect.js");
 const Http = require("./Request.js");
 const {Base64} = require("js-base64");
-const System = require("./System.js");
 const EventDispatcher = require("./EventDispatcher.js");
 const Event = require("./Event.js");
 const Param = require("./unit/Param.js");

@@ -115,13 +115,10 @@ public class Test<U,B=string> extends Person<string> implements Iterator<number>
        
     }
 
-     @Main(false)
+    @Main(false)
     static main(){
         describe('Test', ()=>{
-
             (new Test('Test')).start()
-
-
         });
     }
 

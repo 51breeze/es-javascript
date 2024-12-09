@@ -20,8 +20,8 @@ class Creator {
         this.plugin = plugin({
             emitFile:true,
             //sourceMaps:true,
-            outext:'.js',
-            output:'test/.output',
+            outExt:'.js',
+            outDir:'test/.output',
             mode:'development',
             metadata:{
                 env:{NODE_ENV:'development'},
@@ -68,7 +68,7 @@ class Creator {
     }
 
     build( compilation ){
-        this.plugin.build(compilation);
+        this.plugin.run(compilation);
     }
 }
 

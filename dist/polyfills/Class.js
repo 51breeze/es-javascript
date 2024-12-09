@@ -37,6 +37,7 @@ function merge(obj, target, isInstance=false, depth=false){
         merge(Reflect.getPrototypeOf(obj), target, isInstance, depth);
     }
 }
+
 function getDescriptor(obj, name){
     if( !obj )return null;
     const desc = Reflect.getOwnPropertyDescriptor(obj, name);
@@ -44,6 +45,7 @@ function getDescriptor(obj, name){
     if(_proto===obj || obj===Object || obj===Function)return;
     return getDescriptor( Reflect.getPrototypeOf(obj), name);
 }
+
 const datasetSymbols = Object.create(null);
 const Class={
     key:privateKey,
@@ -77,6 +79,7 @@ const Class={
             throw new ReferenceError(`'super.${methodName}' setter is not exists.`)
         }
     },
+
     callSuperGetter(moduleClass, thisArg, methodName){
         const method = this.getSuperMethod(moduleClass, methodName, 'getter');
         if(method){
@@ -85,6 +88,7 @@ const Class={
             throw new ReferenceError(`'super.${methodName}' getter is not exists.`)
         }
     },
+
     isModifier(modifier, value){
         if(!(value > 0))return false;
         let mode = Class.constant[modifier];
@@ -93,6 +97,7 @@ const Class={
         }
         return (mode & value) === mode;
     },
+
     getSuperMethod(moduleClass, methodName, kind='method'){
         if(!moduleClass)return null;
         let descriptor = Class.getClassDescriptor(moduleClass);
@@ -139,6 +144,7 @@ const Class={
         }
         return null;
     },
+
     creator:function(moduleClass, descriptor){
         if(moduleClass && descriptor){
             if(!descriptor.name){
@@ -157,12 +163,15 @@ const Class={
                     merge(inherit, moduleClass);
                 }
             }
+
             if( descriptor.methods && !isInterface){
                 Object.defineProperties(moduleClass,descriptor.methods);
             }
+
             if( descriptor.members && !isInterface){
                 Object.defineProperties(moduleClass.prototype, descriptor.members);
             }
+
             Object.defineProperty(moduleClass,privateKey,{value:descriptor});
             if(!Object.hasOwnProperty.call(moduleClass,'name')){
                 Object.defineProperty(moduleClass,'name',{value:descriptor.name});
@@ -189,6 +198,7 @@ const Class={
                     }
                 });
             }
+
             Object.defineProperty(moduleClass.prototype,'constructor',{value:moduleClass});
             __MODULES__[name] = moduleClass;
         }
@@ -210,20 +220,3 @@ const Class={
         return __MODULES__[name] || null;
     }
 }
-Class.constant={
-    KIND_CLASS:1,
-    KIND_INTERFACE:2,
-    KIND_ENUM:4,
-    KIND_VAR:8,
-    KIND_CONST:16,
-    KIND_METHOD:32,
-    KIND_ACCESSOR:64,
-    KIND_ENUM_PROPERTY:128,
-    MODIFIER_STATIC:256,
-    MODIFIER_PUBLIC:512,
-    MODIFIER_PROTECTED:1024,
-    MODIFIER_PRIVATE:2048,
-    MODIFIER_ABSTRACT:4096,
-    MODIFIER_FINAL:8192
-}
-module.exports=Class;

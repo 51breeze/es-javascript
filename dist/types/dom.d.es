@@ -558,12 +558,67 @@ declare interface Document implements IEventDispatcher,GlobalEventHandlers,Docum
 
 declare const document:Document;
 
+declare interface CanvasRenderingContext2DSettings {
+    alpha?: boolean;
+    colorSpace?: PredefinedColorSpace;
+    desynchronized?: boolean;
+    willReadFrequently?: boolean;
+}
+
+declare type WebGLPowerPreference = "default" | "high-performance" | "low-power";
+
+declare interface WebGLContextAttributes {
+    alpha?: boolean;
+    antialias?: boolean;
+    depth?: boolean;
+    desynchronized?: boolean;
+    failIfMajorPerformanceCaveat?: boolean;
+    powerPreference?: WebGLPowerPreference;
+    premultipliedAlpha?: boolean;
+    preserveDrawingBuffer?: boolean;
+    stencil?: boolean;
+}
+
 declare interface HTMLBodyElement extends HTMLElement{}
 declare interface HTMLHeadElement extends HTMLElement{}
 declare interface HTMLImageElement extends HTMLElement{}
-declare interface HTMLCanvasElement extends HTMLElement{}
+declare interface HTMLCanvasElement extends HTMLElement{
+
+    /** Gets or sets the height of a canvas element on a document. */
+    height: number;
+    /** Gets or sets the width of a canvas element on a document. */
+    width: number;
+    captureStream(frameRequestRate?: number): any;
+    /**
+     * Returns an object that provides methods and properties for drawing and manipulating images and graphics on a canvas element in a document. A context object includes information about colors, line widths, fonts, and other graphic parameters that can be drawn on a canvas.
+     * @param contextId The identifier (ID) of the type of canvas to create. Internet Explorer 9 and Internet Explorer 10 support only a 2-D context using canvas.getContext("2d"); IE11 Preview also supports 3-D or WebGL context using canvas.getContext("experimental-webgl");
+     */
+    getContext(contextId: "2d", options?: CanvasRenderingContext2DSettings): any | null;
+    getContext(contextId: "bitmaprenderer", options?: any): ImageBitmapRenderingContext | null;
+    getContext(contextId: "webgl", options?: WebGLContextAttributes): any;
+    getContext(contextId: "webgl2", options?: WebGLContextAttributes): any;
+    getContext(contextId: string, options?: any): any;
+    toBlob(callback: any, type?: string, quality?: any): void;
+    /**
+     * Returns the content of the current canvas as an image that you can use as a source for another canvas or an HTML element.
+     * @param type The standard MIME type for the image format to return. If you do not specify this parameter, the default value is a PNG format image.
+     */
+    toDataURL(type?: string, quality?: any): string;
+    transferControlToOffscreen(): any;
+}
 declare interface HTMLAnchorElement extends HTMLElement{}
 declare interface HTMLAreaElement extends HTMLElement{}
+
+declare interface AddEventListenerOptions extends EventListenerOptions {
+    once?: boolean;
+    passive?: boolean;
+    signal?: AbortSignal;
+}
+
+declare interface EventListenerOptions {
+    capture?: boolean;
+}
+
 
 declare interface NodeList {
     /**
@@ -3908,7 +3963,7 @@ declare class PointerEvent extends MouseEvent {
 }
 
 /** Events measuring progress of an underlying process, like an HTTP request (for an XMLHttpRequest, or the loading of the underlying resource of an <img>, <audio>, <video>, <style> or <link>). */
-declare class ProgressEvent<T extends IEventDispatcher> extends Event {
+declare class ProgressEvent<T extends IEventDispatcher=EventTarget> extends Event {
     const lengthComputable: boolean;
     const loaded: number;
     const target: T | null;
@@ -4427,3 +4482,206 @@ declare class MutationRecord {
     /** Returns "attributes" if it was an attribute mutation. "characterData" if it was a mutation to a CharacterData node. And "childList" if it was a mutation to the tree of nodes. */
     readonly type: "attributes" | "characterData" | "childList";
 }
+
+declare interface StaticRangeInit {
+    endContainer: Node;
+    endOffset: number;
+    startContainer: Node;
+    startOffset: number;
+}
+
+declare class StaticRange extends AbstractRange {
+    constructor(init: StaticRangeInit)
+}
+
+interface InputEvent extends UIEvent {
+    readonly data: string | null;
+    readonly dataTransfer: DataTransfer | null;
+    readonly inputType: string;
+    readonly isComposing: boolean;
+    getTargetRanges(): StaticRange[];
+}
+
+declare class CompositionEvent extends UIEvent {
+    readonly data: string;
+    /** @deprecated */
+    initCompositionEvent(typeArg: string, bubblesArg?: boolean, cancelableArg?: boolean, viewArg?, dataArg?: string): void;
+    constructor(type: string, eventInitDict?: CompositionEventInit)
+}
+
+declare interface EventInit {
+    bubbles?: boolean;
+    cancelable?: boolean;
+    composed?: boolean;
+}
+
+declare interface UIEventInit extends EventInit {
+    detail?: number;
+    view?: Window | null;
+    /** @deprecated */
+    which?: number;
+}
+
+declare interface CompositionEventInit extends UIEventInit {
+    data?: string;
+}
+
+declare interface ErrorEventInit extends EventInit {
+    colno?: number;
+    error?: any;
+    filename?: string;
+    lineno?: number;
+    message?: string;
+}
+
+/** Events providing information related to errors in scripts or in files. */
+declare interface ErrorEvent extends Event {
+    readonly colno: number;
+    readonly error: any;
+    readonly filename: string;
+    readonly lineno: number;
+    readonly message: string;
+    constructor(type: string, eventInitDict?: ErrorEventInit)
+}
+
+declare interface ProgressEventInit extends EventInit {
+    lengthComputable?: boolean;
+    loaded?: number;
+    total?: number;
+}
+
+/** EventTarget is a DOM interface implemented by objects that can receive events and may have listeners for them. */
+declare class EventTarget {
+    /**
+     * Appends an event listener for events whose type attribute value is type. The callback argument sets the callback that will be invoked when the event is dispatched.
+     *
+     * The options argument sets listener-specific options. For compatibility this can be a boolean, in which case the method behaves exactly as if the value was specified as options's capture.
+     *
+     * When set to true, options's capture prevents callback from being invoked when the event's eventPhase attribute value is BUBBLING_PHASE. When false (or not present), callback will not be invoked when event's eventPhase attribute value is CAPTURING_PHASE. Either way, callback will be invoked if event's eventPhase attribute value is AT_TARGET.
+     *
+     * When set to true, options's passive indicates that the callback will not cancel the event by invoking preventDefault(). This is used to enable performance optimizations described in § 2.8 Observing event listeners.
+     *
+     * When set to true, options's once indicates that the callback will only be invoked once after which the event listener will be removed.
+     *
+     * If an AbortSignal is passed for options's signal, then the event listener will be removed when signal is aborted.
+     *
+     * The event listener is appended to target's event listener list and is not appended if it has the same type, callback, and capture.
+     */
+    addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void;
+    /** Dispatches a synthetic event event to target and returns true if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise. */
+    dispatchEvent(event: Event): boolean;
+    /** Removes the event listener in target's event listener list with the same type, callback, and options. */
+    removeEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: EventListenerOptions | boolean): void;
+}
+
+interface GlobalEventHandlersEventMap {
+    "abort": UIEvent;
+    "animationcancel": AnimationEvent;
+    "animationend": AnimationEvent;
+    "animationiteration": AnimationEvent;
+    "animationstart": AnimationEvent;
+    "auxclick": MouseEvent;
+    "beforeinput": InputEvent;
+    "blur": FocusEvent;
+    "cancel": Event;
+    "canplay": Event;
+    "canplaythrough": Event;
+    "change": Event;
+    "click": MouseEvent;
+    "close": Event;
+    "compositionend": CompositionEvent;
+    "compositionstart": CompositionEvent;
+    "compositionupdate": CompositionEvent;
+    "contextmenu": MouseEvent;
+    "copy": ClipboardEvent;
+    "cuechange": Event;
+    "cut": ClipboardEvent;
+    "dblclick": MouseEvent;
+    "drag": DragEvent;
+    "dragend": DragEvent;
+    "dragenter": DragEvent;
+    "dragleave": DragEvent;
+    "dragover": DragEvent;
+    "dragstart": DragEvent;
+    "drop": DragEvent;
+    "durationchange": Event;
+    "emptied": Event;
+    "ended": Event;
+    "error": ErrorEvent;
+    "focus": FocusEvent;
+    "focusin": FocusEvent;
+    "focusout": FocusEvent;
+    "formdata": FormDataEvent;
+    "gotpointercapture": PointerEvent;
+    "input": Event;
+    "invalid": Event;
+    "keydown": KeyboardEvent;
+    "keypress": KeyboardEvent;
+    "keyup": KeyboardEvent;
+    "load": Event;
+    "loadeddata": Event;
+    "loadedmetadata": Event;
+    "loadstart": Event;
+    "lostpointercapture": PointerEvent;
+    "mousedown": MouseEvent;
+    "mouseenter": MouseEvent;
+    "mouseleave": MouseEvent;
+    "mousemove": MouseEvent;
+    "mouseout": MouseEvent;
+    "mouseover": MouseEvent;
+    "mouseup": MouseEvent;
+    "paste": ClipboardEvent;
+    "pause": Event;
+    "play": Event;
+    "playing": Event;
+    "pointercancel": PointerEvent;
+    "pointerdown": PointerEvent;
+    "pointerenter": PointerEvent;
+    "pointerleave": PointerEvent;
+    "pointermove": PointerEvent;
+    "pointerout": PointerEvent;
+    "pointerover": PointerEvent;
+    "pointerup": PointerEvent;
+    "progress": ProgressEvent;
+    "ratechange": Event;
+    "reset": Event;
+    "resize": UIEvent;
+    "scroll": Event;
+    "securitypolicyviolation": SecurityPolicyViolationEvent;
+    "seeked": Event;
+    "seeking": Event;
+    "select": Event;
+    "selectionchange": Event;
+    "selectstart": Event;
+    "slotchange": Event;
+    "stalled": Event;
+    "submit": SubmitEvent;
+    "suspend": Event;
+    "timeupdate": Event;
+    "toggle": Event;
+    "touchcancel": TouchEvent;
+    "touchend": TouchEvent;
+    "touchmove": TouchEvent;
+    "touchstart": TouchEvent;
+    "transitioncancel": TransitionEvent;
+    "transitionend": TransitionEvent;
+    "transitionrun": TransitionEvent;
+    "transitionstart": TransitionEvent;
+    "volumechange": Event;
+    "waiting": Event;
+    "webkitanimationend": Event;
+    "webkitanimationiteration": Event;
+    "webkitanimationstart": Event;
+    "webkittransitionend": Event;
+    "wheel": WheelEvent;
+}
+
+declare interface EventListener {
+    (evt: Event): void;
+}
+
+declare interface EventListenerObject {
+    handleEvent(object: Event): void;
+}
+
+type EventListenerOrEventListenerObject = EventListener | EventListenerObject;

@@ -1,11 +1,11 @@
-const Class = require("./Class.js");
-const Reflect = require("./Reflect.js");
 /*
  * Copyright © 2017 EaseScript All rights reserved.
  * Released under the MIT license
  * https://github.com/51breeze/EaseScript
  * @author Jun Ye <664371281@qq.com>
  */
+///<references from='Reflect' />
+
 function Enumeration(name, value){
     Object.defineProperty(this, 'name',{
         value:name,
@@ -16,20 +16,24 @@ function Enumeration(name, value){
         writable:false
     })
 }
+
 Object.defineProperty(Enumeration.prototype, 'constructor',{
     value:Enumeration
 })
+
 Object.defineProperty(Enumeration.prototype, 'label',{
     value:function(){
         return this.name;
     }
 })
+
 Object.defineProperty(Enumeration, 'keys',{
     value:function(){
         const properties = getProperties(this)
         return properties.keys();
     }
 })
+
 Object.defineProperty(Enumeration, 'values',{
     value:function(){
         const properties = getProperties(this)
@@ -38,11 +42,13 @@ Object.defineProperty(Enumeration, 'values',{
         })
     }
 })
+
 Object.defineProperty(Enumeration, 'has',{
     value:function(key){
         return getProperties(this).has(key);
     }
 })
+
 Object.defineProperty(Enumeration, 'valueOf',{
     value:function(value){
         const properties = getProperties(this)
@@ -56,6 +62,7 @@ Object.defineProperty(Enumeration, 'valueOf',{
         return null;
     }
 })
+
 Object.defineProperty(Enumeration, 'keyOf',{
     value:function(value){
         const properties = getProperties(this)
@@ -67,6 +74,7 @@ Object.defineProperty(Enumeration, 'keyOf',{
         return null
     }
 })
+
 Object.defineProperty(Enumeration, 'labelOf',{
     value:function(value){
         const obj =  this.valueOf(value)
@@ -76,6 +84,7 @@ Object.defineProperty(Enumeration, 'labelOf',{
         return null;
     }
 })
+
 const records = new Map();
 function getProperties(classObject){
     if(records.has(classObject)){
@@ -98,6 +107,7 @@ function getProperties(classObject){
     }
     return map;
 }
+
 const instances = new Map();
 function getCache(classObject){
     let cache = instances.get(classObject);
@@ -105,6 +115,7 @@ function getCache(classObject){
     instances.set(classObject, cache=new Map())
     return cache;
 }
+
 function getInstance(classObject, key, value=null){
     const cache = getCache(classObject)
     if(value != null && !cache.has(key)){
@@ -112,8 +123,3 @@ function getInstance(classObject, key, value=null){
     }
     return cache.get(key) || null;
 }
-Class.creator(Enumeration,{
-    m:513,
-    name:"Enumeration"
-})
-module.exports=Enumeration;
