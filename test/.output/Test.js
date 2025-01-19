@@ -12,7 +12,7 @@ const EventDispatcher = require("./EventDispatcher.js");
 const Event = require("./Event.js");
 const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
-const _private0 = Class.getKeySymbols("df62f01a");
+const _private0 = Class.getKeySymbols("4909f058");
 function Test(name,age){
     Person.call(this,name);
     Object.defineProperty(this,_private0,{

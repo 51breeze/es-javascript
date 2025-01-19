@@ -1,6 +1,6 @@
 const Class = require("./Class.js");
 const TestInterface = require("./com/TestInterface.js");
-const _private0 = Class.getKeySymbols("bc2c2a77");
+const _private0 = Class.getKeySymbols("3bcc71a4");
 function Person(name){
     this.addressName=`the Person properyt "addressName"`;
     Object.defineProperty(this,_private0,{
