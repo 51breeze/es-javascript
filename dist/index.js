@@ -442,6 +442,9 @@ __export(lib_exports, {
 });
 module.exports = __toCommonJS(lib_exports);
 
+// node_modules/@easescript/transform/lib/index.js
+var import_merge = __toESM(require("lodash/merge"));
+
 // node_modules/@easescript/transform/lib/core/Plugin.js
 var import_Compilation = __toESM(require("easescript/lib/core/Compilation"));
 var import_path6 = __toESM(require("path"));
@@ -10055,7 +10058,6 @@ var Plugin = class _Plugin extends import_events.default {
 var Plugin_default = Plugin;
 
 // node_modules/@easescript/transform/lib/index.js
-var import_merge = __toESM(require("lodash/merge"));
 var defaultConfig = {
   webpack: {
     enable: false,
