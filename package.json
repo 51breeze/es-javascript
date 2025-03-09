@@ -1,7 +1,7 @@
 {
   "name": "@easescript/es-javascript",
-  "version": "0.0.1",
-  "description": "Code Transform To JavasSript For EaseScript Plugin",
+  "version": "0.0.2",
+  "description": "EaseScript Code Transformation Plugin For JavaScript",
   "main": "dist/index.js",
   "typings": "dist/types/typings.json",
   "scripts": {
