@@ -31,6 +31,14 @@ const config = {
     require('esbuild-plugin-copy').copy({
       resolveFrom: 'cwd',
       assets: {
+        from: ['./lib/polyfills/**'],
+        to: ['./dist/polyfills/'],
+      },
+      keepStructure: false,
+    }),
+    require('esbuild-plugin-copy').copy({
+      resolveFrom: 'cwd',
+      assets: {
         from: ['./lib/types/**'],
         to: ['./dist/types/'],
       },

@@ -436,7 +436,7 @@ var require_main2 = __commonJS({
 // lib/index.js
 var lib_exports = {};
 __export(lib_exports, {
-  Plugin: () => Plugin_default,
+  Plugin: () => Plugin,
   default: () => lib_default,
   getOptions: () => getOptions
 });
@@ -447,6 +447,7 @@ var import_merge = __toESM(require("lodash/merge"));
 
 // node_modules/@easescript/transform/lib/core/Plugin.js
 var import_Compilation = __toESM(require("easescript/lib/core/Compilation"));
+var import_Diagnostic = __toESM(require("easescript/lib/core/Diagnostic"));
 var import_path6 = __toESM(require("path"));
 
 // node_modules/@easescript/transform/lib/core/Builder.js
@@ -905,18 +906,20 @@ var import_dotenv_expand = __toESM(require_main2());
 var Cache = getCacheManager("common");
 var emptyObject = {};
 var emptyArray = [];
+var allRouteMethods = ["get", "post", "put", "delete", "option", "router"];
 var annotationIndexers = {
   env: ["name", "value", "expect"],
   runtime: ["platform", "expect"],
   syntax: ["plugin", "expect"],
   plugin: ["name", "expect"],
   version: ["name", "version", "operator", "expect"],
-  readfile: ["dir", "load", "suffix", "relative", "lazy", "only", "source"],
+  readfile: ["path", "load", "suffix", "relative", "lazy", "only", "source", "extractDir"],
   http: ["classname", "action", "param", "data", "method", "config"],
   router: ["classname", "action", "param"],
   alias: ["name", "version"],
   hook: ["type", "version"],
-  url: ["source"]
+  url: ["source"],
+  embed: ["path"]
 };
 var compareOperatorMaps = {
   ">=": "egt",
@@ -930,6 +933,12 @@ var compareOperators = [">=", "<=", "!=", ">", "<", "="];
 var beginNumericRE = /^\d+/;
 function beginNumericLiteral(value) {
   return beginNumericRE.test(value);
+}
+function isRouteAnnotation(annotation) {
+  if (import_Utils.default.isStack(annotation) && annotation.isAnnotationDeclaration) {
+    return allRouteMethods.includes(annotation.getLowerCaseName());
+  }
+  return false;
 }
 function parseMacroAnnotation(annotation) {
   if (!(annotation.isAnnotationDeclaration || annotation.isAnnotationExpression)) {
@@ -1003,26 +1012,40 @@ function parseMacroMethodArguments(args, name) {
   });
   return parseMacroArguments(args, name);
 }
+function parseAnnotationArguments(args, indexes, defaults = {}) {
+  let annotArgs = getAnnotationArguments(args, indexes);
+  let results = {};
+  annotArgs.forEach((arg, index) => {
+    let key = indexes[index];
+    let value = arg ? arg.value : defaults[key];
+    results[key] = value;
+  });
+  return [annotArgs, results];
+}
 function parseReadfileAnnotation(ctx, stack) {
   let args = stack.getArguments();
   let indexes = annotationIndexers.readfile;
-  let stackArgs = {};
-  let annotArgs = indexes.map((key) => {
-    return stackArgs[key] = getAnnotationArgument(key, args, indexes);
+  let [annotArgs, values] = parseAnnotationArguments(args, indexes, {
+    load: true,
+    extractDir: true,
+    relative: true
   });
-  let dirStack = annotArgs[0] && annotArgs[0].stack;
-  let [_path, _load, _suffix, _relative, _lazy, _only, _source] = annotArgs.map((item) => {
-    return item ? item.value : null;
-  });
-  if (!_path) {
+  let {
+    path: dir,
+    load,
+    suffix: _suffix,
+    relative,
+    lazy,
+    only,
+    source,
+    extractDir
+  } = values;
+  let suffixPattern = null;
+  if (!dir) {
+    stack.error(10103, "path");
     return null;
   }
-  let dir = String(_path).trim();
-  let [load, relative, lazy, only, source] = [_load, _relative, _lazy, _only, _source].map((value) => {
-    value = String(value).trim();
-    return value == "true" || value === "TRUE";
-  });
-  let suffixPattern = null;
+  dir = String(dir).trim();
   if (dir.charCodeAt(0) === 64) {
     dir = dir.slice(1);
     let segs = dir.split(".");
@@ -1041,7 +1064,7 @@ function parseReadfileAnnotation(ctx, stack) {
   let rawDir = dir;
   dir = stack.compiler.resolveManager.resolveSource(dir, stack.compilation.file);
   if (!dir) {
-    ctx.error(`Readfile not found the '${rawDir}' folders`, dirStack || stack);
+    annotArgs[0].stack.error(10104, rawDir);
     return null;
   }
   if (_suffix) {
@@ -1071,16 +1094,28 @@ function parseReadfileAnnotation(ctx, stack) {
       return true;
     return suffix.some((item) => file.endsWith(item));
   };
-  let files = stack.compiler.resolveFiles(dir).filter(checkSuffix).map(import_Utils.default.normalizePath);
-  if (!files.length)
-    return null;
+  const getFileDirs = (file) => {
+    let index = file.lastIndexOf("/");
+    let dirname = file.slice(0, index);
+    if (dirname !== dir && dirname.startsWith(dir)) {
+      return [dirname, ...getFileDirs(dirname)];
+    }
+    return [];
+  };
+  let files = stack.compiler.resolveFiles(dir).filter(checkSuffix).map((file) => {
+    file = import_Utils.default.normalizePath(file);
+    if (extractDir) {
+      return [...getFileDirs(file), file];
+    }
+    return [file];
+  }).flat();
   files.sort((a, b) => {
     a = a.replaceAll(".", "/").split("/").length;
     b = b.replaceAll(".", "/").split("/").length;
     return a - b;
   });
   return {
-    args: stackArgs,
+    args: annotArgs,
     dir,
     only,
     suffix,
@@ -1130,11 +1165,11 @@ function parseHttpAnnotation(ctx, stack) {
   const [moduleClass, actionArg, paramArg, dataArg, methodArg, configArg] = indexes.map((key) => getAnnotationArgument(key, args, indexes));
   const providerModule = moduleClass ? import_Namespace.default.globals.get(moduleClass.value) : null;
   if (!providerModule) {
-    ctx.error(`Class '${moduleClass.value}' is not exists.`);
+    stack.error(10105, moduleClass.value);
   } else {
     const member = actionArg ? providerModule.getMember(actionArg.value) : null;
     if (!member || !import_Utils.default.isModifierPublic(member) || !(member.isMethodDefinition && !(member.isMethodGetterDefinition || member.isMethodSetterDefinition))) {
-      ctx.error(`Method '${moduleClass.value}::${actionArg && actionArg.value}' is not exists.`, actionArg ? actionArg.stack : stack);
+      (actionArg ? actionArg.stack : stack).error(10106, `${moduleClass.value}::${actionArg && actionArg.value}`);
     } else {
       return {
         args: {
@@ -1155,10 +1190,16 @@ function parseHttpAnnotation(ctx, stack) {
 function parseRouterAnnotation(ctx, stack) {
   const args = stack.getArguments();
   const indexes = annotationIndexers.router;
-  const [moduleClass, actionArg, paramArg] = indexes.map((key) => getAnnotationArgument(key, args, indexes));
+  const [moduleClass, actionArg, paramArg] = indexes.map((key) => {
+    let result = getAnnotationArgument(key, args, indexes);
+    if (!result && key === "param") {
+      result = getAnnotationArgument("params", args);
+    }
+    return result;
+  });
   const module2 = moduleClass ? import_Namespace.default.globals.get(moduleClass.value) : null;
   if (!module2) {
-    ctx.error(`Class '${moduleClass.value}' is not exists.`);
+    stack.error(10105, moduleClass.value);
   } else {
     if (import_Utils.default.isModule(module2) && module2.isClass && stack.isModuleForWebComponent(module2)) {
       return {
@@ -1173,7 +1214,7 @@ function parseRouterAnnotation(ctx, stack) {
     } else {
       const method = actionArg ? module2.getMember(actionArg.value) : null;
       if (!method || !import_Utils.default.isModifierPublic(method) || !(method.isMethodDefinition && !(method.isMethodGetterDefinition || method.isMethodSetterDefinition))) {
-        ctx.error(`Method '${moduleClass.value}::${actionArg && actionArg.value}' is not exists.`, actionArg ? actionArg.stack : stack);
+        (actionArg ? actionArg.stack : stack).error(10106, `${moduleClass.value}::${actionArg && actionArg.value}`);
       } else {
         return {
           isWebComponent: false,
@@ -1189,6 +1230,175 @@ function parseRouterAnnotation(ctx, stack) {
     }
   }
   return null;
+}
+function parseRouteAnnotation(ctx, annotation) {
+  if (!isRouteAnnotation(annotation)) {
+    return null;
+  }
+  let result = Cache.get(annotation, "parseRouteAnnotation");
+  if (result) {
+    return result;
+  }
+  const args = annotation.getArguments();
+  const owner = annotation.additional;
+  const annotName = annotation.getLowerCaseName();
+  const module2 = owner.module;
+  const isWebComponent = module2.isWebComponent();
+  const defaultValue = {};
+  const pathArg = getAnnotationArgument("path", args, ["path"]);
+  const metaArg = getAnnotationArgument("meta", args);
+  let method = annotName;
+  let params = [];
+  let isRouterModule = owner.isClassDeclaration || owner.isDeclaratorDeclaration || owner.isInterfaceDeclaration;
+  if (annotName === "router") {
+    method = "*";
+    const methodArg = getAnnotationArgument("method", args);
+    if (methodArg) {
+      method = String(methodArg.value).toLowerCase();
+    }
+    if (isWebComponent) {
+      params = args.filter((arg) => !(arg === methodArg || arg === metaArg || arg === pathArg)).map((item) => {
+        let name = item.assigned ? item.key : item.value;
+        let annotParamStack = item.stack;
+        let optional = !!(annotParamStack.question || annotParamStack.node.question);
+        if (annotParamStack.isAssignmentPattern) {
+          if (!optional) {
+            optional = !!(annotParamStack.left.question || annotParamStack.left.node.question);
+          }
+          if (annotParamStack.right.isIdentifier || annotParamStack.right.isLiteral) {
+            defaultValue[name] = annotParamStack.right.value();
+            if (annotParamStack.right.isIdentifier) {
+              defaultValue[name] = ctx.createIdentifier(defaultValue[name]);
+            } else {
+              defaultValue[name] = ctx.createLiteral(defaultValue[name]);
+            }
+          } else {
+            const gen = new Generator();
+            gen.make(this.createToken(annotParamStack.right));
+            defaultValue[name] = ctx.createChunkExpression(gen.toString());
+          }
+        }
+        return { name, optional };
+      });
+    }
+  }
+  let meta = null;
+  if (metaArg) {
+    if (metaArg.stack.isAssignmentPattern) {
+      meta = metaArg.stack.right;
+    } else {
+      meta = metaArg.stack;
+    }
+  }
+  let data = createRouteInstance(
+    ctx,
+    module2,
+    owner,
+    pathArg ? pathArg.value : null,
+    method,
+    meta,
+    params,
+    defaultValue,
+    isRouterModule,
+    isWebComponent
+  );
+  Cache.set(annotation, "parseRouteAnnotation", data);
+  return data;
+}
+function createRouteInstance(ctx, module2, owner, path7, method, meta = null, params = [], defaultValue = {}, isRouterModule = false, isWebComponent = false) {
+  let action = null;
+  let options = ctx.options || emptyObject;
+  if (!isWebComponent && owner && owner.isMethodDefinition) {
+    if (!import_Utils.default.isModifierPublic(owner)) {
+      owner.error(10112);
+    }
+    action = owner.value();
+    owner.params.forEach((item) => {
+      if (item.isObjectPattern || item.isArrayPattern) {
+        item.error(10107);
+        return;
+      }
+      let name = item.value();
+      let optional = !!(item.question || item.isAssignmentPattern);
+      if (item.isAssignmentPattern) {
+        if (item.right.isIdentifier || item.right.isLiteral) {
+          defaultValue[name] = item.right.value();
+          if (item.right.isIdentifier) {
+            defaultValue[name] = ctx.createIdentifier(defaultValue[name]);
+          } else {
+            defaultValue[name] = ctx.createLiteral(defaultValue[name]);
+          }
+        } else {
+          const gen = new Generator();
+          gen.make(this.createToken(item.right));
+          defaultValue[name] = ctx.createChunkExpression(gen.toString());
+        }
+      }
+      params.push({ name, optional });
+    });
+  }
+  if (!path7 && action) {
+    path7 = action;
+  }
+  let pathName = path7 ? String(path7).trim() : action;
+  let isModuleId = false;
+  if (!pathName) {
+    isModuleId = true;
+    pathName = module2.id;
+  }
+  let startsCode = pathName.charCodeAt(0);
+  let hasFull = false;
+  if (startsCode === 64) {
+    pathName = pathName.substring(1).trim();
+    hasFull = true;
+  }
+  while (pathName.charCodeAt(0) === 47) {
+    pathName = pathName.substring(1);
+  }
+  if (!hasFull && !isRouterModule) {
+    const annotation = getModuleAnnotations(module2, ["router"]);
+    const route = parseRouteAnnotation(ctx, annotation[0]);
+    if (route) {
+      hasFull = true;
+      pathName = route.path + "/" + pathName;
+    } else if (!isModuleId) {
+      pathName = module2.id + "/" + pathName;
+    }
+  }
+  if (!hasFull && options.routePathWithNamespace && module2.namespace) {
+    pathName = module2.namespace.getChain().concat(pathName).join("/");
+  }
+  if (pathName.charCodeAt(pathName.length - 1) === 47) {
+    pathName = pathName.slice(0, -1);
+  }
+  if (!pathName.startsWith("/")) {
+    pathName = "/" + pathName;
+  }
+  let fullname = module2.getName("/");
+  if (action) {
+    fullname += "/" + action;
+  }
+  let data = {
+    isRoute: true,
+    isWebComponent,
+    isRouterModule,
+    path: pathName,
+    name: fullname,
+    action,
+    params,
+    defaultValue,
+    method,
+    meta,
+    module: module2
+  };
+  let routePathFormat = options.formation?.routePathFormat;
+  if (routePathFormat) {
+    let normal = routePathFormat(pathName, data);
+    if (normal) {
+      data.path = normal;
+    }
+  }
+  return data;
 }
 function parseDefineAnnotation(annotation) {
   const args = annotation.getArguments();
@@ -1225,7 +1435,7 @@ function parseHookAnnotation(annotation, pluginVersion = "0.0.0", optionVersion 
       };
     }
   } else {
-    console.error("[es-transform] Annotations hook missing arguments");
+    annotation.error(10108);
     return false;
   }
 }
@@ -1389,98 +1599,56 @@ function compareVersion(left, right, operator = "elt") {
   }
   return operator === "eq" || operator === "egt" || operator === "elt";
 }
-function createRoutePath(route, params = {}) {
-  if (!route || !route.path || !route.isRoute) {
-    throw new Error("route invalid");
-  }
-  params = Object.assign({}, route.params || {}, params);
-  return "/" + route.path.split("/").map((segment, index) => {
-    if (segment.charCodeAt(0) === 58) {
-      segment = segment.slice(1);
-      const optional = segment.charCodeAt(segment.length - 1) === 63;
-      if (optional) {
-        segment = segment.slice(0, -1);
-      }
-      if (params[segment]) {
-        return params[segment];
-      }
-      if (!optional) {
-        console.error(`[es-transform] Route params the "${segment}" missing default value or set optional. on page-component the "${route.path}"`);
-      }
-      return null;
-    }
-    return segment;
-  }).filter((val) => !!val).join("/");
-}
-function getModuleRoutes(module2, allows = ["router"], options = {}) {
+function getModuleRoutes(ctx, module2, allows = ["router"]) {
   if (!import_Utils.default.isModule(module2) || !module2.isClass)
     return [];
-  const routes = [];
   const annotations = getModuleAnnotations(module2, allows);
   if (annotations && annotations.length) {
-    annotations.forEach((annotation) => {
-      const args = annotation.getArguments();
-      let annotName = annotation.getLowerCaseName();
-      let method = annotName;
-      if (annotName === "router") {
-        method = "*";
-        const methodArg = getAnnotationArgument("method", args, []);
-        if (methodArg) {
-          method = String(methodArg.value).toLowerCase();
-        }
-      }
-      const pathArg = getAnnotationArgument("path", args, ["path"]);
-      const defaultValue = {};
-      const params = args.filter((arg) => !(arg === method || arg === pathArg)).map((item) => {
-        return getModuleRouteParamRule(item.assigned ? item.key : item.value, item.stack, defaultValue);
-      });
-      let withNs = options.routePathWithNamespace?.client;
-      let className = module2.getName("/");
-      let pathName = pathArg ? pathArg.value : withNs === false ? module2.id : className;
-      if (pathName.charCodeAt(0) === 47) {
-        pathName = pathName.substring(1);
-      }
-      if (pathName.charCodeAt(pathName.length - 1) === 47) {
-        pathName = pathName.slice(0, -1);
-      }
-      let segments = [pathName].concat(params);
-      let routePath = "/" + segments.join("/");
-      let formatRoute = options.formation?.route;
-      if (formatRoute) {
-        routePath = formatRoute(routePath, {
-          pathArg,
-          params,
-          method,
-          defaultParamsValue: defaultValue,
-          className: module2.getName()
-        }) || routePath;
-      }
-      routes.push({
-        isRoute: true,
-        name: className,
-        path: routePath,
-        params: defaultValue,
-        method,
-        module: module2
-      });
+    return annotations.map((annotation) => {
+      return parseRouteAnnotation(ctx, annotation);
     });
-  }
-  return routes;
-}
-function getModuleRouteParamRule(name, annotParamStack, defaultValue = {}) {
-  let question = annotParamStack.question || annotParamStack.node.question;
-  if (annotParamStack.isAssignmentPattern) {
-    if (!question)
-      question = annotParamStack.left.question || annotParamStack.left.node.question;
-    if (annotParamStack.right.isIdentifier || annotParamStack.right.isLiteral) {
-      defaultValue[name] = annotParamStack.right.value();
-    } else {
-      const gen = new Generator();
-      gen.make(this.createToken(annotParamStack.right));
-      defaultValue[name] = gen.toString();
+  } else if (ctx.isPermissibleRouteProvider(module2)) {
+    let result = Cache.get(module2, "isPermissibleRouteProvider");
+    if (result) {
+      return result;
     }
+    let route = createRouteInstance(
+      ctx,
+      module2,
+      null,
+      module2.id,
+      "*",
+      null,
+      [],
+      {},
+      true,
+      module2.isWebComponent()
+    );
+    route.isNonAnnotation = true;
+    let data = [route];
+    Cache.set(module2, "isPermissibleRouteProvider", data);
+    return data;
   }
-  return question ? ":" + name + "?" : ":" + name;
+  return [];
+}
+function getMethodRoutes(ctx, methodStack, allows = allRouteMethods) {
+  const annotations = getMethodAnnotations(methodStack, allows);
+  if (annotations && annotations.length) {
+    return annotations.map((annotation) => {
+      return parseRouteAnnotation(ctx, annotation);
+    });
+  } else if (ctx.isPermissibleRouteProvider(methodStack)) {
+    let result = Cache.get(methodStack, "isPermissibleRouteProvider");
+    if (result) {
+      return result;
+    }
+    let route = createRouteInstance(ctx, methodStack.module, methodStack, null, "*");
+    route.isNonAnnotation = true;
+    let data = [route];
+    Cache.set(methodStack, "isPermissibleRouteProvider", data);
+    return data;
+  }
+  return [];
 }
 function parseVersionExpression(expression, pluginVersion = "0.0.0", optionVersions = {}) {
   expression = String(expression).trim();
@@ -1607,13 +1775,18 @@ function parseImportDeclaration(ctx, stack, context = null, graph = null) {
   }
   return importSource;
 }
-var allMethods = ["get", "post", "put", "delete", "option", "router"];
 function createHttpAnnotationNode(ctx, stack) {
   const result = parseHttpAnnotation(ctx, stack);
   if (!result)
     return null;
   const { param, method, data, config } = result.args;
-  const routeConfigNode = createRouteConfigNode(ctx, result.module, result.method, param);
+  const route = getMethodRoutes(ctx, result.method, allRouteMethods)[0];
+  if (!route) {
+    let path7 = result.module.getName() + ":" + result.method.value();
+    stack.error(10102, path7);
+    return null;
+  }
+  const routeConfigNode = createRouteConfigNodeForHttpRequest(ctx, route, param);
   const createArgNode = (argItem) => {
     if (argItem) {
       if (argItem.stack.isAssignmentPattern) {
@@ -1624,14 +1797,10 @@ function createHttpAnnotationNode(ctx, stack) {
     }
     return null;
   };
-  const System = import_Namespace.default.globals.get("System");
-  const Http = import_Namespace.default.globals.get("net.Http");
-  ctx.addDepend(System, stack.module);
-  ctx.addDepend(Http, stack.module);
   const props = {
     data: createArgNode(data),
     options: createArgNode(config),
-    method: method && allMethods.includes(method.value) ? ctx.createLiteral(method.value) : null
+    method: method && allRouteMethods.includes(method.value) ? ctx.createLiteral(method.value) : null
   };
   const properties2 = Object.keys(props).map((name) => {
     const value = props[name];
@@ -1641,27 +1810,14 @@ function createHttpAnnotationNode(ctx, stack) {
     return null;
   }).filter((item) => !!item);
   let calleeArgs = [
-    ctx.createIdentifier(
-      ctx.getGlobalRefName(
-        stack,
-        ctx.getModuleReferenceName(Http, stack.module)
-      )
-    ),
+    createModuleReferenceNode(ctx, stack, "net.Http"),
     routeConfigNode
   ];
   if (properties2.length > 0) {
     calleeArgs.push(ctx.createObjectExpression(properties2));
   }
   return ctx.createCallExpression(
-    ctx.createMemberExpression([
-      ctx.createIdentifier(
-        ctx.getGlobalRefName(
-          stack,
-          ctx.builder.getModuleReferenceName(System, stack.module)
-        )
-      ),
-      ctx.createIdentifier("createHttpRequest")
-    ]),
+    createStaticReferenceNode(ctx, stack, "System", "createHttpRequest"),
     calleeArgs,
     stack
   );
@@ -1715,69 +1871,82 @@ function createRouterAnnotationNode(ctx, stack) {
   if (!result)
     return null;
   if (result.isWebComponent) {
-    let route = getModuleRoutes(result.module, ["router"], ctx.options);
-    if (route && Array.isArray(route))
-      route = route[0];
-    if (!route) {
-      let routePathNode = ctx.createDefaultRoutePathNode(result.module);
-      if (routePathNode) {
-        return routePathNode;
-      } else {
-        return null;
-      }
+    let route = getModuleRoutes(ctx, result.module)[0];
+    if (route) {
+      return createRouteCompletePathNode(ctx, route, result.args.param, stack);
     }
-    const paramArg = result.args.param;
-    if (!paramArg) {
-      return ctx.createLiteral(createRoutePath(route));
-    } else {
-      const System = import_Namespace.default.globals.get("System");
-      const routePath = "/" + route.path.split("/").map((segment) => {
-        if (segment.charCodeAt(0) === 58) {
-          return "<" + segment.slice(1) + ">";
-        }
-        return segment;
-      }).filter((val) => !!val).join("/");
-      let paramNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
-      ctx.addDepend(System, stack.module);
-      if (route.params) {
-        const defaultParams = ctx.createObjectExpression(
-          Object.keys(route.params).map((name) => {
-            const value = route.params[name];
-            return ctx.createProperty(ctx.createIdentifier(name), ctx.createLiteral(value));
-          })
-        );
-        paramNode = ctx.createCallExpression(
-          ctx.createMemberExpression([
-            ctx.createIdentifier("Object"),
-            ctx.createIdentifier("assign")
-          ]),
-          [
-            defaultParams,
-            paramNode
-          ]
-        );
-      }
-      return ctx.createCallExpression(
-        ctx.createMemberExpression([
-          ctx.createIdentifier(
-            ctx.getGlobalRefName(
-              stack,
-              ctx.getModuleReferenceName(System, stack.module)
-            ),
-            stack
-          ),
-          ctx.createIdentifier("createHttpRoute", stack)
-        ]),
-        [
-          ctx.createLiteral(routePath),
-          paramNode
-        ],
-        stack
-      );
-    }
+    stack.error(10111);
   } else {
-    return createRouteConfigNode(ctx, result.module, result.method, result.args.param);
+    let route = getMethodRoutes(ctx, result.method, allRouteMethods)[0];
+    return createRouteConfigNodeForHttpRequest(ctx, route, result.args.param);
   }
+}
+function createRouteCompletePathNode(ctx, route, param = null, stack = null) {
+  if (!(route.params.length > 0)) {
+    return ctx.createLiteral(route.path);
+  }
+  let { routePath, argumentNode } = parseRouteCompletePath(ctx, route, param);
+  let args = [ctx.createLiteral(routePath)];
+  if (argumentNode) {
+    args.push(argumentNode);
+  }
+  return ctx.createCallExpression(
+    createStaticReferenceNode(ctx, stack, "System", "createHttpRoute"),
+    args,
+    stack
+  );
+}
+function parseRouteCompletePath(ctx, route, paramArg = null) {
+  let routePath = route.path;
+  let properties2 = null;
+  if (route.params.length > 0) {
+    properties2 = [];
+    let segments = route.params.map((item) => {
+      let name = item.name;
+      let value = route.defaultValue[name];
+      if (value != null) {
+        properties2.push(ctx.createProperty(
+          ctx.createIdentifier(name),
+          Node_default.is(value) ? value : ctx.createChunkExpression(value, false)
+        ));
+      } else if (!paramArg && !item.optional) {
+        let className = item.module.getName();
+        if (item.action) {
+          className += "::" + item.action;
+        }
+        console.error(`[es-transform] Route params the "${name}" missing default value or set optional. on the "${className}"`);
+      }
+      if (item.optional)
+        name += "?";
+      return "<" + name + ">";
+    });
+    routePath = [routePath, ...segments].join("/");
+  }
+  let defaultArgumentNode = null;
+  if (properties2 && properties2.length > 0) {
+    defaultArgumentNode = ctx.createObjectExpression(properties2);
+  }
+  let argumentNode = null;
+  if (import_Utils.default.isStack(paramArg)) {
+    argumentNode = ctx.createToken(paramArg.assigned ? paramArg.stack.right : paramArg.stack);
+  } else if (Node_default.is(paramArg)) {
+    argumentNode = paramArg;
+  }
+  if (argumentNode && defaultArgumentNode) {
+    argumentNode = ctx.createCallExpression(
+      ctx.createMemberExpression([
+        ctx.createIdentifier("Object"),
+        ctx.createIdentifier("assign")
+      ]),
+      [
+        defaultArgumentNode,
+        argumentNode
+      ]
+    );
+  } else if (defaultArgumentNode) {
+    argumentNode = defaultArgumentNode;
+  }
+  return { routePath, argumentNode };
 }
 function createMainAnnotationNode(ctx, stack) {
   if (!stack || !stack.isMethodDefinition)
@@ -1803,83 +1972,50 @@ function createMainAnnotationNode(ctx, stack) {
   }
   return callMain;
 }
-function createRouteConfigNode(ctx, module2, method, paramArg) {
-  if (!import_Utils.default.isStack(method) || !method.isMethodDefinition) {
-    throw new Error(`method invalid`);
-  }
-  const annotations = method.annotations;
-  const annotation = annotations && annotations.find((item) => {
-    return allMethods.includes(item.getLowerCaseName());
+function createRouteConfigNodeForHttpRequest(ctx, route, paramArg = null) {
+  if (!route)
+    return null;
+  let path7 = route.path;
+  let defaultParams = [];
+  let allowMethodNode = ctx.createArrayExpression(
+    route.method.split(",").map((val) => ctx.createLiteral(val.trim()))
+  );
+  Object.keys(route.defaultValue).forEach((key) => {
+    defaultParams.push(ctx.createProperty(
+      ctx.createIdentifier(key),
+      Node_default.is(route.defaultValue[key]) ? route.defaultValue[key] : ctx.createChunkExpression(route.defaultValue[key], false)
+    ));
   });
-  const mapNameds = ["path"];
-  const args = annotation ? annotation.getArguments() : [];
-  const pathArg = annotation ? getAnnotationArgument(mapNameds[0], args, mapNameds) : null;
-  const actionName = method.value();
-  const value = String(pathArg ? pathArg.value : actionName);
-  const defaultParams = [];
-  const declareParams = (method.params || []).map((item) => {
-    const required = !(item.question || item.isAssignmentPattern);
-    const question = required ? "" : "?";
-    if (item.isAssignmentPattern) {
-      if (item.right.isLiteral) {
-        defaultParams.push(ctx.createProperty(ctx.createIdentifier(item.value()), ctx.createToken(item.right)));
-      } else {
-        item.right.error(10101, item.value());
+  if (route.params.length > 0) {
+    path7 = [path7, ...route.params.map((item) => {
+      let name = item.name;
+      if (name.optional) {
+        name += "?";
       }
-    }
-    return `<${item.value()}${question}>`;
-  });
-  const uri = declareParams.length > 0 ? [value].concat(declareParams).join("/") : value;
-  let url = uri;
-  if (uri.charCodeAt(0) !== 47) {
-    const withNs = ctx.options.routePathWithNamespace?.server;
-    url = withNs ? `/${module2.getName("/")}/${uri}` : `/${module2.id}/${uri}`;
+      return `<${name}>`;
+    })].join("/");
   }
-  let allowMethodNode = ctx.createLiteral(annotation ? annotation.getLowerCaseName() : "*");
-  let allowMethodNames = annotation ? annotation.getLowerCaseName() : "*";
-  if (annotation && annotation.getLowerCaseName() === "router") {
-    const allowMethods = args.filter((item) => item !== pathArg);
-    if (allowMethods.length > 0) {
-      allowMethodNames = allowMethods.map((item) => item.value).join(",");
-      allowMethodNode = ctx.createArrayExpression(allowMethods.map((item) => ctx.createLiteral(item.value)));
-    } else {
-      allowMethodNode = ctx.createLiteral("*");
-    }
-  }
-  let formatRoute = ctx.options.formation?.route;
-  if (formatRoute) {
-    url = formatRoute(url, {
-      action: actionName,
-      pathArg: value,
-      method: allowMethodNames,
-      params: declareParams,
-      className: module2.getName()
-    }) || url;
-  }
-  let paramNode = null;
-  if (paramArg) {
-    if (paramArg.stack.isAssignmentPattern) {
-      paramNode = ctx.createToken(paramArg.stack.right);
-    } else {
-      paramNode = ctx.createToken(paramArg.stack);
-    }
-  }
-  const props = {
-    url: ctx.createLiteral(url),
-    param: paramNode,
+  let props = {
+    url: ctx.createLiteral(path7),
     allowMethod: allowMethodNode
   };
+  if (paramArg) {
+    if (paramArg.stack.isAssignmentPattern) {
+      props.param = ctx.createToken(paramArg.stack.right);
+    } else {
+      props.param = ctx.createToken(paramArg.stack);
+    }
+  }
   if (defaultParams.length > 0) {
     props["default"] = ctx.createObjectExpression(defaultParams);
   }
   return ctx.createObjectExpression(
     Object.keys(props).map((name) => {
-      const value2 = props[name];
-      if (value2) {
-        return ctx.createProperty(name, value2);
-      }
-      return null;
-    }).filter((item) => !!item)
+      return ctx.createProperty(
+        ctx.createIdentifier(name),
+        props[name]
+      );
+    })
   );
 }
 function createReadfileAnnotationNode(ctx, stack) {
@@ -1956,7 +2092,7 @@ function createReadfileAnnotationNode(ctx, stack) {
         properties2.push(ctx.createProperty(ctx.createIdentifier("isFile"), ctx.createLiteral(true)));
       }
       if (object.content) {
-        properties2.push(ctx.createProperty(ctx.createIdentifier("content"), ctx.createChunkExpression(object.content)));
+        properties2.push(ctx.createProperty(ctx.createIdentifier("content"), ctx.createChunkExpression(object.content, false)));
       }
       if (object.children) {
         properties2.push(ctx.createProperty(ctx.createIdentifier("children"), ctx.createArrayExpression(make(object.children))));
@@ -2135,10 +2271,14 @@ function createCJSExports(ctx, exportManage, graph) {
           );
         }
       } else if (spec.type === "default") {
+        let local = spec.local;
+        if (spec.local.type === "ExpressionStatement") {
+          local = spec.local.expression;
+        }
         properties2.push(
           ctx.createProperty(
             ctx.createIdentifier("default"),
-            spec.local,
+            local,
             spec.stack
           )
         );
@@ -2321,15 +2461,20 @@ function createESMExports(ctx, exportManage, graph) {
   });
   return { imports, exports: exports2, declares };
 }
+function checkMatchStringOfRule(rule, source, ...args) {
+  if (rule == null)
+    return true;
+  if (typeof rule === "function") {
+    return rule(source, ...args);
+  } else if (rule instanceof RegExp) {
+    return rule.test(source);
+  }
+  return rule === source;
+}
 function isExternalDependency(externals, source, module2 = null) {
   if (Array.isArray(externals) && externals.length > 0) {
     return externals.some((rule) => {
-      if (typeof rule === "function") {
-        return rule(source, module2);
-      } else if (rule instanceof RegExp) {
-        return rule.test(source);
-      }
-      return rule === source;
+      return rule == null ? false : checkMatchStringOfRule(rule, source, module2);
     });
   }
   return false;
@@ -2337,12 +2482,7 @@ function isExternalDependency(externals, source, module2 = null) {
 function isExcludeDependency(excludes, source, module2 = null) {
   if (Array.isArray(excludes) && excludes.length > 0) {
     return excludes.some((rule) => {
-      if (typeof rule === "function") {
-        return rule(source, module2);
-      } else if (rule instanceof RegExp) {
-        return rule.test(source);
-      }
-      return rule === source;
+      return rule == null ? false : checkMatchStringOfRule(rule, source, module2);
     });
   }
   return false;
@@ -2401,17 +2541,10 @@ function createJSXAttrHookNode(ctx, stack, desc) {
         if (stack.value && stack.value.isJSXExpressionContainer) {
           const value = stack.value.description();
           if (value && value.isModule && stack.isModuleForWebComponent(value)) {
-            let route = getModuleRoutes(value, ["router"], ctx.options);
-            if (route && route[0]) {
-              if (Array.isArray(route))
-                route = route[0];
-              if (route.path) {
-                return ctx.createLiteral(createRoutePath(route));
-              } else {
-                console.error(`[es-transform] Route missing the 'path' property.`);
-              }
+            let route = getModuleRoutes(ctx, value, ["router"])[0];
+            if (route) {
+              return createRouteCompletePathNode(ctx, route, null, stack);
             }
-            return ctx.createLiteral(value.getName("/"));
           }
         }
         return null;
@@ -3998,6 +4131,9 @@ var VirtualModule = class {
     let context = this.bindModule || this;
     this.getReferences().forEach((local, classname) => {
       let module2 = import_Namespace2.default.globals.get(classname);
+      if (!module2) {
+        module2 = ctx.getVModule(classname);
+      }
       if (module2) {
         ctx.addDepend(module2, context);
       } else {
@@ -4170,7 +4306,7 @@ var Context = class _Context extends Token_default {
   #token = null;
   #table = null;
   #vnodeHandleNode = null;
-  constructor(compiOrVModule, plugin2, variables, graphs, assets, virtuals, glob, cache, token, table) {
+  constructor(compiOrVModule, plugin2, variables, graphs, assets, virtuals, glob2, cache, token, table) {
     super();
     this.#plugin = plugin2;
     this.#target = compiOrVModule;
@@ -4178,7 +4314,7 @@ var Context = class _Context extends Token_default {
     this.#graphs = graphs;
     this.#assets = assets;
     this.#virtuals = virtuals;
-    this.#glob = glob;
+    this.#glob = glob2;
     this.#cache = cache;
     this.#token = token;
     this.#table = table;
@@ -4233,6 +4369,23 @@ var Context = class _Context extends Token_default {
   }
   get dependencies() {
     return this.#dependencies;
+  }
+  #hooks = [];
+  addHook(hook) {
+    this.#hooks.push(hook);
+  }
+  getHooks() {
+    return this.#hooks;
+  }
+  getLayouts(imports, body, externals, exports2) {
+    return [
+      ...imports,
+      ...this.beforeBody,
+      ...body,
+      ...this.afterBody,
+      ...externals,
+      ...exports2
+    ];
   }
   addBuildAfterDep(dep) {
     const ctx = this.plugin.context;
@@ -4848,7 +5001,21 @@ var Context = class _Context extends Token_default {
     if (!options.delimiter) {
       options.delimiter = "/";
     }
+    if (typeof file === "string") {
+      file = this.replaceImportSource(file);
+    }
     return this.resolveImportSource(file, options);
+  }
+  replaceImportSource(source) {
+    if (source.startsWith("${__filename}")) {
+      let target = this.target;
+      if (isVModule(target)) {
+        target = target.bindModule || target;
+      }
+      let owner = import_Utils4.default.isModule(target) ? target.compilation : target;
+      source = source.replace("${__filename}", import_Utils4.default.normalizePath(owner.file));
+    }
+    return source;
   }
   getSourceFileMappingFolder(file, flag) {
     const result = this.resolveSourceFileMappingPath(file, "folders");
@@ -4875,12 +5042,11 @@ var Context = class _Context extends Token_default {
   getModuleImportSource(source, context, sourceId = null) {
     const config = this.options;
     const isString = typeof source === "string";
+    if (isString) {
+      source = this.replaceImportSource(source);
+    }
     if (isString && isExternalDependency(this.options.dependency.externals, source, context)) {
       return source;
-    }
-    if (isString && source.includes("${__filename}")) {
-      const owner = import_Utils4.default.isModule(context) ? context.compilation : context;
-      source = source.replace("${__filename}", import_Utils4.default.isCompilation(owner) ? owner.file : this.target.file);
     }
     if (isString && source.includes("/node_modules/")) {
       if (import_path2.default.isAbsolute(source))
@@ -4898,28 +5064,28 @@ var Context = class _Context extends Token_default {
     }
     return isString ? source : this.getModuleResourceId(source);
   }
-  getModuleResourceId(module2, query = {}) {
-    return this.compiler.parseResourceId(module2, query);
+  getModuleResourceId(module2, query = {}, extformat = null) {
+    return this.compiler.parseResourceId(module2, query, extformat);
   }
   resolveSourceFileMappingPath(file, group, delimiter = "/") {
     return this.resolveSourceId(file, group, delimiter);
   }
   resolveSourceId(id, group, delimiter = "/") {
-    let glob = this.#glob;
-    if (!glob)
+    let glob2 = this.#glob;
+    if (!glob2)
       return null;
     let data = { group, delimiter, failValue: null };
     if (typeof group === "object") {
       data = group;
     }
-    return glob.dest(id, data);
+    return glob2.dest(id, data);
   }
   resolveImportSource(id, ctx = {}) {
-    let glob = this.#glob;
-    if (!glob)
+    let glob2 = this.#glob;
+    if (!glob2)
       return id;
-    const scheme = glob.scheme(id, ctx);
-    let source = glob.parse(scheme, ctx);
+    const scheme = glob2.scheme(id, ctx);
+    let source = glob2.parse(scheme, ctx);
     let rule = scheme.rule;
     if (!rule) {
       source = id;
@@ -5032,6 +5198,9 @@ var Context = class _Context extends Token_default {
       return this.createLiteral("/" + module2.getName("/"));
     }
     return null;
+  }
+  isPermissibleRouteProvider(moduleOrMethodStack) {
+    return false;
   }
   createVNodeHandleNode(stack, ...args) {
     let handle = this.#vnodeHandleNode;
@@ -5582,7 +5751,7 @@ function getAssetsManager(AssetFactory) {
     }
     let asset = records2.get(key);
     if (!asset) {
-      records2.set(sourceFile, asset = new AssetFactory(sourceFile, type, id));
+      records2.set(key, asset = new AssetFactory(sourceFile, type, id));
     }
     return asset;
   }
@@ -9513,7 +9682,7 @@ function WhileStatement_default(ctx, stack) {
 
 // node_modules/@easescript/transform/lib/core/Builder.js
 var import_glob_path = __toESM(require("glob-path"));
-async function buildProgram(ctx, compilation, graph) {
+async function buildProgram(ctx, compilation, graph, generatorClass = Generator_default) {
   let root = compilation.stack;
   if (!root) {
     throw new Error("Build program failed");
@@ -9557,6 +9726,8 @@ async function buildProgram(ctx, compilation, graph) {
       ctx.createToken(item);
     });
   }
+  let hooks = ctx.getHooks();
+  await Promise.allSettled(hooks.map((hook) => hook()));
   ctx.crateRootAssets();
   ctx.createAllDependencies();
   let exportNodes = null;
@@ -9571,29 +9742,22 @@ async function buildProgram(ctx, compilation, graph) {
   imports.push(...importNodes, ...exportNodes.imports);
   body.push(...exportNodes.declares);
   exports2.push(...exportNodes.exports);
-  let layout = [
-    ...imports,
-    ...ctx.beforeBody,
-    ...body,
-    ...ctx.afterBody,
-    ...externals,
-    ...exports2
-  ];
-  if (layout.length > 0) {
-    let generator = new Generator_default(ctx);
-    layout.forEach((item) => generator.make(item));
+  let layouts = ctx.getLayouts(imports, body, externals, exports2);
+  if (layouts.length > 0) {
+    let generator = new generatorClass(ctx);
+    layouts.forEach((item) => generator.make(item));
     graph.code = generator.code;
     graph.sourcemap = generator.sourceMap ? generator.sourceMap.toJSON() : null;
     if (emitFile) {
-      graph.outfile = ctx.getOutputAbsolutePath(compilation.mainModule || compilation);
+      graph.outfile = ctx.getOutputAbsolutePath(compilation.mainModule || compilation.file);
     }
   }
 }
-function getTokenManager(options) {
+function getTokenManager(options, tokens = {}) {
   let _createToken = options.transform.createToken;
   let _tokens = options.transform.tokens;
   let getToken = (type) => {
-    return tokens_exports[type];
+    return tokens[type];
   };
   let createToken = (ctx, stack, type) => {
     const token = getToken(type);
@@ -9611,7 +9775,7 @@ function getTokenManager(options) {
       if (Object.prototype.hasOwnProperty.call(_tokens, type)) {
         return _tokens[type];
       }
-      return tokens_exports[type];
+      return tokens[type];
     };
   }
   if (_createToken && typeof _createToken === "function") {
@@ -9629,36 +9793,29 @@ function getTokenManager(options) {
   };
 }
 function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
-  let assets = getAssetsManager(Asset);
-  let virtuals = getVirtualModuleManager(VirtualModule);
-  let variables = getVariableManager();
-  let graphs = getBuildGraphManager();
-  let token = getTokenManager(plugin2.options);
-  let cache = getCacheManager();
-  let table = getTableManager();
+  let assets = plugin2.getWidget("assets") || getAssetsManager(Asset);
+  let virtuals = plugin2.getWidget("virtual") || getVirtualModuleManager(VirtualModule);
+  let variables = plugin2.getWidget("variable") || getVariableManager();
+  let graphs = plugin2.getWidget("graph") || getBuildGraphManager();
+  let token = plugin2.getWidget("token") || getTokenManager(plugin2.options, tokens_exports);
+  let cache = plugin2.getWidget("cache") || getCacheManager();
+  let table = plugin2.getWidget("table") || getTableManager();
+  let contextClass = plugin2.getWidget("context") || Context_default;
+  let globClass = plugin2.getWidget("glob") || import_glob_path.default;
+  let generatorClass = plugin2.getWidget("generator") || Generator_default;
+  let program = plugin2.getWidget("program") || buildProgram;
   let buildAfterDeps = /* @__PURE__ */ new Set();
-  let glob = null;
-  let resolve = plugin2.options.resolve || {};
-  let imports = resolve?.imports || {};
+  let glob2 = new globClass();
   table.addBuilder(new MySql(plugin2));
-  Object.keys(imports).forEach((key) => {
-    glob = glob || (glob = new import_glob_path.default());
-    glob.addRuleGroup(key, imports[key], "imports");
-  });
-  let folders = resolve?.folders || {};
-  Object.keys(folders).forEach((key) => {
-    glob = glob || (glob = new import_glob_path.default());
-    glob.addRuleGroup(key, folders[key], "folders");
-  });
   function makeContext(compiOrVModule) {
-    return new Context_default(
+    return new contextClass(
       compiOrVModule,
       plugin2,
       variables,
       graphs,
       assets,
       virtuals,
-      glob,
+      glob2,
       cache,
       token,
       table
@@ -9677,7 +9834,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
       if (!compiOrVModule.parserDoneFlag) {
         await compiOrVModule.ready();
       }
-      await buildProgram(ctx, compiOrVModule, buildGraph);
+      await program(ctx, compiOrVModule, buildGraph, generatorClass);
     }
     if (ctx.options.emitFile) {
       await buildAssets(ctx, buildGraph);
@@ -9699,7 +9856,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
       if (!compiOrVModule.parserDoneFlag) {
         await compiOrVModule.ready();
       }
-      await buildProgram(ctx, compiOrVModule, buildGraph);
+      await program(ctx, compiOrVModule, buildGraph, generatorClass);
     }
     if (ctx.options.emitFile) {
       await buildAssets(ctx, buildGraph);
@@ -9788,7 +9945,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
     virtuals,
     variables,
     graphs,
-    glob,
+    glob: glob2,
     cache,
     table,
     token,
@@ -9797,6 +9954,7 @@ function createBuildContext(plugin2, records2 = /* @__PURE__ */ new Map()) {
 }
 
 // node_modules/@easescript/transform/lib/core/Polyfill.js
+var import_Utils21 = __toESM(require("easescript/lib/core/Utils"));
 var import_fs5 = __toESM(require("fs"));
 var import_path5 = __toESM(require("path"));
 var TAGS_REGEXP = /(?:[\r\n]+|^)\/\/\/(?:\s+)?<(references|namespaces|export|import|createClass)\s+(.*?)\/>/g;
@@ -9874,7 +10032,7 @@ function parsePolyfillModule(file, createVModule) {
   } else {
     vm.addExport("default", vm.id);
   }
-  vm.file = file;
+  vm.file = import_Utils21.default.normalizePath(file);
   vm.setContent(content);
 }
 function createPolyfillModule(dirname, createVModule) {
@@ -9896,23 +10054,76 @@ function createPolyfillModule(dirname, createVModule) {
 
 // node_modules/@easescript/transform/lib/core/Plugin.js
 var import_events = __toESM(require("events"));
-function defineError(complier) {
-  if (defineError.loaded || !complier || !complier.diagnostic)
-    return;
-  defineError.loaded = true;
-  let define = complier.diagnostic.defineError;
-  define(1e4, "", [
-    "\u7ED1\u5B9A\u7684\u5C5E\u6027(%s)\u5FC5\u987B\u662F\u4E00\u4E2A\u53EF\u8D4B\u503C\u7684\u6210\u5458\u5C5E\u6027",
-    "Binding the '%s' property must be an assignable members property"
-  ]);
-  define(10101, "", [
-    "\u8DEF\u7531\u53C2\u6570(%s)\u7684\u9ED8\u8BA4\u503C\u53EA\u80FD\u662F\u4E00\u4E2A\u6807\u91CF",
-    "Route params the '%s' defalut value can only is a literal type."
-  ]);
-}
+import_Diagnostic.default.register("transform", (definer) => {
+  definer(
+    1e4,
+    "[es-transform] \u7ED1\u5B9A\u7684\u5C5E\u6027(%s)\u5FC5\u987B\u662F\u4E00\u4E2A\u53EF\u8D4B\u503C\u7684\u6210\u5458\u5C5E\u6027",
+    "[es-transform] Binding the '%s' property must be an assignable members property"
+  );
+  definer(
+    10101,
+    "[es-transform] \u8DEF\u7531\u53C2\u6570(%s)\u7684\u9ED8\u8BA4\u503C\u53EA\u80FD\u662F\u4E00\u4E2A\u6807\u91CF",
+    "[es-transform] Route params the '%s' defalut value can only is a literal type."
+  );
+  definer(
+    10102,
+    '[es-transform] "@Http"\u6CE8\u89E3\u7B26\u4E2D\u6307\u5B9A\u7684\u8BF7\u6C42\u8DEF\u7531\u670D\u52A1(%s)\u6CA1\u6709\u627E\u5230',
+    "[es-transform] Not found request route service (%s) in the @Http"
+  );
+  definer(
+    10103,
+    '[es-transform] "@Readfile"\u6CE8\u89E3\u7B26\u4E2D\u7F3A\u5C11\u76EE\u5F55\u8DEF\u5F84(%s)\u53C2\u6570',
+    "[es-transform] `Missing the '%s' arguments in the @Readfile"
+  );
+  definer(
+    10104,
+    '[es-transform] "@Readfile"\u6CE8\u89E3\u7B26\u4E2D\u76EE\u5F55\u8DEF\u5F84(%s)\u4E0D\u5B58\u5728',
+    "[es-transform] Resolve the '%s' directory not found in the @Readfile"
+  );
+  definer(
+    10105,
+    "[es-transform] \u6307\u5B9A\u7684\u7C7B\u6A21\u5757(%s)\u4E0D\u5B58\u5728",
+    "[es-transform] The class '%s' is not exists"
+  );
+  definer(
+    10106,
+    "[es-transform] \u6307\u5B9A\u7684\u7C7B\u65B9\u6CD5(%s)\u4E0D\u5B58\u5728",
+    "[es-transform] The method '%s' is not exists."
+  );
+  definer(
+    10107,
+    "[es-transform] \u52A8\u6001\u8DEF\u7531\u7684\u53C2\u6570\u4E0D\u80FD\u5B9A\u4E49\u5C55\u5F00\u64CD\u4F5C",
+    "[es-transform] dynamic route parameters cannot define spread operations"
+  );
+  definer(
+    10108,
+    `[es-transform] "@Hook"\u6CE8\u89E3\u7B26\u7F3A\u5C11'type'\u6216\u8005'version'\u53C2\u6570`,
+    "[es-transform] Missing the 'type' or 'version' arguments in the @Hook"
+  );
+  definer(
+    10109,
+    `[es-transform] "@Redirect"\u6CE8\u89E3\u7B26\u4E2D\u5F15\u7528\u7684\u7C7B\u6A21\u5757(%s)\u4E0D\u5B58\u5728`,
+    `[es-transform] References class the "%s" is not exists in the @Redirect`
+  );
+  definer(
+    10110,
+    `[es-transform] "@Redirect"\u6CE8\u89E3\u7B26\u7F3A\u5C11(path)\u53C2\u6570`,
+    `[es-transform] Missing the 'path' arguments in the @Redirect`
+  );
+  definer(
+    10111,
+    `[es-transform] "@Router"\u6CE8\u89E3\u7B26\u4E2D\u6307\u5B9A\u7684\u8DEF\u7531\u63D0\u4F9B\u8005(%s)\u6CA1\u6709\u89E3\u6790\u5230\u8DEF\u7531`,
+    `[es-transform] Resolve route not found the '%s' in the @Router`
+  );
+  definer(
+    10112,
+    `[es-transform] \u6307\u5B9A\u8DEF\u7531\u65B9\u6CD5\u7684\u8BBF\u95EE\u6743\u9650\u53EA\u80FD\u4E3A'public'\u4FEE\u9970\u7B26`,
+    `[es-transform] Access permission of route method can only with the 'public' modifier`
+  );
+});
 var plugins = /* @__PURE__ */ new Set();
 var processing = /* @__PURE__ */ new Map();
-async function execute(compilation, asyncBuildHook) {
+async function execute(compilation, asyncHook) {
   if (processing.has(compilation)) {
     return await new Promise((resolve) => {
       processing.get(compilation).push(resolve);
@@ -9920,7 +10131,7 @@ async function execute(compilation, asyncBuildHook) {
   } else {
     let queues = [];
     processing.set(compilation, queues);
-    let result = await asyncBuildHook(compilation);
+    let result = await asyncHook(compilation);
     while (queues.length > 0) {
       let resolve = queues.shift();
       resolve(result);
@@ -9936,6 +10147,7 @@ var Plugin = class _Plugin extends import_events.default {
   #name = null;
   #options = null;
   #initialized = false;
+  #watched = false;
   #context = null;
   #complier = null;
   #version = "0.0.0";
@@ -9949,6 +10161,9 @@ var Plugin = class _Plugin extends import_events.default {
     if (options.mode) {
       options.metadata.env.NODE_ENV = options.mode;
     }
+  }
+  //在子插件中实现
+  getWidget(name) {
   }
   get initialized() {
     return this.#initialized;
@@ -9979,6 +10194,9 @@ var Plugin = class _Plugin extends import_events.default {
   }
   //开发模式下调用，用来监听文件变化时删除缓存
   watch() {
+    if (this.#watched)
+      return;
+    this.#watched = true;
     this.complier.on("onChanged", (compilation) => {
       this.records.delete(compilation);
       let cache = this.context.cache;
@@ -9990,23 +10208,33 @@ var Plugin = class _Plugin extends import_events.default {
     });
   }
   async init() {
+    if (this.#context)
+      return;
     this.#context = createBuildContext(this, this.records);
     createPolyfillModule(
       import_path6.default.join(__dirname, "./polyfills"),
       this.#context.virtuals.createVModule
     );
+    let resolve = this.options.resolve || {};
+    let imports = resolve?.imports || {};
+    Object.keys(imports).forEach((key) => {
+      glob.addRuleGroup(key, imports[key], "imports");
+    });
+    let folders = resolve?.folders || {};
+    Object.keys(folders).forEach((key) => {
+      glob.addRuleGroup(key, folders[key], "folders");
+    });
   }
   //构建前调用。
   async beforeStart(complier) {
     if (this.#initialized)
       return;
-    this.#initialized = true;
     this.#complier = complier;
-    defineError(complier);
     await this.init();
     if (this.options.mode === "development") {
       this.watch();
     }
+    this.#initialized = true;
   }
   //当任务处理完成后调用。在加载插件或者打包插件时会调用这个方法，用来释放一些资源
   async afterDone() {
@@ -10055,7 +10283,6 @@ var Plugin = class _Plugin extends import_events.default {
     return await execute(compilation, this.context.build);
   }
 };
-var Plugin_default = Plugin;
 
 // node_modules/@easescript/transform/lib/index.js
 var defaultConfig = {
@@ -10073,10 +10300,7 @@ var defaultConfig = {
   babel: false,
   sourceMaps: false,
   hot: false,
-  routePathWithNamespace: {
-    server: false,
-    client: true
-  },
+  routePathWithNamespace: true,
   mode: "production",
   metadata: {
     env: {
@@ -10089,7 +10313,10 @@ var defaultConfig = {
     tokens: null
   },
   formation: {
-    route: null
+    //(path, {isRouterModule,path,complete, action, params, defaultValue, method, module})=>path
+    routePathFormat: null,
+    //(name, optional=false)=>optional ? `:${name}?` : `:${name}`
+    routeParamFormat: null
   },
   context: {
     include: null,
@@ -10212,7 +10439,7 @@ var package_default = {
 
 // lib/index.js
 function plugin(options = {}) {
-  return new Plugin_default(
+  return new Plugin(
     package_default.esconfig.scope,
     package_default.version,
     getOptions(options)

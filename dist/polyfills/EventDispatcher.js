@@ -75,16 +75,21 @@ EventDispatcher.prototype.addEventListener=function addEventListener(type,callba
         listener.proxyHandle = $dispatchEvent;
         listener.proxyTarget = target.proxy;
         listener.proxyType = [type];
-        try {
-            if(target.proxy.addEventListener){
-                target.proxy.addEventListener(type, listener.proxyHandle, listener.useCapture);
-            }else{
-                listener.proxyHandle=function (e) {
-                    $dispatchEvent(e, target.proxy);
+        if( Object.prototype.hasOwnProperty.call(Event.fix.hooks,type) ){
+            Event.fix.hooks[ type ].call(this, listener, listener.proxyHandle);
+        }else {
+            type = Event.type(type);
+            try {
+                if(target.proxy.addEventListener){
+                    target.proxy.addEventListener(type, listener.proxyHandle, listener.useCapture);
+                }else{
+                    listener.proxyHandle=function (e) {
+                        $dispatchEvent(e, target.proxy);
+                    }
+                    target.proxy.attachEvent(type, listener.proxyHandle);
                 }
-                target.proxy.attachEvent(type, listener.proxyHandle);
-            }
-        }catch (e) {}
+            }catch (e) {}
+        }
     }
     events.push( listener );
     if( events.length > 1 ) events.sort(function(a,b){
@@ -144,7 +149,7 @@ EventDispatcher.prototype.dispatchEvent=function dispatchEvent( event ){
 
 
 function $removeListener(target, type , handle ){
-    var eventType= type;
+    var eventType= Event.type( type );
     if( target.removeEventListener ){
         target.removeEventListener(eventType,handle,false);
         target.removeEventListener(eventType,handle,true);
@@ -159,7 +164,11 @@ function $removeListener(target, type , handle ){
  * @param listeners
  * @returns {boolean}
  */
-function $dispatchEvent(e){
+function $dispatchEvent(e, currentTarget){
+    if( !(e instanceof Event) ){
+        e = Event.create( e );
+        if(currentTarget)e.currentTarget = currentTarget;
+    }
     if( !e || !e.currentTarget )throw new Error('Invalid event target');
     var target = e.currentTarget;
     var events = target[ __KEY__ ] && target[ __KEY__ ].events[ e.type ];
