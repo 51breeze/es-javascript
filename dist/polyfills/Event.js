@@ -11,7 +11,7 @@ function __Event( type, bubbles, cancelable ){
     if( !type || typeof type !=="string" )throw new TypeError('event type is not string');
     this.type = type;
     this.bubbles = !!bubbles;
-    this.cancelable = !!cancelable;
+    this.cancelable = cancelable !== false;
 }
 
 __Event.SUBMIT='submit';

@@ -4,7 +4,7 @@ declare interface IEventDispatcher {
      * Appends an event listener for events whose type attribute value is type. 
      * The callback argument sets the callback that will be invoked when the event is dispatched.
      */
-    addEventListener(type: string, listener: (event?:Event)=>void ): this;
+    addEventListener(type: string, listener: (event?:Event)=>void , useCapture?:boolean=false, priority?:number=0, thisArg?:object=null): this;
     /**
      * Dispatches a synthetic event event to target and returns true 
      * if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise.
@@ -4028,8 +4028,181 @@ declare class TouchEvent extends UIEvent {
     constructor(type:string, bubbles?:boolean,cancelable?:boolean);
 }
 
-declare interface DataTransfer extends Object{
-    [key:string]:any
+declare interface FunctionStringCallback {
+    (data: string): void;
+}
+
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry) */
+declare  interface FileSystemEntry {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/filesystem) */
+    readonly filesystem: any;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/fullPath) */
+    readonly fullPath: string;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/isDirectory) */
+    readonly isDirectory: boolean;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/isFile) */
+    readonly isFile: boolean;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/name) */
+    readonly name: string;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileSystemEntry/getParent) */
+    getParent(successCallback?: any, errorCallback?: any): void;
+}
+
+declare var FileSystemEntry: {
+    prototype: FileSystemEntry;
+    new(): FileSystemEntry;
+};
+
+
+/**
+ * One drag data item. During a drag operation, each drag event has a dataTransfer property which contains a list of drag data items. Each item in the list is a DataTransferItem object.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem)
+ */
+declare interface DataTransferItem {
+    /**
+     * Returns the drag data item kind, one of: "string", "file".
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/kind)
+     */
+    readonly kind: string;
+    /**
+     * Returns the drag data item type string.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/type)
+     */
+    readonly type: string;
+    /**
+     * Returns a File object, if the drag data item kind is File.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsFile)
+     */
+    getAsFile(): File | null;
+    /**
+     * Invokes the callback with the string data as the argument, if the drag data item kind is text.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/getAsString)
+     */
+    getAsString(callback: FunctionStringCallback | null): void;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItem/webkitGetAsEntry) */
+    webkitGetAsEntry(): FileSystemEntry | null;
+}
+
+declare var DataTransferItem: {
+    prototype: DataTransferItem;
+    new(): DataTransferItem;
+};
+
+/**
+ * A list of DataTransferItem objects representing items being dragged. During a drag operation, each DragEvent has a dataTransfer property and that property is a DataTransferItemList.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList)
+ */
+interface DataTransferItemList {
+    /**
+     * Returns the number of items in the drag data store.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/length)
+     */
+    readonly length: number;
+    /**
+     * Adds a new entry for the given data to the drag data store. If the data is plain text then a type string has to be provided also.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/add)
+     */
+    add(data: string, type: string): DataTransferItem | null;
+    add(data: File): DataTransferItem | null;
+    /**
+     * Removes all the entries in the drag data store.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/clear)
+     */
+    clear(): void;
+    /**
+     * Removes the indexth entry in the drag data store.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransferItemList/remove)
+     */
+    remove(index: number): void;
+    [index: number]: DataTransferItem;
+}
+
+declare var DataTransferItemList: {
+    prototype: DataTransferItemList;
+    new(): DataTransferItemList;
+};
+
+
+
+/**
+ * Used to hold the data that is being dragged during a drag and drop operation. It may hold one or more data items, each of one or more data types. For more information about drag and drop, see HTML Drag and Drop API.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer)
+ */
+declare interface DataTransfer {
+    /**
+     * Returns the kind of operation that is currently selected. If the kind of operation isn't one of those that is allowed by the effectAllowed attribute, then the operation will fail.
+     *
+     * Can be set, to change the selected operation.
+     *
+     * The possible values are "none", "copy", "link", and "move".
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/dropEffect)
+     */
+    dropEffect: "none" | "copy" | "link" | "move";
+    /**
+     * Returns the kinds of operations that are to be allowed.
+     *
+     * Can be set (during the dragstart event), to change the allowed operations.
+     *
+     * The possible values are "none", "copy", "copyLink", "copyMove", "link", "linkMove", "move", "all", and "uninitialized",
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/effectAllowed)
+     */
+    effectAllowed: "none" | "copy" | "copyLink" | "copyMove" | "link" | "linkMove" | "move" | "all" | "uninitialized";
+    /**
+     * Returns a FileList of the files being dragged, if any.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/files)
+     */
+    readonly files: FileList;
+    /**
+     * Returns a DataTransferItemList object, with the drag data.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/items)
+     */
+    readonly items: DataTransferItemList;
+    /**
+     * Returns a frozen array listing the formats that were set in the dragstart event. In addition, if any files are being dragged, then one of the types will be the string "Files".
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/types)
+     */
+    readonly types: string[];
+    /**
+     * Removes the data of the specified formats. Removes all data if the argument is omitted.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/clearData)
+     */
+    clearData(format?: string): void;
+    /**
+     * Returns the specified data. If there is no such data, returns the empty string.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/getData)
+     */
+    getData(format: string): string;
+    /**
+     * Adds the specified data.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setData)
+     */
+    setData(format: string, data: string): void;
+    /**
+     * Uses the given element to update the drag feedback, replacing any previously specified feedback.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/DataTransfer/setDragImage)
+     */
+    setDragImage(image: Element, x: number, y: number): void;
 }
 
 /** A DOM event that represents a drag and drop interaction. 
@@ -4804,3 +4977,34 @@ declare interface EventListenerObject {
 }
 
 type EventListenerOrEventListenerObject = EventListener | EventListenerObject;
+
+interface HTMLAudioElement extends HTMLMediaElement {
+    addEventListener<K extends keyof HTMLMediaElementEventMap>(type: K, listener: (this: HTMLAudioElement, ev: HTMLMediaElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<K extends keyof HTMLMediaElementEventMap>(type: K, listener: (this: HTMLAudioElement, ev: HTMLMediaElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+}
+
+declare var HTMLAudioElement: {
+    new(): HTMLAudioElement;
+};
+
+declare var Audio: {
+    new(src?: string): HTMLAudioElement;
+};
+
+declare var Image: {
+    new(width?: number, height?: number): HTMLImageElement;
+};
+
+declare var Option: {
+    new(text?: string, value?: string, defaultSelected?: boolean, selected?: boolean): HTMLOptionElement;
+};
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/atob) */
+declare function atob(data: string): string;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/btoa) */
+declare function btoa(data: string): string;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/reportError) */
+declare function reportError(e: any): void;
+declare function structuredClone<T = any>(value: T, options?: StructuredSerializeOptions): T;
