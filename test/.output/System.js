@@ -34,23 +34,50 @@ System.getIterator=function getIterator(object){
 }
 System.is=function is(left,right){
     if(left==null || !right)return false;
+    if(right === String){
+        let type = typeof left;
+        return type === 'string' || type==='object' && type instanceof String;
+    }else if(right===Number){
+        let type = typeof left;
+        return type === 'number' || type==='object' && type instanceof Number;
+    }else if(right===Function){
+        return System.isFunction(left);
+    }else if(right===Object){
+        return System.isObject(left);
+    }else if(right===RegExp){
+        return left instanceof RegExp;
+    }else if(right === Array){
+        return System.isArray(left);
+    }
     if(Object.getPrototypeOf(left) === right.prototype)return true;
     if(typeof left !== "object")return false;
-    const mode = right[Class.key] ? right[Class.key].m : 0;
-    const description =  left.constructor ? left.constructor[Class.key] : null;
-    if(description && Class.isModifier('KIND_INTERFACE', mode)){
-        return (function check(description){
-            if( !description )return false;
-            var imps = description.imps;
-            var inherit = description.inherit;
-            if( inherit === right )return true;
-            if(imps){
-                for(var i=0;i<imps.length;i++){
-                    if(imps[i] === right || check(Class.getClassDescriptor(imps[i])))return true;
+    if(Class.isInterfaceModule(right)){
+        const description = Class.getClassDescriptor(left.constructor);
+        if(description){
+            return (function check(description){
+                if( !description )return false;
+                var imps = description.imps;
+                var inherit = description.inherit;
+                if( inherit === right )return true;
+                if(imps){
+                    for(var i=0;i<imps.length;i++){
+                        if(imps[i] === right || check(Class.getClassDescriptor(imps[i])))return true;
+                    }
                 }
+                return inherit ? check(Class.getClassDescriptor(inherit)) : false;
+            })(description);
+        }else{
+            const descriptor = Class.getClassDescriptor(right);
+            if(descriptor && descriptor.members){
+                const members = descriptor.members;
+                const keys = Object.keys(members);
+                return keys.every(key=>{
+                    if(key in left)return true;
+                    return Class.isModifier('MODIFIER_OPTIONAL', members[key].m);
+                })
             }
-            return inherit ? check(Class.getClassDescriptor(inherit)) : false;
-        })(description);
+        }
+        return false;
     }
     return left instanceof right;
 }
@@ -63,14 +90,23 @@ System.isInterface=function isInterface(classObject){
     const desc = Class.getClassDescriptor(classObject);
     return desc ? Class.isModifier('KIND_INTERFACE', desc.m) : false;
 }
+System.isEnum=function isStruct(classObject){
+    const desc = Class.getClassDescriptor(classObject);
+    return desc ? Class.isModifier('KIND_ENUM', desc.m) : false;
+}
+System.isStruct=function isStruct(classObject){
+    const desc = Class.getClassDescriptor(classObject);
+    return desc ? Class.isModifier('KIND_STRUCT', desc.m) : false;
+}
 System.isFunction=function isFunction(target){
-   return target && target.constructor === Function;
+   return target && target.constructor === Function || typeof target ==='function';
 }
 System.isArray=function isArray(object){
     return Array.isArray(object); 
 }
-System.isObject=function isObject(object){
-    return typeof object === 'object';
+System.isObject=function isObject(value){
+    if(!value)return false;
+    return typeof value === 'object' || value instanceof Object;
 }
 System.toArray=function toArray(object){
     if( Array.isArray(object) ){
@@ -727,7 +763,7 @@ System.hasRegisterHook=function hasRegisterHook(type, processer){
     System.clearImmediate = clearImmediate;
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
 Class.creator(System,{
-    m:513,
+    m:2049,
     name:"System"
 })
 module.exports=System;

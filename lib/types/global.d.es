@@ -1,3 +1,7 @@
+declare Object{
+    static create<T extends object=object>(object?:T):T
+}
+
 declare interface Storage{
     const length:number;
     setItem(name:string,value:string):void;

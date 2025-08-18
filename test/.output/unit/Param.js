@@ -1,12 +1,13 @@
 const Class = require("./../Class.js");
-function Param(){}
+class Param{}
 Class.creator(Param,{
-    m:513,
+    m:2049,
     ns:"unit",
     name:"Param",
+    useClass:true,
     members:{
         start:{
-            m:544,
+            m:2112,
             value:function start(){
                 var en = (en={},en[en["name1000"]=6]="name1000",en[en["age"]=7]="age",en);
                 var b = en.age;
@@ -18,7 +19,7 @@ Class.creator(Param,{
             }
         },
         getList:{
-            m:544,
+            m:2112,
             value:function getList({name1000,age},[index,id=20]){
                 var args = [index,id];
                 it("test call",()=>{
@@ -29,13 +30,13 @@ Class.creator(Param,{
             }
         },
         call:{
-            m:544,
+            m:2112,
             value:function call(index,id){
                 return id;
             }
         },
         ave:{
-            m:544,
+            m:2112,
             value:function ave(age){
                 return age;
             }

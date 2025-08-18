@@ -1,17 +1,18 @@
 const Class = require("./Class.js");
 const Http = require("axios");
-function Request(){}
+class Request{}
 Class.creator(Request,{
-    m:513,
+    m:2049,
     name:"Request",
+    useClass:true,
     methods:{
         _init:{
-            m:2312,
+            m:9232,
             writable:true,
             value:null
         },
         init:{
-            m:800,
+            m:3136,
             value:function init(){
                 if(Request._init){
                     return Request._init;
@@ -29,7 +30,7 @@ Class.creator(Request,{
             }
         },
         post:{
-            m:800,
+            m:3136,
             value:function post(url,data){
                 Request.init().post(url,data).then((value)=>{});
             }

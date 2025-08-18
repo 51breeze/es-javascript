@@ -8,6 +8,7 @@
 const __MODULES__= Object.create(null);
 const privateKey=Symbol("privateKey");
 const bindClassKey=Symbol("bindClass");
+const descriptorForClass=Symbol("Descriptor For Class");
 const _proto = Object.prototype;
 const hasOwn = Object.prototype.hasOwnProperty;
 function merge(obj, target, isInstance=false, depth=false){
@@ -93,6 +94,25 @@ const Class={
         }
         return (mode & value) === mode;
     },
+    isInterfaceModule(module){
+        const descriptor = Class.getClassDescriptor(module)
+        if(!Class.isModuleDescriptor(descriptor))return false;
+        return Class.isModifier('KIND_INTERFACE', descriptor.m);
+    },
+    isClassModule(module){
+        const descriptor = Class.getClassDescriptor(module)
+        if(!Class.isModuleDescriptor(descriptor))return false;
+        return Class.isModifier('KIND_CLASS', descriptor.m);
+    },
+    isEnumModule(module){
+        const descriptor = Class.getClassDescriptor(module)
+        if(!Class.isModuleDescriptor(descriptor))return false;
+        return Class.isModifier('KIND_ENUM', descriptor.m);
+    },
+    isModuleDescriptor(moduleDescriptor){
+        if(!moduleDescriptor)return false;
+        return !!moduleDescriptor[descriptorForClass];
+    },
     getSuperMethod(moduleClass, methodName, kind='method'){
         if(!moduleClass)return null;
         let descriptor = Class.getClassDescriptor(moduleClass);
@@ -146,14 +166,16 @@ const Class={
             if(!descriptor.name){
                 throw new Error('Class module descriptor should have a name'); 
             }
-            
+            descriptor[descriptorForClass] = true;
             let name = descriptor.ns ? descriptor.ns+'.'+descriptor.name : descriptor.name;
             let isInterface = Class.isModifier('KIND_INTERFACE', descriptor.m);
             if(descriptor.inherit){
                 let inherit = Class.getClassConstructor(descriptor.inherit);
-                let isProto = typeof inherit === 'function' ? moduleClass.prototype instanceof inherit : true;
-                if(!isProto){
-                    Object.defineProperty(moduleClass,'prototype',{value:Object.create(descriptor.inherit.prototype)});
+                if(!descriptor.useClass){
+                    let isProto = typeof inherit === 'function' ? moduleClass.prototype instanceof inherit : true;
+                    if(!isProto){
+                        Object.defineProperty(moduleClass,'prototype',{value:Object.create(descriptor.inherit.prototype)});
+                    }
                 }
                 if(!isInterface){
                     merge(inherit, moduleClass);
@@ -216,16 +238,19 @@ Class.constant={
     KIND_CLASS:1,
     KIND_INTERFACE:2,
     KIND_ENUM:4,
-    KIND_VAR:8,
-    KIND_CONST:16,
-    KIND_METHOD:32,
-    KIND_ACCESSOR:64,
-    KIND_ENUM_PROPERTY:128,
-    MODIFIER_STATIC:256,
-    MODIFIER_PUBLIC:512,
-    MODIFIER_PROTECTED:1024,
-    MODIFIER_PRIVATE:2048,
-    MODIFIER_ABSTRACT:4096,
-    MODIFIER_FINAL:8192
+    KIND_STRUCT:8,
+    KIND_VAR:16,
+    KIND_CONST:32,
+    KIND_METHOD:64,
+    KIND_ACCESSOR:128,
+    KIND_ENUM_PROPERTY:256,
+    KIND_STRUCT_COLUMN:512,
+    MODIFIER_STATIC:1024,
+    MODIFIER_PUBLIC:2048,
+    MODIFIER_PROTECTED:4096,
+    MODIFIER_PRIVATE:8192,
+    MODIFIER_ABSTRACT:16384,
+    MODIFIER_FINAL:32768,
+    MODIFIER_OPTIONAL:65536
 }
 module.exports=Class;

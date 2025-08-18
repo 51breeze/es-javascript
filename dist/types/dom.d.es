@@ -5,6 +5,7 @@ declare interface IEventDispatcher {
      * The callback argument sets the callback that will be invoked when the event is dispatched.
      */
     addEventListener(type: string, listener: (event?:Event)=>void , useCapture?:boolean=false, priority?:number=0, thisArg?:object=null): this;
+    addEventListener(type: string, listener: (event?:Event)=>void , options?:{capture?:boolean,once?:boolean,passive:boolean,signal:boolean}, priority?:number=0, thisArg?:object=null): this;
     /**
      * Dispatches a synthetic event event to target and returns true 
      * if either event's cancelable attribute value is false or its preventDefault() method was not invoked, and false otherwise.
@@ -49,7 +50,6 @@ declare class Event extends Object{
     static const SELECTSTART:string;
     static const READY:string;
     static const SCROLL:string;
-    static const INITIALIZE_COMPLETED :string;
     static const ANIMATION_START:string;
     static const ANIMATION_END:string;
     static const ANIMATION_ITERATION:string;
@@ -72,10 +72,23 @@ declare class Event extends Object{
      * Returns the object whose event listener's callback is currently being invoked.
      */
     const currentTarget: IEventDispatcher | null;
+
     /**
-     * Returns true if preventDefault() was invoked successfully to indicate cancelation, and false otherwise.
-     */
+    * Returns true if preventDefault() was invoked successfully to indicate cancelation, and false otherwise.
+    * 阻止事件的默认行为
+    */
     const defaultPrevented: boolean;
+
+    /**
+    * 阻止向上冒泡事件
+    */
+    const propagationStopped:boolean;
+
+    /**
+    *  阻止向上冒泡事件，并停止执行当前事件类型的所有侦听器
+    */
+    const immediatePropagationStopped:boolean;
+
     /**
      * Returns the event's phase, which is one of NONE, CAPTURING_PHASE, AT_TARGET, and BUBBLING_PHASE.
      */
@@ -116,6 +129,42 @@ declare class Event extends Object{
 
     [key:string]:any;
 }
+
+declare interface CustomEventInit<T = any> extends EventInit {
+    detail?: T;
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent) */
+declare interface CustomEvent<T = any> extends Event {
+    /**
+     * Returns any custom data event was created with. Typically used for synthetic events.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/detail)
+     */
+    readonly detail: T;
+    /**
+     * @deprecated
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomEvent/initCustomEvent)
+     */
+    initCustomEvent(type: string, bubbles?: boolean, cancelable?: boolean, detail?: T): void;
+}
+
+declare var CustomEvent: {
+    prototype: CustomEvent;
+    new<T>(type: string, eventInitDict?: CustomEventInit<T>): CustomEvent<T>;
+};
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CustomStateSet) */
+interface CustomStateSet {
+    forEach(callbackfn: (value: string, key: string, parent: CustomStateSet) => void, thisArg?: any): void;
+}
+
+declare var CustomStateSet: {
+    prototype: CustomStateSet;
+    new(): CustomStateSet;
+};
+
 
 declare interface ElementDefinitionOptions {
     extends?: string;
@@ -467,6 +516,8 @@ declare interface IdleDeadline {
 
 declare interface Window implements IEventDispatcher,GlobalEventHandlers{
 
+    const Event:Event;
+
     const location:Location;
     const document:Document;
 
@@ -579,6 +630,7 @@ declare interface Window implements IEventDispatcher,GlobalEventHandlers{
 }
 
 declare const window:Window;
+
 
 declare interface DocumentAndElementEventHandlers {
     oncopy: (ev: ClipboardEvent) => any;
@@ -4985,6 +5037,7 @@ interface HTMLAudioElement extends HTMLMediaElement {
     removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 }
 
+
 declare var HTMLAudioElement: {
     new(): HTMLAudioElement;
 };
@@ -5001,6 +5054,19 @@ declare var Option: {
     new(text?: string, value?: string, defaultSelected?: boolean, selected?: boolean): HTMLOptionElement;
 };
 
+type HTMLOrSVGImageElement = HTMLImageElement;
+type CanvasImageSource = HTMLOrSVGImageElement | HTMLVideoElement | HTMLCanvasElement | ImageBitmap;
+type ImageBitmapSource = CanvasImageSource | Blob | ImageData;
+
+declare function createImageBitmap(image: ImageBitmapSource, options?: any): Promise<ImageBitmap>;
+declare function createImageBitmap(image: ImageBitmapSource, sx: number, sy: number, sw: number, sh: number, options?: any): Promise<ImageBitmap>;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/fetch) */
+declare function fetch(input: any | URL, init?: any): Promise<any>;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/queueMicrotask) */
+declare function queueMicrotask(callback: ()=>void): void;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/reportError) */
+
+
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/atob) */
 declare function atob(data: string): string;
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/btoa) */
@@ -5008,3 +5074,11 @@ declare function btoa(data: string): string;
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/reportError) */
 declare function reportError(e: any): void;
 declare function structuredClone<T = any>(value: T, options?: StructuredSerializeOptions): T;
+
+declare function cancelAnimationFrame(handle: number): void;
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/DedicatedWorkerGlobalScope/requestAnimationFrame) */
+declare function requestAnimationFrame(callback: FrameRequestCallback): number;
+
+interface FrameRequestCallback {
+    (time: number): void;
+}

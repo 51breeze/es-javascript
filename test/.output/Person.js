@@ -2,44 +2,46 @@ const Class = require("./Class.js");
 const TestInterface = require("./com/TestInterface.js");
 const _private0 = Class.getKeySymbols("3bcc71a4");
 function Person(name){
-    this.addressName=`the Person properyt "addressName"`;
     Object.defineProperty(this,_private0,{
         value:{
             _name:'',
             _type:null
         }
     });
+    this.addressName=`the Person properyt "addressName"`;
+    Object.call(this);
     this[_private0]._name=name;
 }
 Class.creator(Person,{
-    m:513,
+    m:2049,
     name:"Person",
     dynamic:true,
     private:_private0,
     imps:[TestInterface],
+    inherit:Object,
     members:{
         addressName:{
-            m:520,
+            m:2064,
             writable:true,
             enumerable:true
         },
         _name:{
-            m:2056,
+            m:8208,
             writable:true
         },
         _type:{
-            m:2056,
+            m:8208,
             writable:true
         },
         target:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function target(){
                 return this;
             }
         },
         setType:{
-            m:544,
+            m:2112,
             value:function setType(a){
                 this[_private0]._type=a;
                 var _private = 1;
@@ -47,7 +49,7 @@ Class.creator(Person,{
             }
         },
         method:{
-            m:544,
+            m:2112,
             value:function method(name,age){
                 var str = ["a","1"];
                 var b = ["",["1",1]];
@@ -63,7 +65,7 @@ Class.creator(Person,{
             }
         },
         name:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function name(){
                 return this[_private0]._name;
@@ -73,23 +75,23 @@ Class.creator(Person,{
             }
         },
         avg:{
-            m:544,
+            m:2112,
             value:function avg(a,b){
                 return a;
             }
         },
         address:{
-            m:2080,
+            m:8256,
             value:function address(data){}
         },
         addressNamesss:{
-            m:1056,
+            m:4160,
             value:function addressNamesss(){
                 arguments.length;
             }
         },
         testWhen:{
-            m:544,
+            m:2112,
             value:function testWhen(){
                 return 1;
             }

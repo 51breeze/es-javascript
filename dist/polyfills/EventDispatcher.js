@@ -14,18 +14,20 @@ function EventDispatcher( target ){
     if( !(this instanceof EventDispatcher) ){
         return new EventDispatcher( target );
     }
-
-    if( !Object.prototype.hasOwnProperty.call(this,__KEY__) ){
-        Object.defineProperty(this,__KEY__,{value:{events:{},isEvent:false,proxy:null}});
-    }
-
-    if( target ){
-        if( typeof target !== 'object'){
+    const dataset = {
+        events:{},
+        isEvent:false,
+        proxy:null
+    };
+    Object.defineProperty(this,__KEY__,{
+        value:dataset
+    });
+    if(target){
+        if(typeof target !== 'object'){
             throw new Error('target is not object');
         }
-        const data = this[__KEY__];
-        data.isEvent = target instanceof EventDispatcher;
-        data.proxy = target;
+        dataset.isEvent = target instanceof EventDispatcher;
+        dataset.proxy = target;
     }
 }
 
@@ -45,7 +47,7 @@ EventDispatcher.prototype.hasEventListener=function hasEventListener( type , lis
     var events = target.events[type];
     if( !events )return false;
     var len = events && events.length >> 0;
-    if( len > 0 && listener === void 0 )return true;
+    if( len > 0 && listener == null )return true;
     while(len>0 && events[--len] ){
         if( events[len].callback === listener ){
             return true;
@@ -72,9 +74,10 @@ EventDispatcher.prototype.addEventListener=function addEventListener(type,callba
     var listener = new Listener(type,callback,useCapture,priority,reference,this);
     var events = target.events[ type ] || ( target.events[ type ]=[] );
     if( events.length < 1 && target.proxy ){
-        listener.proxyHandle = $dispatchEvent;
+        listener.proxyHandle = (e)=>{
+            $dispatchEvent(e, target.proxy, this);
+        }
         listener.proxyTarget = target.proxy;
-        listener.proxyType = [type];
         if( Object.prototype.hasOwnProperty.call(Event.fix.hooks,type) ){
             Event.fix.hooks[ type ].call(this, listener, listener.proxyHandle);
         }else {
@@ -83,9 +86,6 @@ EventDispatcher.prototype.addEventListener=function addEventListener(type,callba
                 if(target.proxy.addEventListener){
                     target.proxy.addEventListener(type, listener.proxyHandle, listener.useCapture);
                 }else{
-                    listener.proxyHandle=function (e) {
-                        $dispatchEvent(e, target.proxy);
-                    }
                     target.proxy.attachEvent(type, listener.proxyHandle);
                 }
             }catch (e) {}
@@ -118,14 +118,10 @@ EventDispatcher.prototype.removeEventListener=function removeEventListener(type,
     }
     while (len > 0){
         --len;
-        if ( !listener || events[len].callback === listener ){
+        if (!listener || events[len].callback === listener){
             var result = events.splice(len, 1);
-            if( result[0] && target.proxyHandle ){
-                var types = result[0].proxyType;
-                var num = types.length;
-                while ( num > 0 ){
-                    $removeListener(result[0].proxyTarget, types[ --num ], result[0].proxyHandle);
-                }
+            if(result[0] && result[0].proxyHandle){
+                $removeListener(result[0].proxyTarget, result[0].type, result[0].proxyHandle);
             }
         }
     }
@@ -164,21 +160,25 @@ function $removeListener(target, type , handle ){
  * @param listeners
  * @returns {boolean}
  */
-function $dispatchEvent(e, currentTarget){
+function $dispatchEvent(e, currentTarget, dispatcher){
     if( !(e instanceof Event) ){
         e = Event.create( e );
-        if(currentTarget)e.currentTarget = currentTarget;
+        if(currentTarget && !e.currentTarget)e.currentTarget = currentTarget;
     }
-    if( !e || !e.currentTarget )throw new Error('Invalid event target');
-    var target = e.currentTarget;
+    var target = dispatcher || e.currentTarget;
+    if( !e || !target)throw new Error('Invalid event target');
     var events = target[ __KEY__ ] && target[ __KEY__ ].events[ e.type ];
     if( !events || events.length < 1 )return true;
+    var original = events;
     events = events.slice(0);
-    var length= 0,listener,thisArg,count=events.length;
-    while( length < count ){
-        listener = events[ length++ ];
+    var index= 0,listener,thisArg,count=events.length;
+    for(;index<count;index++){
+        listener = events[ index ];
         thisArg = listener.reference || listener.dispatcher;
         listener.callback.call( thisArg , e );
+        if(listener.useCapture && typeof listener.useCapture==='object' && listener.useCapture.once){
+            original.splice(index, 1);
+        }
         if( e.immediatePropagationStopped===true ){
            return false;
         }
@@ -199,10 +199,12 @@ function $dispatchEvent(e, currentTarget){
 function Listener(type,callback,useCapture,priority,reference,dispatcher){
     this.type=type;
     this.callback=callback;
-    this.useCapture=!!useCapture;
+    this.useCapture=useCapture;
     this.priority=priority>>0;
     this.reference=reference || null;
     this.dispatcher=dispatcher;
+    this.proxyHandle = null;
+    this.proxyTarget = null;
 }
 
 Object.defineProperty(Listener.prototype,"constructor",{value:Listener});
@@ -214,4 +216,3 @@ Listener.prototype.callback=null;
 Listener.prototype.type=null;
 Listener.prototype.proxyHandle = null;
 Listener.prototype.proxyTarget = null;
-Listener.prototype.proxyType = null;

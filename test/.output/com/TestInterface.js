@@ -1,28 +1,21 @@
 const Class = require("./../Class.js");
-const _private = Class.getKeySymbols("89d92270");
-function TestInterface(){
-    this.key=null;
-    Object.defineProperty(this,_private,{
-        value:{}
-    });
-}
+function TestInterface(){}
 Class.creator(TestInterface,{
-    m:514,
+    m:2050,
     ns:"com",
     name:"TestInterface",
     dynamic:true,
-    private:_private,
     members:{
         name:{
-            m:576,
+            m:2176,
             get:true,
             set:true
         },
         avg:{
-            m:544
+            m:2112
         },
         method:{
-            m:544
+            m:2112
         }
     }
 });

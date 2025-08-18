@@ -4,42 +4,42 @@ function Types(){
     Enumeration.apply(this,arguments);
 }
 Class.creator(Types,{
-    m:513,
+    m:2049,
     name:"Types",
     inherit:Enumeration,
     methods:{
         ADDRESS:{
-            m:896,
+            m:3328,
             value:0
         },
         NAME:{
-            m:896,
+            m:3328,
             value:1
         },
         disable:{
-            m:896,
+            m:3328,
             value:'禁用'
         },
         enable:{
-            m:896,
+            m:3328,
             value:'启用'
         },
         Ser1:{
-            m:896,
+            m:3328,
             value:'A'
         },
         Ser2:{
-            m:896,
+            m:3328,
             value:"B"
         },
         Ser3:{
-            m:896,
+            m:3328,
             value:"C"
         }
     },
     members:{
         label:{
-            m:544,
+            m:2112,
             value:function label(){
                 switch(this.value){
                     case Types.ADDRESS :

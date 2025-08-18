@@ -113,7 +113,7 @@ function getInstance(classObject, key, value=null){
     return cache.get(key) || null;
 }
 Class.creator(Enumeration,{
-    m:513,
+    m:2049,
     name:"Enumeration"
 })
 module.exports=Enumeration;

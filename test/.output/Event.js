@@ -9,7 +9,7 @@ function __Event( type, bubbles, cancelable ){
     if( !type || typeof type !=="string" )throw new TypeError('event type is not string');
     this.type = type;
     this.bubbles = !!bubbles;
-    this.cancelable = !!cancelable;
+    this.cancelable = cancelable !== false;
 }
 __Event.SUBMIT='submit';
 __Event.RESIZE='resize';
@@ -31,22 +31,22 @@ __Event.BEFOREPASTE='beforepaste';
 __Event.SELECTSTART='selectstart';
 __Event.READY='ready';
 __Event.SCROLL='scroll';
-__Event.INITIALIZE_COMPLETED = "initializeCompleted";
 __Event.ANIMATION_START="animationstart";
 __Event.ANIMATION_END="animationend";
 __Event.ANIMATION_ITERATION="animationiteration";
 __Event.TRANSITION_END="transitionend";
 __Event.isEvent=function isEvent( obj ){
-    if( obj ){
-        return obj instanceof __Event || obj instanceof Event;
+    if(!obj)return false;
+    if(obj instanceof __Event || obj instanceof Event){
+        return true;
     }
-    return false;
+    return !!(obj.type && obj.target && obj.currentTarget);
 }
 /**
  * 事件原型
  * @type {Object}
  */
-__Event.prototype = Object.create( Object.prototype,{
+__Event.prototype = Object.create(Object.prototype,{
     "constructor":{value:__Event}
 });
 __Event.prototype.bubbles = true;
@@ -123,6 +123,7 @@ __Event.fix.cssevent[ __Event.TRANSITION_END ]      ="TransitionEnd";
  */
 __Event.type = function type( eventType, flag ){
     if( typeof eventType !== "string" )return eventType;
+    if(eventType.includes('.'))return eventType;
     if( flag===true ){
         eventType= __Event.fix.prefix==='on' ? eventType.replace(/^on/i,'') : eventType;
         var lower =  eventType.toLowerCase();
@@ -140,7 +141,7 @@ __Event.type = function type( eventType, flag ){
         return __Event.fix.cssprefix ? __Event.fix.cssprefix+__Event.fix.cssevent[ eventType ] : eventType;
     }
     if( __Event.fix.eventname[ eventType ]===true )return eventType;
-    return __Event.fix.map[ eventType ] ? __Event.fix.map[ eventType ] : __Event.fix.prefix+eventType.toLowerCase();
+    return __Event.fix.map[ eventType ] ? __Event.fix.map[ eventType ] : __Event.fix.prefix+eventType;
 };
 var eventModules=[];
 __Event.registerEvent = function registerEvent( callback ){
@@ -153,7 +154,12 @@ __Event.registerEvent = function registerEvent( callback ){
  * @internal ESEvent.create;
  */
 __Event.create = function create( originalEvent ){
-    if( !originalEvent || !__Event.isEvent(originalEvent) )throw new TypeError('Invalid originalEvent.');
+    if(originalEvent && originalEvent.type && originalEvent.type.includes('.')){
+        return originalEvent;
+    }
+    if( !originalEvent || !__Event.isEvent(originalEvent) ){
+        throw new TypeError('Invalid originalEvent.');
+    }
     var event=null;
     var i=0;
     var type = originalEvent.type;
@@ -228,7 +234,7 @@ __Event.fix.hooks[ __Event.READY ]=function (listener, dispatcher){
     return true;
 }
 Class.creator(__Event,{
-    m:513,
+    m:2049,
     name:"Event"
 })
 module.exports=__Event;

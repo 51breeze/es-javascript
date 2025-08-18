@@ -5,7 +5,7 @@ const {name,child_name,child_config,name:php} = require("./config.js");
 const System = require("./System.js");
 const Person = require("./Person.js");
 const TestInterface = require("./com/TestInterface.js");
-const Reflect0 = require("./Reflect.js");
+const Reflect = require("./Reflect.js");
 const Http = require("./Request.js");
 const {Base64} = require("js-base64");
 const EventDispatcher = require("./EventDispatcher.js");
@@ -14,7 +14,6 @@ const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
 const _private0 = Class.getKeySymbols("4909f058");
 function Test(name,age){
-    Person.call(this,name);
     Object.defineProperty(this,_private0,{
         value:{
             bbss:'bbss',
@@ -24,6 +23,7 @@ function Test(name,age){
             currentIndex:0
         }
     });
+    Person.call(this,name);
     Person.prototype.setType.call(this,'1');
     this.target;
     new Http();
@@ -33,7 +33,7 @@ function Test(name,age){
     this.postion();
 }
 Class.creator(Test,{
-    m:513,
+    m:2049,
     name:"Test",
     dynamic:true,
     private:_private0,
@@ -41,7 +41,7 @@ Class.creator(Test,{
     inherit:Person,
     methods:{
         getClass:{
-            m:800,
+            m:3136,
             value:function getClass(){
                 var a = Test;
                 var buname = {
@@ -49,10 +49,10 @@ Class.creator(Test,{
                 }
                 buname.test=a;
                 buname.person=Person;
-                var {test:test=a} = buname;
+                var {test=a} = buname;
                 expect(Test).toBe(test);
-                expect(Test).toBe(Reflect0.call(Test,test,"getClassObject",[]));
-                expect(Test).toBe(Reflect0.call(Test,test,'getClassObject'));
+                expect(Test).toBe(Reflect.call(Test,test,"getClassObject",[]));
+                expect(Test).toBe(Reflect.call(Test,test,'getClassObject'));
                 var [aa,bb=9] = [1,6];
                 expect(aa).toBe(1);
                 expect(bb).toBe(6);
@@ -60,7 +60,7 @@ Class.creator(Test,{
             }
         },
         getClassObject:{
-            m:800,
+            m:3136,
             value:function getClassObject(){
                 var a = Test;
                 var b = {
@@ -71,25 +71,25 @@ Class.creator(Test,{
             }
         },
         getObject:{
-            m:800,
+            m:3136,
             value:function getObject(){
                 return new Test('1','2');
             }
         },
         uuName:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function uuName(){
                 return 'uuName';
             }
         },
         iiu:{
-            m:2312,
+            m:9232,
             writable:true,
             value:Test
         },
         main:{
-            m:800,
+            m:3136,
             value:function main(){
                 describe('Test',()=>{
                     (new Test('Test')).start();
@@ -99,18 +99,18 @@ Class.creator(Test,{
     },
     members:{
         bbss:{
-            m:2056,
+            m:8208,
             writable:true
         },
         age:{
-            m:2064
+            m:8224
         },
         postion:{
-            m:544,
+            m:2112,
             value:function postion(){}
         },
         start:{
-            m:544,
+            m:2112,
             value:function start(){
                 it(`base`,()=>{
                     var str = '';
@@ -263,7 +263,7 @@ Class.creator(Test,{
             }
         },
         testAssignment:{
-            m:2080,
+            m:8256,
             value:function testAssignment(){
                 it(`testAssignment `,()=>{
                     let init = 1;
@@ -285,29 +285,29 @@ Class.creator(Test,{
                     --init;
                     expect(0).toEqual(init);
                     var data = {}
-                    Reflect0.set(Test,data,"init",1);
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") + 1);
-                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") * 2);
-                    expect(4).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") / 2);
-                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") - 1);
-                    expect(1).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") << 1);
-                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") >> 1);
-                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") % 1);
-                    expect(0).toEqual(Reflect0.get(Test,data,"init"));
-                    Reflect0.incre(Test,data,"init",false);
-                    expect(1).toEqual(Reflect0.get(Test,data,"init"));
-                    var res = Reflect0.decre(Test,data,"init",true);
+                    Reflect.set(Test,data,"init",1);
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") + 1);
+                    expect(2).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") * 2);
+                    expect(4).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") / 2);
+                    expect(2).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") - 1);
+                    expect(1).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") << 1);
+                    expect(2).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") >> 1);
+                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") % 1);
+                    expect(0).toEqual(Reflect.get(Test,data,"init"));
+                    Reflect.incre(Test,data,"init",false);
+                    expect(1).toEqual(Reflect.get(Test,data,"init"));
+                    var res = Reflect.decre(Test,data,"init",true);
                     expect(1).toEqual(res);
-                    expect(0).toEqual(Reflect0.get(Test,data,"init"));
+                    expect(0).toEqual(Reflect.get(Test,data,"init"));
                     this.increValue++;
                     expect(1).toEqual(this.increValue);
                     var tar = this;
-                    Reflect0.incre(Test,tar,"increValue",false);
+                    Reflect.incre(Test,tar,"increValue",false);
                     expect(2).toEqual(this.increValue);
                     const items6666 = [1,5,6];
                     const clone = [...items6666];
@@ -316,11 +316,11 @@ Class.creator(Test,{
             }
         },
         _increValue:{
-            m:2056,
+            m:8208,
             writable:true
         },
         increValue:{
-            m:2112,
+            m:8320,
             get:function increValue(){
                 return this[_private0]._increValue;
             },
@@ -329,7 +329,7 @@ Class.creator(Test,{
             }
         },
         testEnumerableProperty:{
-            m:2080,
+            m:8256,
             value:function testEnumerableProperty(){
                 it(`for( var name in this) should is this or object `,()=>{
                     var labels = ["name","data","target","addressName","iuuu",'dynamic','dynamicName'];
@@ -341,7 +341,7 @@ Class.creator(Test,{
             }
         },
         testComputeProperty:{
-            m:2080,
+            m:8256,
             value:function testComputeProperty(){
                 var bname = "123";
                 var o = {
@@ -363,7 +363,7 @@ Class.creator(Test,{
             }
         },
         testLabel:{
-            m:2080,
+            m:8256,
             value:function testLabel(){
                 var num = 0;
                 start:
@@ -381,7 +381,7 @@ Class.creator(Test,{
             }
         },
         testEnum:{
-            m:2080,
+            m:8256,
             value:function testEnum(){
                 var Type = (Type={},Type[Type["address"]=5]="address",Type[Type["name"]=6]="name",Type);
                 const s = Types;
@@ -408,10 +408,10 @@ Class.creator(Test,{
             }
         },
         testIterator:{
-            m:2080,
+            m:8256,
             value:function testIterator(){
                 var array = [];
-                for(var val,_v,_i=System.getIterator(this);_i && (_v=_i.next()) && !_v.done;){
+                for(let val,_v,_i=System.getIterator(this);_i && (_v=_i.next()) && !_v.done;){
                     val=_v.value;
                     array.push(val);
                 }
@@ -439,7 +439,7 @@ Class.creator(Test,{
             }
         },
         testGenerics:{
-            m:2080,
+            m:8256,
             value:function testGenerics(){
                 const ddee = this.map();
                 const dd = ddee;
@@ -479,7 +479,7 @@ Class.creator(Test,{
                 var sss = obj.getClassTestGenerics(1,1);
                 var type = this;
                 type instanceof Number;
-                type instanceof Number;
+                System.is(type,Number);
                 type;
                 var bb = {
                     a:'',
@@ -535,7 +535,7 @@ Class.creator(Test,{
             }
         },
         testKeyof:{
-            m:2080,
+            m:8256,
             value:function testKeyof(t,k){
                 var Reflect = 555;
                 var Reflect1 = 555;
@@ -546,21 +546,21 @@ Class.creator(Test,{
             }
         },
         getClassTestGenerics:{
-            m:2080,
+            m:8256,
             value:function getClassTestGenerics(name,age){
                 var a = [age,name];
                 return a;
             }
         },
         getTestGenerics:{
-            m:2080,
+            m:8256,
             value:function getTestGenerics(name,age){
                 var t = new Test('name',name);
                 return age;
             }
         },
         getTestObject:{
-            m:2080,
+            m:8256,
             value:function getTestObject(flag){
                 const factor = ()=>{
                     const o = {
@@ -574,34 +574,34 @@ Class.creator(Test,{
             }
         },
         getNamess:{
-            m:544,
+            m:2112,
             value:function getNamess(s){
                 return s;
             }
         },
         testAwait:{
-            m:2080,
+            m:8256,
             value:function testAwait(){
                 it(`test Await`,(done)=>{
                     const res = this.loadRemoteData(1);
                     res.then((data)=>{
-                        expect(Reflect0.get(Test,data,0)).toEqual(['one',1]);
-                        expect(Reflect0.get(Test,data,1)).toEqual({
+                        expect(Reflect.get(Test,data,0)).toEqual(['one',1]);
+                        expect(Reflect.get(Test,data,1)).toEqual({
                             bss:['two',2],
                             cc:['three',3]
                         });
-                        expect(Reflect0.get(Test,data,2)).toEqual(['three',3]);
+                        expect(Reflect.get(Test,data,2)).toEqual(['three',3]);
                         done();
                     });
                 });
                 it(`test for Await`,(done)=>{
                     const res = this.loadRemoteData(2);
                     res.then((data)=>{
-                        expect(Reflect0.get(Test,data,0)).toEqual(['0',0]);
-                        expect(Reflect0.get(Test,data,1)).toEqual(['1',1]);
-                        expect(Reflect0.get(Test,data,2)).toEqual(['2',2]);
-                        expect(Reflect0.get(Test,data,3)).toEqual(['3',3]);
-                        expect(Reflect0.get(Test,data,4)).toEqual(['4',4]);
+                        expect(Reflect.get(Test,data,0)).toEqual(['0',0]);
+                        expect(Reflect.get(Test,data,1)).toEqual(['1',1]);
+                        expect(Reflect.get(Test,data,2)).toEqual(['2',2]);
+                        expect(Reflect.get(Test,data,3)).toEqual(['3',3]);
+                        expect(Reflect.get(Test,data,4)).toEqual(['4',4]);
                         done();
                     });
                 });
@@ -661,11 +661,11 @@ Class.creator(Test,{
                         done();
                     });
                 });
-                Reflect0.get(Test,this.getJson(),"name");
+                Reflect.get(Test,this.getJson(),"name");
             }
         },
         getJson:{
-            m:544,
+            m:2112,
             value:function getJson(){
                 return {
                     name:123
@@ -673,7 +673,7 @@ Class.creator(Test,{
             }
         },
         testTuple:{
-            m:544,
+            m:2112,
             value:function testTuple(){
                 const data = this.method("end",9);
                 it(`test tuple`,()=>{
@@ -682,14 +682,14 @@ Class.creator(Test,{
             }
         },
         len:{
-            m:2064
+            m:8224
         },
         currentIndex:{
-            m:2056,
+            m:8208,
             writable:true
         },
         next:{
-            m:544,
+            m:2112,
             value:function next(){
                 if(!(this[_private0].currentIndex < this[_private0].len)){
                     return {
@@ -705,19 +705,19 @@ Class.creator(Test,{
             }
         },
         rewind:{
-            m:544,
+            m:2112,
             value:function rewind(){
                 this[_private0].currentIndex=0;
             }
         },
         restFun:{
-            m:544,
+            m:2112,
             value:function restFun(...types){
                 return types;
             }
         },
         tetObject:{
-            m:544,
+            m:2112,
             value:function tetObject(){
                 var t = new Test('1',1);
                 var b = t;
@@ -728,11 +728,11 @@ Class.creator(Test,{
             }
         },
         loadData:{
-            m:544,
+            m:2112,
             value:function loadData(){}
         },
         iuuu:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function iuuu(){
                 var ii = this.name;
@@ -744,7 +744,7 @@ Class.creator(Test,{
             }
         },
         data:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function data(){
                 var b = [];
@@ -764,7 +764,7 @@ Class.creator(Test,{
             }
         },
         fetchApi:{
-            m:544,
+            m:2112,
             value:function fetchApi(name,data,delay){
                 return new Promise((resolve,reject)=>{
                     setTimeout(()=>{
@@ -774,13 +774,13 @@ Class.creator(Test,{
             }
         },
         loadRemoteData2:{
-            m:544,
+            m:2112,
             value:async function loadRemoteData2(){
                 return await this.fetchApi("one",1,800);
             }
         },
         loadRemoteData:{
-            m:544,
+            m:2112,
             value:async function loadRemoteData(type,index=1){
                 if(type === 5){
                     try{
@@ -819,7 +819,7 @@ Class.creator(Test,{
             }
         },
         method:{
-            m:544,
+            m:2112,
             value:function method(name,age){
                 Person.prototype.method.call(this,name,age);
                 var str = ["a","b"];
@@ -833,7 +833,7 @@ Class.creator(Test,{
             }
         },
         name:{
-            m:576,
+            m:2176,
             enumerable:true,
             get:function name(){
                 return Class.callSuperGetter(Test,this,"name");
@@ -843,7 +843,7 @@ Class.creator(Test,{
             }
         },
         avg:{
-            m:544,
+            m:2112,
             value:function avg(yy,bbc){
                 var ii = ()=>1;
                 var bb = ['1'];
@@ -867,7 +867,7 @@ Class.creator(Test,{
             }
         },
         map:{
-            m:544,
+            m:2112,
             value:function map(){
                 const ddss = {
                     name:function(c,b){
@@ -879,7 +879,7 @@ Class.creator(Test,{
             }
         },
         address:{
-            m:2080,
+            m:8256,
             value:function address(){
                 const dd = [];
                 const bb = {
@@ -891,7 +891,7 @@ Class.creator(Test,{
             }
         },
         loadRemoteData3:{
-            m:544,
+            m:2112,
             value:async function loadRemoteData3(index=1){
                 if(index < 5){
                     try{
@@ -908,7 +908,7 @@ Class.creator(Test,{
             }
         },
         chian:{
-            m:544,
+            m:2112,
             value:function chian(){
                 const obj = {
                     index:1,
@@ -947,7 +947,7 @@ Class.creator(Test,{
             }
         },
         [Symbol.iterator]:{
-            m:544,
+            m:2112,
             value:function(){
                 return this;
             }

@@ -10,56 +10,81 @@ class ClassDescriptor{
     static create(classModule, descriptor, members){
         return new ClassDescriptor(classModule, descriptor, members)
     }
-    _classModule = null;
-    _descriptor = null;
-    _members = null;
-    _label = 'unknown';
+    #classModule = null;
+    #descriptor = null;
+    #members = null;
+    #commentLines = null;
+    #label = 'unknown';
     constructor(classModule, descriptor, members=[]){
-        this._classModule = classModule;
-        this._descriptor = descriptor;
-        this._description = descriptor || {};
-        this._members = members;
-        let mode = this._description.m || 0;
+        this.#classModule = classModule;
+        this.#descriptor = descriptor || {};
+        this.#members = members;
+        let mode = this.#descriptor.m || 0;
         if((mode & _Reflect.KIND_CLASS) === _Reflect.KIND_CLASS){
-            this._label = 'class';
+            this.#label = 'class';
         }else if((mode & _Reflect.KIND_INTERFACE) === _Reflect.KIND_INTERFACE){
-            this._label = 'interface';
-        }else if((mode & _Reflect.KIND_ENUM) === _Reflect.KIND_ENUM){
-            this._label = 'enum';
+            this.#label = 'interface';
         }
+        else if((mode & _Reflect.KIND_ENUM) === _Reflect.KIND_ENUM){
+            this.#label = 'enum';
+        }else if((mode & _Reflect.KIND_STRUCT) === _Reflect.KIND_STRUCT){
+            this.#label = 'struct';
+        }
+    }
+    parseComments(){
+        if(this.#commentLines===null){
+            const comments = this.#descriptor.comments;
+            const result = [];
+            if(comments){
+                const lines = String(comments).split(/[\r\n]+/);
+                for(let i=0;i<lines.length;i++){
+                    let line = String(lines[i]).replace(/^([\*\s\t\/]+)|([\*\s\t\/]+)$/, '');
+                    if(line){
+                        result.push(line);
+                    }
+                }
+            }
+            this.#commentLines = result;
+        }
+        return this.#commentLines;
     }
     get isClassDescriptor(){
         return true;
     }
     get mode(){
-        return this._description.m || 0;
+        return this.#descriptor.m || 0;
     }
     get descriptor(){
-        return this._descriptor;
+        return this.#descriptor;
     }
     get classModule(){
-        return this._classModule;
+        return this.#classModule;
     }
     get label(){
-        return this._label;
+        return this.#label;
     }
     get className(){
-        return this._description.name||'';
+        return this.#descriptor.name||'';
     }
     get namespace(){
-        return this._description.namespace||'';
+        return this.#descriptor.ns||'';
+    }
+    get fullName(){
+        const ns = this.namespace;
+        const name = this.className;
+        return ns ? ns+'.'+name : name;
     }
     get implements(){
-        return this._description.imps || [];
+        return this.#descriptor.imps || [];
     }
     get inherit(){
-        return this._description.inherit || null;
+        return this.#descriptor.inherit || null;
     }
     get members(){
-        return this._members;
+        return this.#members;
     }
     get permission(){
-        let mode = this._description.m || 0;
+        let mode = this.#descriptor.m || 0;
         if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
             return 'private';
         }else if((mode & _Reflect.MODIFIER_PROTECTED) === _Reflect.MODIFIER_PROTECTED){
@@ -72,7 +97,7 @@ class ClassDescriptor{
         return this.members.find( item=>item.key === name && item.isStatic() === isStatic)
     }
     isPrivatePropertyKey(key){
-        return this._descriptor.private===key;
+        return this.#descriptor.private===key;
     }
     isPrivate(){
         return 'private' === this.permission
@@ -84,47 +109,56 @@ class ClassDescriptor{
         return 'public' === this.permission
     }
     isStatic(){
-        let mode = this._description.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_STATIC) === _Reflect.MODIFIER_STATIC;
     }
     isFinal(){
-        let mode = this._description.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_FINAL) === _Reflect.MODIFIER_FINAL;
     }
     isAbsract(){
-        let mode = this._description.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_ABSTRACT) === _Reflect.MODIFIER_ABSTRACT;
     }
     isDynamic(){
-        return !!this._description.dynamic;
+        return !!this.#descriptor.dynamic;
     }
     isClass(){
-        return this._label === 'class'
+        return this.#label === 'class'
     }
     isInterface(){
-        return this._label === 'interface'
+        return this.#label === 'interface'
     }
     isEnum(){
-        return this._label === 'enum'
+        return this.#label === 'enum'
+    }
+    isStruct(){
+        return this.#label === 'struct'
     }
 }
+const createdMemberDescriptors = new Map();
 class MemberDescriptor{
     static create(key, descriptor, target, owner=null, privateKey=null){
-        return new MemberDescriptor(key, descriptor, target, owner, privateKey)
+        const exists = createdMemberDescriptors.get(descriptor);
+        if(exists)return exists;
+        const desc = new MemberDescriptor(key, descriptor, target, owner, privateKey)
+        createdMemberDescriptors.set(descriptor, desc);
+        return desc;
     }
-    _key = null;
-    _descriptor = null;
-    _owner = null;
-    _dataset = null
-    _privateKey = null
+    #key = null;
+    #descriptor = null;
+    #owner = null;
+    #dataset = null
+    #privateKey = null;
+    #commentLines = null;
     constructor(key, descriptor, target, owner, privateKey=null){
-        this._key = key;
-        this._descriptor = descriptor;
-        this._owner = owner;
-        this._privateKey = privateKey;
+        this.#key = key;
+        this.#descriptor = descriptor;
+        this.#owner = owner;
+        this.#privateKey = privateKey;
         const mode = descriptor.m || 0;
         const value = descriptor.value;
-        const dataset = this._dataset = {
+        const dataset = this.#dataset = {
             enumerable:false,
             writable:false,
             configurable:false
@@ -149,7 +183,7 @@ class MemberDescriptor{
             dataset.enumerable = true;
             dataset.value = value;
         }else{
-            dataset.label = 'property';
+            dataset.label = (mode & _Reflect.KIND_STRUCT_COLUMN) === _Reflect.KIND_STRUCT_COLUMN ? 'column' : 'property';
             dataset.writable = (mode & _Reflect.KIND_READONLY) !== _Reflect.KIND_READONLY
             dataset.enumerable = true;
             dataset.value = value;
@@ -170,44 +204,64 @@ class MemberDescriptor{
             }
         }
     }
+    parseComments(){
+        if(this.#commentLines===null){
+            const result = [];
+            let comments = this.#descriptor.comments;
+            if(comments && this.isAccessor() && typeof comments ==='object'){
+                comments = this.#descriptor.get ? comments.get : comments.set;
+            }
+            if(comments){
+                const lines = String(comments).split(/[\r\n]+/);
+                for(let i=0;i<lines.length;i++){
+                    let line = String(lines[i]).replace(/^([\*\s\t\/]+)|([\*\s\t\/]+)$/, '');
+                    if(line){
+                        result.push(line);
+                    }
+                }
+            }
+            this.#commentLines = result;
+        }
+        return this.#commentLines;
+    }
     get isMemberDescriptor(){
         return true;
     }
     get mode(){
-        return this._descriptor.m || 0;
+        return this.#descriptor.m || 0;
     }
     get descriptor(){
-        return this._descriptor;
+        return this.#descriptor;
     }
     get key(){
-        return this._key
+        return this.#key
     }
     get owner(){
-        return this._owner;
+        return this.#owner;
     }
     get label(){
-        return this._dataset.label;
+        return this.#dataset.label;
     }
     get getter(){
-       return this._dataset.get;
+       return this.#dataset.get;
     }
     get setter(){
-        return this._dataset.set;
+        return this.#dataset.set;
     }
     get value(){
-        return this._dataset.value;
+        return this.#dataset.value;
     }
     get writable(){
-        return !!this._dataset.writable;
+        return !!this.#dataset.writable;
     }
     get configurable(){
-        return !!this._dataset.configurable;
+        return !!this.#dataset.configurable;
     }
     get enumerable(){
-        return !!this._dataset.enumerable;
+        return !!this.#dataset.enumerable;
     }
     get permission(){
-        let mode = this._descriptor.m || 0;
+        let mode = this.#descriptor.m || 0;
         if((mode & _Reflect.MODIFIER_PRIVATE) === _Reflect.MODIFIER_PRIVATE){
             return 'private';
         }else if((mode & _Reflect.MODIFIER_PROTECTED) === _Reflect.MODIFIER_PROTECTED){
@@ -216,7 +270,7 @@ class MemberDescriptor{
         return 'public';
     }
     get privateKey(){
-        return this._privateKey;
+        return this.#privateKey;
     }
     isPrivate(){
         return 'private' === this.permission
@@ -228,16 +282,20 @@ class MemberDescriptor{
         return 'public' === this.permission
     }
     isStatic(){
-        let mode = this._descriptor.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_STATIC) === _Reflect.MODIFIER_STATIC;
     }
     isFinal(){
-        let mode = this._descriptor.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_FINAL) === _Reflect.MODIFIER_FINAL;
     }
     isAbsract(){
-        let mode = this._descriptor.m || 0;
+        let mode = this.#descriptor.m || 0;
         return (mode & _Reflect.MODIFIER_ABSTRACT) === _Reflect.MODIFIER_ABSTRACT;
+    }
+    isOptional(){
+        let mode = this.#descriptor.m || 0;
+        return (mode & _Reflect.MODIFIER_OPTIONAL) === _Reflect.MODIFIER_OPTIONAL;
     }
     isMethod(){
         return this.label ==='method'
@@ -251,15 +309,18 @@ class MemberDescriptor{
     isEnumProperty(){
         return this.label ==='enumProperty'
     }
+    isColumn(){
+        return this.label ==='column'
+    }
     isClassMember(){
-        let owner = this._owner;
+        let owner = this.#owner;
         if(owner){
             return !!Class.getClassDescriptor(owner);
         }
         return false;
     }
     invokeMethod(thisArg, ...args){
-        let fn = this._dataset.get;
+        let fn = this.#dataset.get;
         if(typeof fn ==='function'){
             fn.call(thisArg, ...args);
         }else{
@@ -267,7 +328,7 @@ class MemberDescriptor{
         }
     }
     invokeGetter(thisArg){
-        let fn = this._dataset.get;
+        let fn = this.#dataset.get;
         if(typeof fn ==='function'){
             return fn.call(thisArg);
         }else{
@@ -275,7 +336,7 @@ class MemberDescriptor{
         }
     }
     invokeSetter(thisArg, value){
-        let fn = this._dataset.set;
+        let fn = this.#dataset.set;
         if(typeof fn ==='function'){
             fn.call(thisArg, value);
         }else{
@@ -283,14 +344,14 @@ class MemberDescriptor{
         }
     }
     setPropertyValue(value){
-        if(this._dataset.resource){
-            this._dataset.resource[this.key] = value;
+        if(this.#dataset.resource){
+            this.#dataset.resource[this.key] = value;
         }else{
             throw new Error(`Set property value failed on the key '${this.key}'.`)
         }
     }
     getPropertyValue(){
-        let target = this._dataset.resource;
+        let target = this.#dataset.resource;
         if(target){
             return target[this.key];
         }
@@ -342,7 +403,7 @@ const _Reflect = (function(_Reflect){
     };
     const hasOwn = Object.prototype.hasOwnProperty;
     function isFun(target){
-        return target && target.constructor === Function
+        return target && target.constructor === Function || typeof target ==='function';
     }
     function isClass(objClass){
         if( !objClass || !objClass.constructor)return false;
@@ -414,6 +475,7 @@ const _Reflect = (function(_Reflect){
     Reflect.MODIFIER_STATIC = Class.constant.MODIFIER_STATIC;
     Reflect.MODIFIER_FINAL = Class.constant.MODIFIER_FINAL;
     Reflect.MODIFIER_ABSTRACT = Class.constant.MODIFIER_ABSTRACT;
+    Reflect.MODIFIER_OPTIONAL = Class.constant.MODIFIER_OPTIONAL;
     Reflect.KIND_ACCESSOR = Class.constant.KIND_ACCESSOR;
     Reflect.KIND_PROPERTY = Class.constant.KIND_VAR;
     Reflect.KIND_READONLY = Class.constant.KIND_CONST;
@@ -422,6 +484,8 @@ const _Reflect = (function(_Reflect){
     Reflect.KIND_CLASS = Class.constant.KIND_CLASS;
     Reflect.KIND_INTERFACE = Class.constant.KIND_INTERFACE;
     Reflect.KIND_ENUM = Class.constant.KIND_ENUM;
+    Reflect.KIND_STRUCT = Class.constant.KIND_STRUCT;
+    Reflect.KIND_STRUCT_COLUMN = Class.constant.KIND_STRUCT_COLUMN;
     Reflect.apply=function apply(target, thisArgument, argumentsList ){
         if( !isFun(target) ){
             throw new TypeError('target is not function');
@@ -563,6 +627,7 @@ const _Reflect = (function(_Reflect){
         Reflect.set(scope,target, propertyKey,result);
         return flag === true ? val : result;
     }
+    const createdClassDescriptors = new Map();
     Reflect.getDescriptor=function getDescriptor(source, name=null, mode=null){
         if(source===null||source === void 0)return false;
         let {target, objClass, descriptor, isStatic} = getClassDescriptor(source)
@@ -586,7 +651,7 @@ const _Reflect = (function(_Reflect){
                     {
                         m:0,
                         name:'nonClass',
-                        namespace:'',
+                        ns:'',
                         dynamic:true,
                         inherit
                     },
@@ -601,6 +666,15 @@ const _Reflect = (function(_Reflect){
         if(name == null){
             let members = [];
             let modes = mode > 0 ? getModes(mode) : null;
+            let key = String(modes);
+            let exists = createdClassDescriptors.get(rawClass);
+            if(exists){
+                if(exists[key]){
+                    return exists[key];
+                }
+            }else{
+                createdClassDescriptors.set(rawClass, exists={})
+            }
             let filter = modes && modes.length>0 ? (val)=>modes.every(mode=>(mode & val)===mode) : null;
             let modeStatic = mode > 0 && (mode & Reflect.MODIFIER_STATIC) === Reflect.MODIFIER_STATIC;
             if(!modeStatic){
@@ -642,7 +716,7 @@ const _Reflect = (function(_Reflect){
                     });
                 }
             }
-            return ClassDescriptor.create(rawClass, descriptor, members);
+            return exists[key] = ClassDescriptor.create(rawClass, descriptor, members);
         }
        
         while(objClass && descriptor){
@@ -666,7 +740,7 @@ const _Reflect = (function(_Reflect){
                 break;
             }
         }
-        if(objClass && !descriptor){
+        if(objClass){
             return getObjectDescriptor(
                 typeof objClass ==='function' ? objClass.prototype : objClass,
                 name
@@ -718,7 +792,7 @@ const _Reflect = (function(_Reflect){
     return Reflect;
 }(Reflect));
 Class.creator(_Reflect,{
-    m:513,
+    m:2049,
     name:"Reflect"
 })
 module.exports=_Reflect;
