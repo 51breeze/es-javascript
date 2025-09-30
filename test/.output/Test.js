@@ -5,14 +5,14 @@ const {name,child_name,child_config,name:php} = require("./config.js");
 const System = require("./System.js");
 const Person = require("./Person.js");
 const TestInterface = require("./com/TestInterface.js");
-const Reflect = require("./Reflect.js");
+const Reflect0 = require("./Reflect.js");
 const Http = require("./Request.js");
 const {Base64} = require("js-base64");
 const EventDispatcher = require("./EventDispatcher.js");
 const Event = require("./Event.js");
 const Param = require("./unit/Param.js");
 const Types = require("./Types.js");
-const _private0 = Class.getKeySymbols("4909f058");
+const _private0 = Class.getKeySymbols("532eaabd");
 function Test(name,age){
     Object.defineProperty(this,_private0,{
         value:{
@@ -51,8 +51,8 @@ Class.creator(Test,{
                 buname.person=Person;
                 var {test=a} = buname;
                 expect(Test).toBe(test);
-                expect(Test).toBe(Reflect.call(Test,test,"getClassObject",[]));
-                expect(Test).toBe(Reflect.call(Test,test,'getClassObject'));
+                expect(Test).toBe(Reflect0.call(Test,test,"getClassObject",[]));
+                expect(Test).toBe(Reflect0.call(Test,test,'getClassObject'));
                 var [aa,bb=9] = [1,6];
                 expect(aa).toBe(1);
                 expect(bb).toBe(6);
@@ -285,29 +285,29 @@ Class.creator(Test,{
                     --init;
                     expect(0).toEqual(init);
                     var data = {}
-                    Reflect.set(Test,data,"init",1);
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") + 1);
-                    expect(2).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") * 2);
-                    expect(4).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") / 2);
-                    expect(2).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") - 1);
-                    expect(1).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") << 1);
-                    expect(2).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") >> 1);
-                    Reflect.set(Test,data,"init",Reflect.get(Test,data,"init") % 1);
-                    expect(0).toEqual(Reflect.get(Test,data,"init"));
-                    Reflect.incre(Test,data,"init",false);
-                    expect(1).toEqual(Reflect.get(Test,data,"init"));
-                    var res = Reflect.decre(Test,data,"init",true);
+                    Reflect0.set(Test,data,"init",1);
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") + 1);
+                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") * 2);
+                    expect(4).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") / 2);
+                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") - 1);
+                    expect(1).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") << 1);
+                    expect(2).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") >> 1);
+                    Reflect0.set(Test,data,"init",Reflect0.get(Test,data,"init") % 1);
+                    expect(0).toEqual(Reflect0.get(Test,data,"init"));
+                    Reflect0.incre(Test,data,"init",false);
+                    expect(1).toEqual(Reflect0.get(Test,data,"init"));
+                    var res = Reflect0.decre(Test,data,"init",true);
                     expect(1).toEqual(res);
-                    expect(0).toEqual(Reflect.get(Test,data,"init"));
+                    expect(0).toEqual(Reflect0.get(Test,data,"init"));
                     this.increValue++;
                     expect(1).toEqual(this.increValue);
                     var tar = this;
-                    Reflect.incre(Test,tar,"increValue",false);
+                    Reflect0.incre(Test,tar,"increValue",false);
                     expect(2).toEqual(this.increValue);
                     const items6666 = [1,5,6];
                     const clone = [...items6666];
@@ -585,23 +585,23 @@ Class.creator(Test,{
                 it(`test Await`,(done)=>{
                     const res = this.loadRemoteData(1);
                     res.then((data)=>{
-                        expect(Reflect.get(Test,data,0)).toEqual(['one',1]);
-                        expect(Reflect.get(Test,data,1)).toEqual({
+                        expect(Reflect0.get(Test,data,0)).toEqual(['one',1]);
+                        expect(Reflect0.get(Test,data,1)).toEqual({
                             bss:['two',2],
                             cc:['three',3]
                         });
-                        expect(Reflect.get(Test,data,2)).toEqual(['three',3]);
+                        expect(Reflect0.get(Test,data,2)).toEqual(['three',3]);
                         done();
                     });
                 });
                 it(`test for Await`,(done)=>{
                     const res = this.loadRemoteData(2);
                     res.then((data)=>{
-                        expect(Reflect.get(Test,data,0)).toEqual(['0',0]);
-                        expect(Reflect.get(Test,data,1)).toEqual(['1',1]);
-                        expect(Reflect.get(Test,data,2)).toEqual(['2',2]);
-                        expect(Reflect.get(Test,data,3)).toEqual(['3',3]);
-                        expect(Reflect.get(Test,data,4)).toEqual(['4',4]);
+                        expect(Reflect0.get(Test,data,0)).toEqual(['0',0]);
+                        expect(Reflect0.get(Test,data,1)).toEqual(['1',1]);
+                        expect(Reflect0.get(Test,data,2)).toEqual(['2',2]);
+                        expect(Reflect0.get(Test,data,3)).toEqual(['3',3]);
+                        expect(Reflect0.get(Test,data,4)).toEqual(['4',4]);
                         done();
                     });
                 });
@@ -661,7 +661,7 @@ Class.creator(Test,{
                         done();
                     });
                 });
-                Reflect.get(Test,this.getJson(),"name");
+                Reflect0.get(Test,this.getJson(),"name");
             }
         },
         getJson:{

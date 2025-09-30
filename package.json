@@ -1,6 +1,6 @@
 {
   "name": "@easescript/es-javascript",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "EaseScript Code Transformation Plugin For JavaScript",
   "main": "dist/index.js",
   "typings": "dist/types/typings.json",
@@ -32,10 +32,8 @@
     "@babel/preset-env": "^7.18.6",
     "@babel/runtime-corejs3": "^7.17.9",
     "@easescript/transform": "latest",
-    "axios": "^0.26.1",
+    "axios": "^1.12.2",
     "blueimp-md5": "^2.19.0",
-    "dotenv": "^16.4.5",
-    "dotenv-expand": "^11.0.6",
     "glob-path": "latest",
     "js-base64": "^3.7.2",
     "js-cookie": "^3.0.1",
@@ -47,6 +45,7 @@
     "easescript": "latest",
     "easescript-cli": "latest",
     "esbuild-plugin-copy": "^2.1.1",
+    "esbuild": "^0.25.10",
     "jasmine": "^3.10.0"
   },
   "esconfig": {

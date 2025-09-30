@@ -790,7 +790,6 @@ declare interface EventListenerOptions {
     capture?: boolean;
 }
 
-
 declare interface NodeList {
     /**
      * Returns the number of nodes in the collection.
@@ -807,7 +806,7 @@ declare interface NodeList {
      */
     forEach(callbackfn: (value: Node, key: number, parent: NodeList) => void, thisArg?: any): void;
 
-    entries():Iterator<Element>;
+    entries():Iterator<[number, Element]>
 
     keys():Iterator<uint>;
 

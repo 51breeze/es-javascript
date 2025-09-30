@@ -34,7 +34,7 @@ var require_package = __commonJS({
   "node_modules/dotenv/package.json"(exports2, module2) {
     module2.exports = {
       name: "dotenv",
-      version: "16.4.7",
+      version: "16.6.1",
       description: "Loads environment variables from .env file",
       main: "lib/main.js",
       types: "lib/main.d.ts",
@@ -57,7 +57,7 @@ var require_package = __commonJS({
         lint: "standard",
         pretest: "npm run lint && npm run dts-check",
         test: "tap run --allow-empty-coverage --disable-coverage --timeout=60000",
-        "test:coverage": "tap run --show-full-coverage --timeout=60000 --coverage-report=lcov",
+        "test:coverage": "tap run --show-full-coverage --timeout=60000 --coverage-report=text --coverage-report=lcov",
         prerelease: "npm test",
         release: "standard-version"
       },
@@ -65,6 +65,7 @@ var require_package = __commonJS({
         type: "git",
         url: "git://github.com/motdotla/dotenv.git"
       },
+      homepage: "https://github.com/motdotla/dotenv#readme",
       funding: "https://dotenvx.com",
       keywords: [
         "dotenv",
@@ -126,8 +127,10 @@ var require_main = __commonJS({
       return obj;
     }
     function _parseVault(options) {
+      options = options || {};
       const vaultPath = _vaultPath(options);
-      const result = DotenvModule.configDotenv({ path: vaultPath });
+      options.path = vaultPath;
+      const result = DotenvModule.configDotenv(options);
       if (!result.parsed) {
         const err = new Error(`MISSING_DATA: Cannot parse ${vaultPath} for an unknown reason`);
         err.code = "MISSING_DATA";
@@ -150,14 +153,14 @@ var require_main = __commonJS({
       }
       return DotenvModule.parse(decrypted);
     }
-    function _log(message) {
-      console.log(`[dotenv@${version}][INFO] ${message}`);
-    }
     function _warn(message) {
       console.log(`[dotenv@${version}][WARN] ${message}`);
     }
     function _debug(message) {
       console.log(`[dotenv@${version}][DEBUG] ${message}`);
+    }
+    function _log(message) {
+      console.log(`[dotenv@${version}] ${message}`);
     }
     function _dotenvKey(options) {
       if (options && options.DOTENV_KEY && options.DOTENV_KEY.length > 0) {
@@ -225,7 +228,11 @@ var require_main = __commonJS({
       return envPath[0] === "~" ? path7.join(os.homedir(), envPath.slice(1)) : envPath;
     }
     function _configVault(options) {
-      _log("Loading env from encrypted .env.vault");
+      const debug = Boolean(options && options.debug);
+      const quiet = options && "quiet" in options ? options.quiet : true;
+      if (debug || !quiet) {
+        _log("Loading env from encrypted .env.vault");
+      }
       const parsed = DotenvModule._parseVault(options);
       let processEnv = process.env;
       if (options && options.processEnv != null) {
@@ -238,6 +245,7 @@ var require_main = __commonJS({
       const dotenvPath = path7.resolve(process.cwd(), ".env");
       let encoding = "utf8";
       const debug = Boolean(options && options.debug);
+      const quiet = options && "quiet" in options ? options.quiet : true;
       if (options && options.encoding) {
         encoding = options.encoding;
       } else {
@@ -274,6 +282,22 @@ var require_main = __commonJS({
         processEnv = options.processEnv;
       }
       DotenvModule.populate(processEnv, parsedAll, options);
+      if (debug || !quiet) {
+        const keysCount = Object.keys(parsedAll).length;
+        const shortPaths = [];
+        for (const filePath of optionPaths) {
+          try {
+            const relative = path7.relative(process.cwd(), filePath);
+            shortPaths.push(relative);
+          } catch (e) {
+            if (debug) {
+              _debug(`Failed to load ${filePath} ${e.message}`);
+            }
+            lastError = e;
+          }
+        }
+        _log(`injecting env (${keysCount}) from ${shortPaths.join(",")}`);
+      }
       if (lastError) {
         return { parsed: parsedAll, error: lastError };
       } else {
@@ -363,9 +387,9 @@ var require_main = __commonJS({
   }
 });
 
-// node_modules/@easescript/transform/node_modules/dotenv-expand/lib/main.js
+// node_modules/dotenv-expand/lib/main.js
 var require_main2 = __commonJS({
-  "node_modules/@easescript/transform/node_modules/dotenv-expand/lib/main.js"(exports2, module2) {
+  "node_modules/dotenv-expand/lib/main.js"(exports2, module2) {
     "use strict";
     function _resolveEscapeSequences(value) {
       return value.replace(/\\\$/g, "$");
@@ -2701,7 +2725,10 @@ function createJSXAttrHookNode(ctx, stack, desc) {
             } else if (/\.(\w+)($|\?)/.test(value)) {
               const file = stack.compiler.resolveManager.resolveFile(value, stack.compilation.file);
               if (file) {
-                const local = "_" + import_path.default.basename(file, import_path.default.extname(file)) + createUniqueHashId(file, 12);
+                let basename = import_path.default.basename(file);
+                let index = basename.indexOf(".");
+                let name = index >= 0 ? basename.slice(0, index) : basename;
+                const local = "_" + toCamelCase(name) + createUniqueHashId(file, 8);
                 const source = ctx.getSourceFileMappingFolder(file) || file;
                 ctx.addImport(source, local);
                 return ctx.createIdentifier(local);
@@ -3853,11 +3880,13 @@ var Generator2 = class {
         this.newLine();
         this.withString("try");
         this.make(token.block);
-        this.withString("catch");
-        this.withParenthesL();
-        this.make(token.param);
-        this.withParenthesR();
-        this.make(token.handler);
+        if (token.handler) {
+          this.withString("catch");
+          this.withParenthesL();
+          this.make(token.param);
+          this.withParenthesR();
+          this.make(token.handler);
+        }
         if (token.finalizer) {
           this.withString("finally");
           this.make(token.finalizer);
@@ -6534,7 +6563,7 @@ function CallExpression_default(ctx, stack) {
       }
       ctx.addDepend(parent, module2);
     }
-    if (ctx.useClassConstructor(module2)) {
+    if (useClass) {
       return ctx.createCallExpression(
         ctx.createSuperExpression(void 0, stack.callee),
         stack.arguments.map((item) => ctx.createToken(item)),
@@ -6755,11 +6784,31 @@ var ClassBuilder = class {
         "default",
         this.getExportReferenceNode()
       );
-    } else {
-      ctx.addExport(
-        module2.id,
-        this.getExportReferenceNode()
-      );
+    } else if (!module2.isPrivate) {
+      const exportNode = this.getExportReferenceNode();
+      if (exportNode) {
+        if (exportNode.type === "Identifier") {
+          ctx.addExport(
+            module2.id,
+            exportNode
+          );
+        } else {
+          const refName = "__" + module2.id + "_export";
+          const refNode = ctx.createVariableDeclaration("const", [
+            ctx.createVariableDeclarator(
+              ctx.createIdentifier(refName),
+              exportNode
+            )
+          ]);
+          ctx.addNodeToAfterBody(refNode);
+          ctx.addExport(
+            module2.id,
+            ctx.createIdentifier(refName)
+          );
+        }
+      } else {
+        ctx.addExport(module2.id);
+      }
     }
   }
   createBody(ctx, module2, stack) {
@@ -6871,7 +6920,7 @@ var ClassBuilder = class {
             ctx.createCallExpression(
               createStaticReferenceNode(ctx, this.stack, "Class", "getKeySymbols"),
               [
-                ctx.createLiteral(ctx.getHashId())
+                ctx.createLiteral(ctx.getHashId(8, this.module))
               ]
             )
           )
@@ -7318,6 +7367,9 @@ var ClassBuilder = class {
     }
     if (module2.isFinal) {
       kind |= MODIFIER_FINAL;
+    }
+    if (module2.isPrivate) {
+      kind |= MODIFIER_PRIVATE;
     }
     properties2.push(
       ctx.createProperty(
@@ -8534,7 +8586,8 @@ function createChildNode(ctx, stack, childNode, prev = null) {
       cmd.push(name);
     } else if (name === "if") {
       const node = ctx.createNode("ConditionalExpression");
-      node.test = ctx.createToken(valueArgument.expression);
+      const test = ctx.createToken(valueArgument.expression);
+      node.test = test && test.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(test) : test;
       node.consequent = content[0];
       content[0] = node;
       cmd.push(name);
@@ -8545,7 +8598,8 @@ function createChildNode(ctx, stack, childNode, prev = null) {
         cmd.push(name);
       }
       const node = ctx.createNode("ConditionalExpression");
-      node.test = ctx.createToken(valueArgument.expression);
+      const test = ctx.createToken(valueArgument.expression);
+      node.test = test && test.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(test) : test;
       node.consequent = content[0];
       content[0] = node;
     } else if (name === "else") {
@@ -8620,9 +8674,11 @@ function createChildren(ctx, children, data, stack) {
           return next();
         }
       } else if (child.isSlot && !child.isSlotDeclared) {
-        const name = child.openingElement.name.value();
-        data.slots[name] = childNode.content[0];
-        return next();
+        if (!(childNode.cmd.includes("if") || childNode.cmd.includes("else") || childNode.cmd.includes("elseif"))) {
+          const name = child.openingElement.name.value();
+          data.slots[name] = childNode.content[0];
+          return next();
+        }
       } else if (child.isDirective) {
         childNode.cmd.push(
           child.openingElement.name.value().toLowerCase()
@@ -8655,13 +8711,21 @@ function createChildren(ctx, children, data, stack) {
           result.ifEnd = true;
         } else {
           if (result) result.ifEnd = true;
-          last.content.push(createCommentVNode(ctx, "end if"));
+          const endNode = last.child.isSlot && !last.child.isSlotDeclared ? ctx.createLiteral(void 0) : createCommentVNode(ctx, "end if", true);
+          last.content.push(endNode);
           value = getCascadeConditional(last.content);
         }
       } else if (!(last.ifEnd && last.cmd.includes("else"))) {
         value = last.content;
       }
-      push(content, value);
+      if (value) {
+        if (last.child.isSlot && !last.child.isSlotDeclared && value.type === "ConditionalExpression") {
+          const name = last.stack.openingElement.name.value();
+          data.slots[name] = value;
+        } else {
+          push(content, value);
+        }
+      }
     }
     last = result;
     if (!result) break;
@@ -8879,7 +8943,7 @@ function createAttributes(ctx, stack, data) {
   const forStack = stack.getParentStack((stack2) => {
     return stack2.scope.isForContext || !(stack2.isJSXElement || stack2.isJSXExpressionContainer);
   }, true);
-  const inFor = forStack && forStack.scope && forStack.scope.isForContext ? true : false;
+  let inFor = forStack && forStack.scope && forStack.scope.isForContext ? true : false;
   const descModule = stack.isWebComponent ? stack.descriptor() : null;
   const definedEmits = getComponentEmitAnnotation(descModule);
   const getDefinedEmitName = (name) => {
@@ -9060,24 +9124,8 @@ function createAttributes(ctx, stack, data) {
     }
     if (!ns && (attrLowerName === "ref" || attrLowerName === "refs")) {
       name = propName = "ref";
-      let useArray = inFor || attrLowerName === "refs";
-      if (useArray) {
-        propValue = ctx.createArrowFunctionExpression(
-          ctx.createCallExpression(
-            ctx.createMemberExpression([
-              ctx.createThisExpression(),
-              ctx.createIdentifier("setRefNode")
-            ]),
-            [
-              value.value,
-              ctx.createIdentifier("node"),
-              ctx.createLiteral(true)
-            ]
-          ),
-          [
-            ctx.createIdentifier("node")
-          ]
-        );
+      if (attrLowerName === "refs" && !isDOMAttribute) {
+        inFor = true;
       }
     }
     if (name === "class" || name === "staticClass") {
@@ -9123,11 +9171,18 @@ function createAttributes(ctx, stack, data) {
         }
     }
   });
+  if (data.ref && inFor) {
+    data.attrs.push(ctx.createProperty(
+      ctx.createIdentifier("ref_for"),
+      ctx.createLiteral(true)
+    ));
+  }
   if (!data.key) {
     data.key = createElementKeyPropertyNode(ctx, stack);
   }
 }
 var conditionElements = ["if", "elseif", "else"];
+var forNameds = ["for", "each"];
 function createElementKeyPropertyNode(ctx, stack) {
   const keys2 = ctx.options.esx.complete.keys;
   const fills = Array.isArray(keys2) && keys2.length > 0 ? keys2 : null;
@@ -9138,7 +9193,7 @@ function createElementKeyPropertyNode(ctx, stack) {
     let isForContext = false;
     if (all || fills.includes("for") || fills.includes("each")) {
       if (!stack.isDirective && stack.directives && Array.isArray(stack.directives)) {
-        let directive = stack.directives.find((directive2) => ["for", "each"].includes(directive2.name.value().toLowerCase()));
+        let directive = stack.directives.find((directive2) => forNameds.includes(directive2.name.value().toLowerCase()));
         if (directive) {
           isForContext = true;
           direName = directive.name.value().toLowerCase();
@@ -9148,15 +9203,23 @@ function createElementKeyPropertyNode(ctx, stack) {
           }
         }
       }
-      if (!isForContext && stack.parentStack.isDirective && ["for", "each"].includes(stack.parentStack.openingElement.name.value())) {
-        const attrs = stack.parentStack.openingElement.attributes;
-        const argument = {};
-        isForContext = true;
-        direName = stack.parentStack.openingElement.name.value().toLowerCase();
-        attrs.forEach((attr) => {
-          argument[attr.name.value()] = attr.value.value();
-        });
-        key = argument["index"] || argument["key"];
+      if (!isForContext && stack.scope.isForContext) {
+        let parentStack = stack.parentStack;
+        while (parentStack && parentStack.jsxElement && parentStack.isDirective) {
+          const name = parentStack.openingElement.name.value().toLowerCase();
+          if (forNameds.includes(name)) {
+            const attrs = parentStack.openingElement.attributes;
+            const argument = {};
+            isForContext = true;
+            direName = name;
+            attrs.forEach((attr) => {
+              argument[attr.name.value()] = attr.value.value();
+            });
+            key = argument["index"] || argument["key"];
+            break;
+          }
+          parentStack = parentStack.parentStack;
+        }
       }
     }
     let isCondition = false;
@@ -9169,19 +9232,29 @@ function createElementKeyPropertyNode(ctx, stack) {
       }
     }
     if (all || isCondition || fills.includes(direName)) {
-      let count = ctx.cache.get(stack.compilation, "createElementKeyPropertyNode::count");
-      if (count == null) count = 0;
-      ctx.cache.set(stack.compilation, "createElementKeyPropertyNode::count", ++count);
-      return ctx.createProperty(
-        ctx.createIdentifier("key"),
-        isForContext ? ctx.createBinaryExpression(
-          ctx.createLiteral(count + "-"),
-          ctx.createIdentifier(key || "key"),
-          "+"
-        ) : ctx.createLiteral(count)
+      return createElementKeyNode(ctx, stack, isForContext ? ctx.createIdentifier(key || "key") : null);
+    }
+  }
+}
+function createElementKeyNode(ctx, stack, prefixNode = null) {
+  let count = ctx.cache.get(stack.compilation, "createElementKeyPropertyNode::count");
+  if (count == null) count = 0;
+  ctx.cache.set(stack.compilation, "createElementKeyPropertyNode::count", ++count);
+  if (prefixNode) {
+    if (prefixNode.type === "Literal") {
+      prefixNode.value += "-" + count;
+    } else {
+      prefixNode = ctx.createBinaryExpression(
+        prefixNode,
+        ctx.createLiteral("-" + count),
+        "+"
       );
     }
   }
+  return ctx.createProperty(
+    ctx.createIdentifier("key"),
+    prefixNode || ctx.createLiteral(count)
+  );
 }
 function createComponentDirectiveProperties(ctx, stack, data, callback = null) {
   if (stack) {
@@ -9350,8 +9423,8 @@ function createSlotElementNode(ctx, stack, children) {
     }
     args.push(props);
   } else if (stack.openingElement.attributes.length > 0) {
-    const attribute = stack.openingElement.attributes[0];
-    if (attribute.value) {
+    const attribute = stack.openingElement.attributes.find((attr) => !attr.isAttributeDirective);
+    if (attribute && attribute.value) {
       const stack2 = attribute.parserSlotScopeParamsStack();
       params.push(
         ctx.createAssignmentExpression(
@@ -9387,7 +9460,7 @@ function createDirectiveElementNode(ctx, stack, children) {
     case "elseif": {
       const condition = ctx.createToken(stack.attributes[0].parserAttributeValueStack());
       const node = ctx.createNode("ConditionalExpression");
-      node.test = condition;
+      node.test = condition && condition.type === "ConditionalExpression" ? ctx.createParenthesizedExpression(condition) : condition;
       node.consequent = children;
       return node;
     }
@@ -9678,7 +9751,7 @@ function JSXNamespacedName_default(ctx, stack) {
 // node_modules/@easescript/transform/lib/tokens/JSXOpeningElement.js
 function JSXOpeningElement_default(ctx, stack) {
   const node = ctx.createNode(stack);
-  node.attributes = stack.attributes.map((attr) => ctx.createToken(attr));
+  node.attributes = stack.attributes.map((attr) => !attr.isAttributeDirective && ctx.createToken(attr)).filter(Boolean);
   node.selfClosing = !!stack.selfClosing;
   if (stack.parentStack.isComponent) {
     const desc = stack.parentStack.description();
@@ -11209,7 +11282,7 @@ function getOptions(...options) {
 // package.json
 var package_default = {
   name: "@easescript/es-javascript",
-  version: "0.2.0",
+  version: "0.2.1",
   description: "EaseScript Code Transformation Plugin For JavaScript",
   main: "dist/index.js",
   typings: "dist/types/typings.json",
@@ -11241,10 +11314,8 @@ var package_default = {
     "@babel/preset-env": "^7.18.6",
     "@babel/runtime-corejs3": "^7.17.9",
     "@easescript/transform": "latest",
-    axios: "^0.26.1",
+    axios: "^1.12.2",
     "blueimp-md5": "^2.19.0",
-    dotenv: "^16.4.5",
-    "dotenv-expand": "^11.0.6",
     "glob-path": "latest",
     "js-base64": "^3.7.2",
     "js-cookie": "^3.0.1",
@@ -11256,6 +11327,7 @@ var package_default = {
     easescript: "latest",
     "easescript-cli": "latest",
     "esbuild-plugin-copy": "^2.1.1",
+    esbuild: "^0.25.10",
     jasmine: "^3.10.0"
   },
   esconfig: {
