@@ -14,7 +14,8 @@ declare interface IEventDispatcher {
     /**
      * Removes the event listener in target's event listener list with the same type, callback, and options.
      */
-    removeEventListener(type: string, listener?: (event?:Event)=>void ): boolean;
+    removeEventListener(type: string, listener?: (event?:Event)=>void, useCapture?:boolean=false ): boolean;
+    removeEventListener(type: string, listener?: (event?:Event)=>void, options?:{capture?:boolean,once?:boolean,passive:boolean,signal:boolean} ): boolean;
 
     /**
     * Checks whether a listener of the specified type has been added
@@ -242,6 +243,10 @@ declare class URLSearchParams {
     /** Returns a string containing a query string suitable for use in a URL. Does not include the question mark. */
     toString(): string;
     forEach(callbackfn: (value: string, key: string, parent: URLSearchParams) => void, thisArg?: any): void;
+    entries(): Iterator<[string, string]>;
+    keys(): Iterator<string>;
+    values(): Iterator<string>;
+    get size():number
 }
 
 
@@ -879,7 +884,7 @@ declare class Node extends EventDispatcher{
      * Returns the previous sibling.
      */
     const previousSibling: ChildNode | null;
-    const textContent: string | null;
+    var textContent: string | null;
     appendChild<T extends Node>(node: T): T;
     /**
      * Returns a copy of node. If deep is true, the copy also includes the node's descendants.
@@ -1011,6 +1016,10 @@ declare interface ParentNode extends Node {
      * Returns the last child that is an element, and null otherwise.
      */
     const lastElementChild: Element | null;
+
+    const nextElementSibling:Element | null;
+    const firstElementSibling:Element | null;
+
     /**
      * Inserts nodes after the last child of node, while replacing strings in nodes with equivalent Text nodes.
      *
@@ -5081,3 +5090,396 @@ declare function requestAnimationFrame(callback: FrameRequestCallback): number;
 interface FrameRequestCallback {
     (time: number): void;
 }
+
+type HighlightType = "grammar-error" | "highlight" | "spelling-error";
+type CSSNumberish = number | CSSNumericValue;
+type CSSNumericBaseType = "angle" | "flex" | "frequency" | "length" | "percent" | "resolution" | "time";
+type CSSMathOperator = "clamp" | "invert" | "max" | "min" | "negate" | "product" | "sum";
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight) */
+interface Highlight {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight/priority) */
+    priority: number;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/Highlight/type) */
+    type: HighlightType;
+    forEach(callbackfn: (value: AbstractRange, key: AbstractRange, parent: Highlight) => void, thisArg?: any): void;
+}
+
+declare var Highlight: {
+    new(...initialRanges: AbstractRange[]): Highlight;
+};
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/HighlightRegistry) */
+interface HighlightRegistry {
+    forEach(callbackfn: (value: Highlight, key: string, parent: HighlightRegistry) => void, thisArg?: any): void;
+}
+
+declare var HighlightRegistry: {
+    new(): HighlightRegistry;
+};
+
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericArray) */
+interface CSSNumericArray {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericArray/length) */
+    readonly length: number;
+    forEach(callbackfn: (value: CSSNumericValue, key: number, parent: CSSNumericArray) => void, thisArg?: any): void;
+    [index: number]: CSSNumericValue;
+}
+
+declare var CSSNumericArray: {
+    new(): CSSNumericArray;
+};
+
+interface CSSNumericType {
+    angle?: number;
+    flex?: number;
+    frequency?: number;
+    length?: number;
+    percent?: number;
+    percentHint?: CSSNumericBaseType;
+    resolution?: number;
+    time?: number;
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleValue) */
+interface CSSStyleValue {
+    toString(): string;
+}
+
+declare var CSSStyleValue: {
+    new(): CSSStyleValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleValue/parse_static) */
+    parse(property: string, cssText: string): CSSStyleValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSStyleValue/parseAll_static) */
+    parseAll(property: string, cssText: string): CSSStyleValue[];
+};
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathValue) */
+interface CSSMathValue extends CSSNumericValue {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathValue/operator) */
+    readonly operator: CSSMathOperator;
+}
+
+declare var CSSMathValue: {
+    new(): CSSMathValue;
+};
+
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathSum) */
+interface CSSMathSum extends CSSMathValue {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSMathSum/values) */
+    readonly values: CSSNumericArray;
+}
+
+declare var CSSMathSum: {
+    new(...args: CSSNumberish[]): CSSMathSum;
+};
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue) */
+interface CSSNumericValue extends CSSStyleValue {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/add) */
+    add(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/div) */
+    div(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/equals) */
+    equals(...value: CSSNumberish[]): boolean;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/max) */
+    max(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/min) */
+    min(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/mul) */
+    mul(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/sub) */
+    sub(...values: CSSNumberish[]): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/to) */
+    to(unit: string): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/toSum) */
+    toSum(...units: string[]): CSSMathSum;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/type) */
+    type(): CSSNumericType;
+}
+
+declare var CSSNumericValue: {
+    new(): CSSNumericValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSNumericValue/parse_static) */
+    parse(cssText: string): CSSNumericValue;
+};
+
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue) */
+interface CSSUnitValue extends CSSNumericValue {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/unit) */
+    readonly unit: string;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSSUnitValue/value) */
+    value: number;
+}
+
+declare var CSSUnitValue: {
+    new(value: number, unit: string): CSSUnitValue;
+};
+
+interface PropertyDefinition {
+    inherits: boolean;
+    initialValue?: string;
+    name: string;
+    syntax?: string;
+}
+
+/** Holds useful CSS-related methods. No object with this interface are implemented: it contains only static methods and therefore is a utilitarian interface. */
+declare namespace CSS {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/highlights_static) */
+    var highlights: HighlightRegistry;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function Hz(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function Q(value: number): CSSUnitValue;
+    function cap(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function ch(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cm(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqb(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqmax(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqmin(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function cqw(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function deg(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dpcm(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dpi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dppx(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvb(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvmax(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvmin(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function dvw(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function em(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/escape_static) */
+    function escape(ident: string): string;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function ex(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function fr(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function grad(value: number): CSSUnitValue;
+    function ic(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function kHz(value: number): CSSUnitValue;
+    function lh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvb(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvmax(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvmin(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function lvw(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function mm(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function ms(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function number(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function pc(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function percent(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function pt(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function px(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function rad(value: number): CSSUnitValue;
+    function rcap(value: number): CSSUnitValue;
+    function rch(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/registerProperty_static) */
+    function registerProperty(definition: PropertyDefinition): void;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function rem(value: number): CSSUnitValue;
+    function rex(value: number): CSSUnitValue;
+    function ric(value: number): CSSUnitValue;
+    function rlh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function s(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/supports_static) */
+    function supports(property: string, value: string): boolean;
+    function supports(conditionText: string): boolean;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svb(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svmax(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svmin(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function svw(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function turn(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vb(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vh(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vi(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vmax(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vmin(value: number): CSSUnitValue;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CSS/factory_functions_static) */
+    function vw(value: number): CSSUnitValue;
+}
+
+type AllowSharedBufferSource = ArrayBuffer | ArrayBufferView;
+
+interface TextDecodeOptions {
+    stream?: boolean;
+}
+
+interface TextDecoderOptions {
+    fatal?: boolean;
+    ignoreBOM?: boolean;
+}
+
+interface GenericTransformStream {
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/readable) */
+    readonly readable: ReadableStream;
+    /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/CompressionStream/writable) */
+    readonly writable: WritableStream;
+}
+
+/**
+ * A decoder for a specific method, that is a specific character encoding, like utf-8, iso-8859-2, koi8, cp1261, gbk, etc. A decoder takes a stream of bytes as input and emits a stream of code points. For a more scalable, non-native library, see StringView – a C-like representation of strings based on typed arrays.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder)
+ */
+interface TextDecoder extends TextDecoderCommon {
+    /**
+     * Returns the result of running encoding's decoder. The method can be invoked zero or more times with options's stream set to true, and then once without options's stream (or set to false), to process a fragmented input. If the invocation without options's stream (or set to false) has no input, it's clearest to omit both arguments.
+     *
+     * ```
+     * var string = "", decoder = new TextDecoder(encoding), buffer;
+     * while(buffer = next_chunk()) {
+     *   string += decoder.decode(buffer, {stream:true});
+     * }
+     * string += decoder.decode(); // end-of-queue
+     * ```
+     *
+     * If the error mode is "fatal" and encoding's decoder returns error, throws a TypeError.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/decode)
+     */
+    decode(input?: AllowSharedBufferSource, options?: TextDecodeOptions): string;
+}
+
+declare var TextDecoder: {
+    prototype: TextDecoder;
+    new(label?: string, options?: TextDecoderOptions): TextDecoder;
+};
+
+interface TextEncoderEncodeIntoResult {
+    read: number;
+    written: number;
+}
+
+interface TextDecoderCommon {
+    /**
+     * Returns encoding's name, lowercased.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/encoding)
+     */
+    readonly encoding: string;
+    /**
+     * Returns true if error mode is "fatal", otherwise false.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/fatal)
+     */
+    readonly fatal: boolean;
+    /**
+     * Returns the value of ignore BOM.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoder/ignoreBOM)
+     */
+    readonly ignoreBOM: boolean;
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextDecoderStream) */
+interface TextDecoderStream extends GenericTransformStream, TextDecoderCommon {
+    readonly readable: ReadableStream<string>;
+    readonly writable: WritableStream<BufferSource>;
+}
+
+declare var TextDecoderStream: {
+    prototype: TextDecoderStream;
+    new(label?: string, options?: TextDecoderOptions): TextDecoderStream;
+};
+
+/**
+ * TextEncoder takes a stream of code points as input and emits a stream of bytes. For a more scalable, non-native library, see StringView – a C-like representation of strings based on typed arrays.
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder)
+ */
+interface TextEncoder extends TextEncoderCommon {
+    /**
+     * Returns the result of running UTF-8's encoder.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encode)
+     */
+    encode(input?: string): Uint8Array;
+    /**
+     * Runs the UTF-8 encoder on source, stores the result of that operation into destination, and returns the progress made as an object wherein read is the number of converted code units of source and written is the number of bytes modified in destination.
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encodeInto)
+     */
+    encodeInto(source: string, destination: Uint8Array): TextEncoderEncodeIntoResult;
+}
+
+declare var TextEncoder: {
+    prototype: TextEncoder;
+    new(): TextEncoder;
+};
+
+interface TextEncoderCommon {
+    /**
+     * Returns "utf-8".
+     *
+     * [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoder/encoding)
+     */
+    readonly encoding: string;
+}
+
+/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/TextEncoderStream) */
+interface TextEncoderStream extends GenericTransformStream, TextEncoderCommon {
+    readonly readable: ReadableStream<Uint8Array>;
+    readonly writable: WritableStream<string>;
+}
+
+declare var TextEncoderStream: {
+    prototype: TextEncoderStream;
+    new(): TextEncoderStream;
+};
